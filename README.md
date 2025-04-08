@@ -102,6 +102,8 @@ If you want to suggest features or report bugs, feel free to open an issue.
 Created by [Yaniv Bahalul](https://github.com/yanivbahalul) 
 Reach out via GitHub Issues or Discussions ✨
 
+---
+
 ## 📸 Screenshot
 
 <p align="center">
