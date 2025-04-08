@@ -45,12 +45,9 @@ dotnet --version
 ## 📥 Clone the Project
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/noodles-simulator.git
+git clone https://github.com/yanivbahalul/noodles-simulator.git
 cd noodles-simulator
 ```
-
-Replace `YOUR_USERNAME` with your GitHub username.
-
 ---
 
 ## 🚀 Run the Project Locally
