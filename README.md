@@ -101,3 +101,5 @@ If you want to suggest features or report bugs, feel free to open an issue.
 
 Created by [Yaniv Bahalul]  
 Reach out via GitHub Issues or Discussions ✨
+
+https://prnt.sc/P06wJUHpCSk0
