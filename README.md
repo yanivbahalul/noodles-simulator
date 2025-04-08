@@ -1,7 +1,7 @@
 <!-- README.md -->
 
 <p align="center">
-  <img src="assets/logo.png" alt="Noodles Simulator Logo" width="200">
+  <img src="https://github.com/yanivbahalul/noodles-simulator/blob/main/wwwroot/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" width="200">
 </p>
 
 <h1 align="center">🍜 Noodles Simulator</h1>
