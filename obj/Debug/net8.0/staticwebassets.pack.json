@@ -1,0 +1,49 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/assets/background.gif",
+      "PackagePath": "staticwebassets/assets/background.gif"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-09-51.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-09-51.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-10.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-10.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-13.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-13.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-20.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-20.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/logo/noodles-logo-transparent.png",
+      "PackagePath": "staticwebassets/logo/noodles-logo-transparent.png"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.HelloWorldWeb.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.HelloWorldWeb.props",
+      "PackagePath": "build\\HelloWorldWeb.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.HelloWorldWeb.props",
+      "PackagePath": "buildMultiTargeting\\HelloWorldWeb.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.HelloWorldWeb.props",
+      "PackagePath": "buildTransitive\\HelloWorldWeb.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
