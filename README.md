@@ -99,10 +99,10 @@ If you want to suggest features or report bugs, feel free to open an issue.
 
 ## 📬 Contact
 
-Created by [Yaniv Bahalul]  
+Created by [Yaniv Bahalul](https://github.com/yanivbahalul) 
 Reach out via GitHub Issues or Discussions ✨
 
 
 <p align="center">
-  <img src="https://prnt.sc/P06wJUHpCSk0" alt="SH" width="300">
+  <img src="https://raw.githubusercontent.com/yanivbahalul/noodles-simulator/main/wwwroot/logo/screen_shot.png" alt="Noodles Simulator Screenshot" width="700">
 </p>
