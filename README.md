@@ -107,3 +107,5 @@ Reach out via GitHub Issues or Discussions ✨
 <p align="center">
   <img src="https://raw.githubusercontent.com/yanivbahalul/noodles-simulator/main/wwwroot/logo/screen_shot.png" alt="Noodles Simulator Screenshot" width="700">
 </p>
+
+---
