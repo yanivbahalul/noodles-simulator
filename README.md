@@ -7,18 +7,19 @@
 <h1 align="center">🍜 Noodles Simulator</h1>
 
 <p align="center">
-  A fun and interactive .NET-based simulator for making virtual noodles!<br>
-  Built with C#, Razor Pages, and love.
+  An effective and interactive way to study for your Object-Oriented Programming exam.<br>
+  Built with C#, Razor Pages, and a focus on solid OOP principles.
 </p>
 
 ---
 
 ## ✨ Features
 
-- 🍲 Real-time noodle simulation
-- 🖥️ ASP.NET Core backend
-- 🔥 Runs locally with `dotnet run`
-- 🧠 Perfect for learning web + backend integration
+- 🎨 Innovative design and clean user interface
+- 🎲 Randomized pool of OOP-focused questions
+- 🔁 No repeated questions – each session is unique
+- ❓ Answers are intentionally unpredictable – no shortcuts
+- 🧠 Designed for deep understanding, not memorization
 
 ---
 
