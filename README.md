@@ -1,7 +1,7 @@
 <!-- README.md -->
 
 <p align="center">
-  <img src="https://github.com/yanivbahalul/noodles-simulator/blob/main/wwwroot/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" width="200">
+  <img src="https://github.com/yanivbahalul/noodles-simulator/blob/main/wwwroot/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" width="300">
 </p>
 
 <h1 align="center">🍜 Noodles Simulator</h1>
@@ -101,5 +101,5 @@ If you want to suggest features or report bugs, feel free to open an issue.
 
 ## 📬 Contact
 
-Created by [Your Name]  
+Created by [Yaniv Bahalul]  
 Reach out via GitHub Issues or Discussions ✨
