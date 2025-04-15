@@ -5,28 +5,512 @@
       "PackagePath": "staticwebassets/assets/background.gif"
     },
     {
-      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-09-51.png",
-      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-09-51.png"
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-14-53.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-14-53.png"
     },
     {
-      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-07.png",
-      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-07.png"
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-14-57.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-14-57.png"
     },
     {
-      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-10.png",
-      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-10.png"
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-14-59.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-14-59.png"
     },
     {
-      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-13.png",
-      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-13.png"
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-02.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-02.png"
     },
     {
-      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 03 00-10-20.png",
-      "PackagePath": "staticwebassets/images/Screenshot at Apr 03 00-10-20.png"
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-05.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-05.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-13.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-13.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-16.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-16.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-33.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-33.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-39.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-39.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-42.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-42.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-54.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-54.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-15-58.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-15-58.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-16-01.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-16-01.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-16-04.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-16-04.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-16-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-16-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-16-55.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-16-55.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-16-58.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-16-58.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-02.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-02.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-04.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-04.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-21.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-21.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-25.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-25.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-28.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-28.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-30.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-30.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-33.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-33.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-17-57.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-17-57.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-18-00.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-18-00.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-18-03.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-18-03.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-18-05.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-18-05.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-18-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-18-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-18-14.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-18-14.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-03.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-03.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-09.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-09.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-14.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-14.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-18.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-18.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-30.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-30.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-34.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-34.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-36.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-36.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-41.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-41.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-49.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-49.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-19-56.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-19-56.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-00.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-00.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-04.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-04.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-10.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-10.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-16.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-16.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-19.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-19.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-25.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-25.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-28.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-28.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-32.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-32.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-49.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-49.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-52.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-52.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-20-56.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-20-56.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-00.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-00.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-03.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-03.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-12.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-12.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-15.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-15.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-18.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-18.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-22.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-22.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-25.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-25.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-21-59.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-21-59.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-22-02.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-22-02.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-22-05.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-22-05.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-22-07.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-22-07.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-22-10.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-22-10.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-24-33.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-24-33.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-24-38.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-24-38.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-24-40.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-24-40.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-24-44.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-24-44.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-24-49.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-24-49.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-10.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-10.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-21.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-21.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-24.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-24.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-28.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-28.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-33.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-33.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-37.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-37.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-42.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-42.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-45.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-45.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-50.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-50.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-25-54.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-25-54.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-26-17.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-26-17.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-26-20.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-26-20.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-26-22.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-26-22.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-26-26.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-26-26.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-26-31.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-26-31.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-27.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-27.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-32.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-32.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-35.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-35.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-38.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-38.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-41.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-41.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-28-47.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-28-47.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-04.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-04.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-08.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-08.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-11.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-11.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-22.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-22.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-29.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-29.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-35.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-35.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-41.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-41.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-44.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-44.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-48.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-48.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-54.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-54.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-57.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-57.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-29-58.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-29-58.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-05.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-05.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-08.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-08.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-16.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-16.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-19.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-19.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-22.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-22.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-26.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-26.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-30.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-30.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-36.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-36.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-39.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-39.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-42.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-42.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-45.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-45.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-52.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-52.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-30-59.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-30-59.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-01.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-01.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-04.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-04.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-06.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-06.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-10.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-10.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-15.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-15.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-20.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-20.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-22.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-22.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-30.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-30.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/images/Screenshot at Apr 15 20-31-34.png",
+      "PackagePath": "staticwebassets/images/Screenshot at Apr 15 20-31-34.png"
     },
     {
       "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/logo/noodles-logo-transparent.png",
       "PackagePath": "staticwebassets/logo/noodles-logo-transparent.png"
+    },
+    {
+      "Id": "/Users/yaniv/Desktop/HelloWorldWeb/wwwroot/logo/screen_shot.png",
+      "PackagePath": "staticwebassets/logo/screen_shot.png"
     },
     {
       "Id": "obj/Debug/net8.0/staticwebassets/msbuild.HelloWorldWeb.Microsoft.AspNetCore.StaticWebAssets.props",

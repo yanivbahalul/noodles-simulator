@@ -59,3 +59,4 @@
 /Users/yaniv/Desktop/HelloWorldWeb/obj/Debug/net8.0/HelloWorldWeb.pdb
 /Users/yaniv/Desktop/HelloWorldWeb/obj/Debug/net8.0/HelloWorldWeb.genruntimeconfig.cache
 /Users/yaniv/Desktop/HelloWorldWeb/obj/Debug/net8.0/ref/HelloWorldWeb.dll
+/Users/yaniv/Desktop/HelloWorldWeb/obj/Debug/net8.0/HelloWorldWeb.sourcelink.json
