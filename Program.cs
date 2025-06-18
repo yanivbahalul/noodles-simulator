@@ -57,7 +57,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"🔗 Listening on: {url}");
 });
 
-// 🧹 ניקוי קבצי סטטיסטיקה ישנים
+
 var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
 if (Directory.Exists(progressDir))
 {
@@ -72,11 +72,9 @@ if (Directory.Exists(progressDir))
             try
             {
                 File.Delete(file);
-                Console.WriteLine("🗑️ Deleted old session file: " + Path.GetFileName(file));
             }
             catch (Exception ex)
             {
-                Console.WriteLine("⚠️ Failed to delete: " + file + " → " + ex.Message);
             }
         }
     }
