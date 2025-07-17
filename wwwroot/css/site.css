@@ -399,17 +399,23 @@ button.answer-btn:hover {
 }
 
 @media (max-width: 600px) {
+    body {
+        overflow-x: hidden;
+    }
     .login-container {
         max-width: 95vw;
         margin-top: 20px !important;
         padding: 20px 8px;
         border-radius: 10px;
     }
-    .input-field {
-        font-size: 15px;
+    .input-field, input, textarea, select {
+        font-size: 16px !important;
         padding: 8px;
     }
-    .main-btn, .secondary-btn, .next-question-btn, .logout-btn, button {
+    /* כפתורים בתוך טפסים או button-row - רוחב מלא */
+    .button-row button,
+    form button,
+    .main-btn, .secondary-btn {
         font-size: 14px;
         padding: 10px 0;
         width: 100%;
@@ -420,6 +426,16 @@ button.answer-btn:hover {
     .button-row {
         flex-direction: column;
         gap: 0;
+    }
+    /* כפתורים fixed בראש/צד - רוחב אוטומטי */
+    .logout-btn,
+    .next-question-btn {
+        width: auto !important;
+        min-width: 48px;
+        max-width: 90vw;
+        margin-bottom: 0;
+        padding-left: 16px;
+        padding-right: 16px;
     }
     h2, h1 {
         font-size: 20px !important;
