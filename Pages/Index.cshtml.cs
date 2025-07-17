@@ -217,34 +217,33 @@ namespace NoodlesSimulator.Pages
                 }
                 catch { }
 
-                string correctKey = null;
-                foreach (var key in answersDict.Keys)
-                {
-                    if (answersDict[key] == correctAnswer)
-                    {
-                        correctKey = key;
-                        break;
-                    }
-                }
                 var abcd = new[] { "A", "B", "C", "D" };
                 var answersBlock = new StringBuilder();
-                if (correctKey != null)
-                    answersBlock.Append($"A: {answersDict[correctKey]} <br>");
-                var distractorKeys = answersDict.Keys.Where(k => k != correctKey).ToList();
-                for (int i = 0; i < distractorKeys.Count && i < 3; i++)
+                var allAnswers = answersDict.Values.ToList();
+                int correctIdx = allAnswers.IndexOf(correctAnswer);
+                if (correctIdx >= 0)
                 {
-                    answersBlock.Append($"{abcd[i + 1]}: {answersDict[distractorKeys[i]]} <br>");
+                    answersBlock.Append($"A: {allAnswers[correctIdx]} <br>");
+                }
+                var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
+                for (int i = 0; i < distractors.Count && i < 3; i++)
+                {
+                    answersBlock.Append($"{abcd[i + 1]}: {distractors[i]} <br>");
                 }
                 string selectedLetter = "לא סומנה תשובה";
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
-                    if (selectedAnswer == correctKey)
+                    if (correctIdx >= 0 && selectedAnswer == answersDict.Keys.ElementAt(correctIdx))
                         selectedLetter = "A";
                     else
                     {
-                        int idx = distractorKeys.IndexOf(selectedAnswer);
-                        if (idx >= 0 && idx < 3)
-                            selectedLetter = abcd[idx + 1];
+                        int idx = allAnswers.IndexOf(answersDict.ContainsKey(selectedAnswer) ? answersDict[selectedAnswer] : null);
+                        if (idx >= 0 && idx != correctIdx)
+                        {
+                            int distractorIdx = idx < correctIdx ? idx : idx - 1;
+                            if (distractorIdx >= 0 && distractorIdx < 3)
+                                selectedLetter = abcd[distractorIdx + 1];
+                        }
                     }
                 }
 
