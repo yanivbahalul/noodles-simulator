@@ -22,11 +22,11 @@
     <form method="post">
         @Html.AntiForgeryToken()
         <div style="text-align: right;">
-            <label for="username" style="color: white;">שם משתמש<span dir="ltr">:</span></label>
+            <label for="username" style="color: white;">שם משתמש</label>
             <input type="text" name="Username" id="username" class="input-field"
                    value="@Model.Username"
                    style="width: 100%; margin-bottom: 20px;" required />
-            <label for="password" style="color: white;">סיסמה<span dir="ltr">:</span></label>
+            <label for="password" style="color: white;">סיסמה</label>
             <input type="password" name="Password" id="password" class="input-field"
                    style="width: 100%; margin-bottom: 25px; direction: rtl;" required />
         </div>
