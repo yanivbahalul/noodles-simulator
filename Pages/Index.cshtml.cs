@@ -217,7 +217,6 @@ namespace NoodlesSimulator.Pages
                 }
                 catch { }
 
-                // בניית תשובות כך ש-A תמיד נכונה
                 string correctKey = null;
                 foreach (var key in answersDict.Keys)
                 {
@@ -227,16 +226,15 @@ namespace NoodlesSimulator.Pages
                         break;
                     }
                 }
-                var distractorKeys = answersDict.Keys.Where(k => k != correctKey).Take(3).ToList();
                 var abcd = new[] { "A", "B", "C", "D" };
                 var answersBlock = new StringBuilder();
                 if (correctKey != null)
                     answersBlock.Append($"A: {answersDict[correctKey]} <br>");
+                var distractorKeys = answersDict.Keys.Where(k => k != correctKey).ToList();
                 for (int i = 0; i < distractorKeys.Count && i < 3; i++)
                 {
                     answersBlock.Append($"{abcd[i + 1]}: {answersDict[distractorKeys[i]]} <br>");
                 }
-                // מציאת אות התשובה שסומנה (A/B/C/D) לפי המיפוי החדש
                 string selectedLetter = "לא סומנה תשובה";
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
