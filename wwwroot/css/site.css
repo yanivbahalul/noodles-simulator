@@ -413,6 +413,8 @@ button.answer-btn:hover {
         min-width: 0;
         padding: 10px 2vw;
         font-size: 17px;
+        /* מרווח תחתון כדי שכפתורי התחתית לא יסתירו */
+        padding-bottom: 90px;
     }
     .quiz-container > img {
         max-width: 100%;
@@ -421,6 +423,8 @@ button.answer-btn:hover {
     .answers {
         gap: 12px;
         margin-top: 16px;
+        /* מונע גלישה לרוחב במסכים קטנים */
+        width: 100%;
     }
     .answers img {
         max-width: 100%;
@@ -437,10 +441,13 @@ button.answer-btn:hover {
         z-index: 1002;
         padding: 10px 8px 18px 8px;
         box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+        /* תמיד מעל כל תוכן אחר */
     }
     .button-row button {
         margin-bottom: 8px;
         font-size: 16px;
+        width: 100%;
+        border-radius: 10px;
     }
     .input-field, input, textarea, select {
         font-size: 16px !important;
@@ -453,8 +460,33 @@ button.answer-btn:hover {
         min-width: 48px;
         max-width: 90vw;
         margin-bottom: 0;
-        padding-left: 16px;
-        padding-right: 16px;
+        padding-left: 12px;
+        padding-right: 12px;
+        font-size: 15px;
+        height: 38px;
+        border-radius: 8px;
+    }
+    .logout-btn {
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        z-index: 1003 !important;
+        font-size: 15px;
+        padding: 8px 10px;
+    }
+    /* ניווט עליון (מובילים/ניהול) */
+    .mobile-nav-top {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1003;
+        display: flex;
+        gap: 6px;
+    }
+    .mobile-nav-top .next-question-btn {
+        font-size: 15px;
+        padding: 8px 10px;
+        border-radius: 8px;
     }
     h2, h1 {
         font-size: 20px !important;
