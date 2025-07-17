@@ -209,7 +209,6 @@ namespace NoodlesSimulator.Pages
                 message.Subject = $"[Noodles Simulator] דיווח טעות חדשה מהמשתמש {username}";
 
                 var bodyBuilder = new BodyBuilder();
-                // פירוק תשובות JSON
                 var answersDict = new Dictionary<string, string>();
                 try
                 {
@@ -218,22 +217,37 @@ namespace NoodlesSimulator.Pages
                 }
                 catch { }
 
-                // בניית תשובות לפי סדר הערבוב (A/B/C/D)
-                var answerKeys = answersDict.Keys.ToList();
+                // בניית תשובות כך ש-A תמיד נכונה
+                string correctKey = null;
+                foreach (var key in answersDict.Keys)
+                {
+                    if (answersDict[key] == correctAnswer)
+                    {
+                        correctKey = key;
+                        break;
+                    }
+                }
+                var distractorKeys = answersDict.Keys.Where(k => k != correctKey).Take(3).ToList();
                 var abcd = new[] { "A", "B", "C", "D" };
                 var answersBlock = new StringBuilder();
-                for (int i = 0; i < answerKeys.Count && i < 4; i++)
+                if (correctKey != null)
+                    answersBlock.Append($"A: {answersDict[correctKey]} <br>");
+                for (int i = 0; i < distractorKeys.Count && i < 3; i++)
                 {
-                    answersBlock.Append($"{abcd[i]}: {answersDict[answerKeys[i]]} <br>");
+                    answersBlock.Append($"{abcd[i + 1]}: {answersDict[distractorKeys[i]]} <br>");
                 }
-
-                // מציאת אות התשובה שסומנה (A/B/C/D) לפי הסדר בפועל
+                // מציאת אות התשובה שסומנה (A/B/C/D) לפי המיפוי החדש
                 string selectedLetter = "לא סומנה תשובה";
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
-                    int idx = answerKeys.IndexOf(selectedAnswer);
-                    if (idx >= 0 && idx < 4)
-                        selectedLetter = abcd[idx];
+                    if (selectedAnswer == correctKey)
+                        selectedLetter = "A";
+                    else
+                    {
+                        int idx = distractorKeys.IndexOf(selectedAnswer);
+                        if (idx >= 0 && idx < 3)
+                            selectedLetter = abcd[idx + 1];
+                    }
                 }
 
                 // בניית גוף המייל
