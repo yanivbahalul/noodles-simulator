@@ -397,3 +397,23 @@ button.answer-btn:hover {
 .close-modal:hover {
     color: #ff4c4c;
 }
+
+@media (max-width: 600px) {
+    .login-container {
+        max-width: 95vw;
+        margin-top: 20px !important;
+        padding: 20px 8px;
+        border-radius: 10px;
+    }
+    .input-field {
+        font-size: 15px;
+        padding: 8px;
+    }
+    .main-btn, .secondary-btn {
+        font-size: 14px;
+        padding: 8px;
+    }
+    h2, h1 {
+        font-size: 20px !important;
+    }
+}
