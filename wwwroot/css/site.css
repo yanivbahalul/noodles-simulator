@@ -409,9 +409,17 @@ button.answer-btn:hover {
         font-size: 15px;
         padding: 8px;
     }
-    .main-btn, .secondary-btn {
+    .main-btn, .secondary-btn, .next-question-btn, .logout-btn, button {
         font-size: 14px;
-        padding: 8px;
+        padding: 10px 0;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+    }
+    .button-row {
+        flex-direction: column;
+        gap: 0;
     }
     h2, h1 {
         font-size: 20px !important;
