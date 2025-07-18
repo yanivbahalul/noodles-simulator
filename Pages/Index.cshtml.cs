@@ -33,6 +33,8 @@ namespace NoodlesSimulator.Pages
         public string ConnectionStatus { get; set; }
         public int OnlineCount { get; set; }
 
+        private static readonly Random _random = new Random();
+
         public async Task<IActionResult> OnGetAsync()
         {
             Username = HttpContext.Session.GetString("Username");
@@ -331,7 +333,7 @@ namespace NoodlesSimulator.Pages
                 return;
             }
 
-            var chosen = grouped[new Random().Next(grouped.Count)];
+            var chosen = grouped[_random.Next(grouped.Count)];
             QuestionImage = chosen[0];
             var correct = chosen[1];
             var wrong = chosen.Skip(2).Take(3).ToList();
