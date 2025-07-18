@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using System.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
+using System.Security.Cryptography;
 
 namespace NoodlesSimulator.Pages
 {
@@ -33,7 +34,7 @@ namespace NoodlesSimulator.Pages
         public string ConnectionStatus { get; set; }
         public int OnlineCount { get; set; }
 
-        private static readonly Random _random = new Random();
+        // private static readonly Random _random = new Random(); // לא צריך יותר
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -333,7 +334,9 @@ namespace NoodlesSimulator.Pages
                 return;
             }
 
-            var chosen = grouped[_random.Next(grouped.Count)];
+            // בחירה אקראית חזקה
+            int index = RandomNumberGenerator.GetInt32(grouped.Count);
+            var chosen = grouped[index];
             QuestionImage = chosen[0];
             var correct = chosen[1];
             var wrong = chosen.Skip(2).Take(3).ToList();
