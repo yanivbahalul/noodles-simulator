@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using NoodlesSimulator.Models;
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
+using System;
 
 namespace NoodlesSimulator.Pages
 {
@@ -17,20 +18,29 @@ namespace NoodlesSimulator.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (string.IsNullOrEmpty(username))
-                return new JsonResult(new { status = "unauthenticated" });
+            try
+            {
+                var username = HttpContext.Session.GetString("Username");
+                if (string.IsNullOrEmpty(username))
+                    return new JsonResult(new { status = "unauthenticated" });
 
-            var user = await _authService.GetUser(username);
-            if (user == null)
-                return new JsonResult(new { status = "not_found" });
+                User user = null;
+                try { user = await _authService.GetUser(username); } catch (Exception ex) { Console.WriteLine($"[FlagCheater GetUser Error] {ex}"); }
+                if (user == null)
+                    return new JsonResult(new { status = "not_found" });
 
-            user.CorrectAnswers = 0;
-            user.TotalAnswered = 0;
-            user.IsCheater = true;
-            await _authService.UpdateUser(user);
+                user.CorrectAnswers = 0;
+                user.TotalAnswered = 0;
+                user.IsCheater = true;
+                try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[FlagCheater UpdateUser Error] {ex}"); }
 
-            return new JsonResult(new { status = "flagged" });
+                return new JsonResult(new { status = "flagged" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FlagCheater OnPostAsync Error] {ex}");
+                return new JsonResult(new { status = "error", error = ex.Message }) { StatusCode = 500 };
+            }
         }
     }
 }

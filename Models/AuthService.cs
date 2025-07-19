@@ -40,8 +40,9 @@ namespace NoodlesSimulator.Models
                 var users = JsonSerializer.Deserialize<List<User>>(json);
                 return users?.FirstOrDefault();
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[Authenticate Exception] {ex}");
                 return null;
             }
         }
@@ -89,36 +90,49 @@ namespace NoodlesSimulator.Models
                 var users = JsonSerializer.Deserialize<List<User>>(json);
                 return users?.FirstOrDefault();
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[GetUser Exception] {ex}");
                 return null;
             }
         }
 
-        public async Task UpdateUser(User updatedUser)
+        public async Task<bool> UpdateUser(User updatedUser)
         {
-            var patch = new[]
+            try
             {
-                new {
-                    Username = updatedUser.Username,
-                    CorrectAnswers = updatedUser.CorrectAnswers,
-                    TotalAnswered = updatedUser.TotalAnswered,
-                    IsCheater = updatedUser.IsCheater,
-                    IsBanned = updatedUser.IsBanned,
-                    LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
+                var patch = new[]
+                {
+                    new {
+                        Username = updatedUser.Username,
+                        CorrectAnswers = updatedUser.CorrectAnswers,
+                        TotalAnswered = updatedUser.TotalAnswered,
+                        IsCheater = updatedUser.IsCheater,
+                        IsBanned = updatedUser.IsBanned,
+                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
+                    }
+                };
+
+                var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{updatedUser.Username}")
+                {
+                    Content = content
+                };
+                request.Headers.Add("Prefer", "return=representation");
+
+                var response = await _client.SendAsync(request);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[UpdateUser Error] PATCH failed for {updatedUser.Username}: {response.StatusCode}");
+                    return false;
                 }
-            };
-
-            var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
-            var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{updatedUser.Username}")
+                return true;
+            }
+            catch (Exception ex)
             {
-                Content = content
-            };
-            request.Headers.Add("Prefer", "return=representation");
-
-            var response = await _client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-                throw new Exception($"UpdateUser failed for {updatedUser.Username}");
+                Console.WriteLine($"[UpdateUser Exception] {ex}");
+                return false;
+            }
         }
 
         public async Task<List<User>> GetAllUsers()
@@ -129,8 +143,9 @@ namespace NoodlesSimulator.Models
                 var json = await res.Content.ReadAsStringAsync();
                 return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[GetAllUsers Exception] {ex}");
                 return new List<User>();
             }
         }
@@ -144,8 +159,9 @@ namespace NoodlesSimulator.Models
                 var response = await _client.SendAsync(request);
                 return response.IsSuccessStatusCode;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[DeleteUser Exception] {ex}");
                 return false;
             }
         }
@@ -157,8 +173,9 @@ namespace NoodlesSimulator.Models
                 var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username&limit=1");
                 return res.IsSuccessStatusCode;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[CheckConnection Exception] {ex}");
                 return false;
             }
         }

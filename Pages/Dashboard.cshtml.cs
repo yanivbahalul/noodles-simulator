@@ -41,14 +41,30 @@ namespace NoodlesSimulator.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
-            await LoadData();
-            LoadErrorReports();
-            return Page();
+            try
+            {
+                await LoadData();
+                LoadErrorReports();
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dashboard OnGetAsync Error] {ex}");
+                return StatusCode(500, $"Server error: {ex.Message}");
+            }
         }
 
         private async Task LoadData()
         {
-            AllUsers = await _authService.GetAllUsers();
+            try
+            {
+                AllUsers = await _authService.GetAllUsers();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dashboard GetAllUsers Error] {ex}");
+                AllUsers = new List<User>();
+            }
             Cheaters = AllUsers.Where(u => u.IsCheater).ToList();
             BannedUsers = AllUsers.Where(u => u.IsBanned).ToList();
             OnlineUsers = AllUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();
@@ -60,12 +76,26 @@ namespace NoodlesSimulator.Pages
 
         private void LoadErrorReports()
         {
-            var reportsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "reports.json");
-            if (System.IO.File.Exists(reportsPath))
+            try
             {
-                var json = System.IO.File.ReadAllText(reportsPath);
-                if (!string.IsNullOrWhiteSpace(json))
-                    ErrorReports = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ErrorReport>>(json);
+                var reportsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "reports.json");
+                if (System.IO.File.Exists(reportsPath))
+                {
+                    var json = System.IO.File.ReadAllText(reportsPath);
+                    if (!string.IsNullOrWhiteSpace(json))
+                        ErrorReports = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ErrorReport>>(json);
+                    else
+                        ErrorReports = new List<ErrorReport>();
+                }
+                else
+                {
+                    ErrorReports = new List<ErrorReport>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dashboard LoadErrorReports Error] {ex}");
+                ErrorReports = new List<ErrorReport>();
             }
         }
     }

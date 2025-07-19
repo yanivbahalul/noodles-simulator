@@ -43,17 +43,33 @@ app.MapRazorPages();
 
 app.MapPost("/clear-session", async context =>
 {
-    context.Session.Clear();
-    context.Response.Cookies.Delete("Username");
-    context.Response.StatusCode = 200;
-    await context.Response.CompleteAsync();
+    try
+    {
+        context.Session.Clear();
+        context.Response.Cookies.Delete("Username");
+        context.Response.StatusCode = 200;
+        await context.Response.CompleteAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[ClearSession Error] {ex}");
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync($"Server error: {ex.Message}");
+    }
 });
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
-    var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
-    Console.WriteLine("🍜 Noodles Simulator is running!");
-    Console.WriteLine($"🔗 Listening on: {url}");
+    try
+    {
+        var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
+        Console.WriteLine("🍜 Noodles Simulator is running!");
+        Console.WriteLine($"🔗 Listening on: {url}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup Log Error] {ex}");
+    }
 });
 
 var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
@@ -71,7 +87,10 @@ if (Directory.Exists(progressDir))
             {
                 File.Delete(file);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Progress File Delete Error] {ex}");
+            }
         }
     }
 }

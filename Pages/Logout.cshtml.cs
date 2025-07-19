@@ -8,10 +8,17 @@ namespace NoodlesSimulator.Pages
     {
         public IActionResult OnPost()
         {
-            HttpContext.Session.Clear();
-            Response.Cookies.Delete("Username");
-
-            return Redirect(Request.Path);
+            try
+            {
+                HttpContext.Session.Clear();
+                Response.Cookies.Delete("Username");
+                return Redirect(Request.Path);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Logout OnPost Error] {ex}");
+                return StatusCode(500, $"Server error: {ex.Message}");
+            }
         }
     }
 }

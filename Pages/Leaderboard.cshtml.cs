@@ -3,6 +3,7 @@ using NoodlesSimulator.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System;
 
 namespace NoodlesSimulator.Pages
 {
@@ -19,11 +20,19 @@ namespace NoodlesSimulator.Pages
 
         public async Task OnGetAsync()
         {
-            var users = await _authService.GetAllUsers();
-            SortedUsers = users
-                .OrderByDescending(u => u.CorrectAnswers)
-                .ThenBy(u => u.TotalAnswered)
-                .ToList();
+            try
+            {
+                var users = await _authService.GetAllUsers();
+                SortedUsers = users
+                    .OrderByDescending(u => u.CorrectAnswers)
+                    .ThenBy(u => u.TotalAnswered)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Leaderboard OnGetAsync Error] {ex}");
+                SortedUsers = new List<User>();
+            }
         }
     }
 }
