@@ -4,23 +4,23 @@ services:
     runtime: dotnet
     repo: https://github.com/yanivbahalul/noodles-simulator
     branch: main
-    buildCommand: dotnet publish -c Release -o out
-    startCommand: dotnet out/NoodlesSimulator.dll
+    buildCommand: |
+      dotnet publish -c Release -o out
+      pip install -r requirements.txt || true
+    startCommand: |
+      bash -c "dotnet out/NoodlesSimulator.dll & python3 render_monitor.py"
     env:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: SUPABASE_URL
       - key: SUPABASE_KEY
-  - type: worker
-    name: monitor-worker
-    runtime: python
-    repo: https://github.com/yanivbahalul/noodles-simulator
-    branch: main
-    startCommand: pip install requests && python3 render_monitor.py
-    env:
       - key: RENDER_API_KEY
-        value: rnd_aPNjt9rvXje6qUGTjI6atz8bl9Wo
       - key: SERVICE_ID
-        value: srv-d0957jqdbo4c73960bn0
       - key: EMAIL_SMTP_PASS
-        value: ixakgpzsxfxamyqs
+      - key: EMAIL_SMTP_USER
+      - key: EMAIL_SMTP_SERVER
+      - key: EMAIL_FROM
+      - key: EMAIL_TO
+      - key: EMAIL_SUBJECT
+      - key: CHECK_URL
+      - key: CHECK_INTERVAL
