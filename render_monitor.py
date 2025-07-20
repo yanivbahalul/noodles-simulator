@@ -1,8 +1,13 @@
-import requests
-import time
-import smtplib
-from email.mime.text import MIMEText
-import os
+print("=== Starting render_monitor.py === (pre-import)")
+try:
+    import requests
+    import time
+    import smtplib
+    from email.mime.text import MIMEText
+    import os
+except Exception as e:
+    print(f"IMPORT ERROR: {e}")
+    raise
 
 # === CONFIGURATION ===
 RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
