@@ -6,7 +6,7 @@ services:
     branch: main
     buildCommand: |
       dotnet publish -c Release -o out
-      pip install -r requirements.txt || true
+      pip3 install -r requirements.txt || true
     startCommand: |
       bash -c "dotnet out/NoodlesSimulator.dll & python3 render_monitor.py"
     env:
