@@ -7,16 +7,16 @@ import os
 # === CONFIGURATION ===
 RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
 SERVICE_ID = os.environ.get("SERVICE_ID")
-CHECK_URL = "https://noodles-simulator.onrender.com"
-CHECK_INTERVAL = 60  # seconds
+CHECK_URL = os.environ.get("CHECK_URL", "https://noodles-simulator.onrender.com")
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 60))  # seconds
 
 # Email notification settings
-EMAIL_FROM = "yanivbahlul@gmail.com"
-EMAIL_TO = "yanivbahlul@gmail.com"
-EMAIL_SUBJECT = "[Noodles Simulator] Restart Triggered"
-EMAIL_SMTP_SERVER = "smtp.gmail.com"
-EMAIL_SMTP_PORT = 587
-EMAIL_SMTP_USER = "yanivbahlul@gmail.com"
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "your_email@gmail.com")
+EMAIL_TO = os.environ.get("EMAIL_TO", "your_email@gmail.com")
+EMAIL_SUBJECT = os.environ.get("EMAIL_SUBJECT", "[Noodles Simulator] Restart Triggered")
+EMAIL_SMTP_SERVER = os.environ.get("EMAIL_SMTP_SERVER", "smtp.gmail.com")
+EMAIL_SMTP_PORT = int(os.environ.get("EMAIL_SMTP_PORT", 587))
+EMAIL_SMTP_USER = os.environ.get("EMAIL_SMTP_USER", "your_email@gmail.com")
 EMAIL_SMTP_PASS = os.environ.get("EMAIL_SMTP_PASS")
 
 # === END CONFIGURATION ===
