@@ -7,7 +7,7 @@ import os
 # === CONFIGURATION ===
 RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
 SERVICE_ID = os.environ.get("SERVICE_ID")
-CHECK_URL = "https://soup-simulator.onrender.com"  # Hardcoded
+CHECK_URL = "https://noodles-simulator.onrender.com"  # Hardcoded
 CHECK_INTERVAL = 60  # seconds, hardcoded
 
 # Email notification settings (non-secret values hardcoded)
