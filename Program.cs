@@ -95,7 +95,17 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
 });
 
+// יצירת תיקיות וקבצים קריטיים אם חסרים
+var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
+if (!Directory.Exists(reportsDir))
+    Directory.CreateDirectory(reportsDir);
+var reportsJson = Path.Combine(reportsDir, "reports.json");
+if (!File.Exists(reportsJson))
+    File.WriteAllText(reportsJson, "[]");
 var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
+if (!Directory.Exists(progressDir))
+    Directory.CreateDirectory(progressDir);
+
 if (Directory.Exists(progressDir))
 {
     var files = Directory.GetFiles(progressDir, "*.json");
