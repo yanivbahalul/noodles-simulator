@@ -23,7 +23,6 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddHttpClient();
-builder.Services.AddHostedService<NoodlesSimulator.Models.MonitorService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
