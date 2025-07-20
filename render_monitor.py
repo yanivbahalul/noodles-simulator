@@ -7,17 +7,16 @@ import os
 # === CONFIGURATION ===
 RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
 SERVICE_ID = os.environ.get("SERVICE_ID")
-CHECK_URL = os.environ.get("CHECK_URL", "https://noodles-simulator.onrender.com")
-CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", 60))  # seconds
+CHECK_URL = "https://soup-simulator.onrender.com"  # Hardcoded
+CHECK_INTERVAL = 60  # seconds, hardcoded
 
-# Email notification settings
-EMAIL_FROM = os.environ.get("EMAIL_FROM", "your_email@gmail.com")
-EMAIL_TO = os.environ.get("EMAIL_TO", "your_email@gmail.com")
-EMAIL_SUBJECT = os.environ.get("EMAIL_SUBJECT", "[Noodles Simulator] Restart Triggered")
-EMAIL_SMTP_SERVER = os.environ.get("EMAIL_SMTP_SERVER", "smtp.gmail.com")
-EMAIL_SMTP_PORT = int(os.environ.get("EMAIL_SMTP_PORT", 587))
-EMAIL_SMTP_USER = os.environ.get("EMAIL_SMTP_USER", "your_email@gmail.com")
-EMAIL_SMTP_PASS = os.environ.get("EMAIL_SMTP_PASS")
+# Email notification settings (non-secret values hardcoded)
+EMAIL_SMTP_USER = "yanivbahlul@gmail.com"
+EMAIL_SMTP_SERVER = "smtp.gmail.com"
+EMAIL_FROM = "yanivbahlul@gmail.com"
+EMAIL_TO = "yanivbahlul@gmail.com"
+EMAIL_SUBJECT = "[Noodles Simulator] Restarted!"
+EMAIL_SMTP_PASS = os.environ.get("EMAIL_SMTP_PASS")  # Secret only from env
 
 # === END CONFIGURATION ===
 
@@ -28,7 +27,7 @@ def send_email_notification(reason):
     msg["From"] = EMAIL_FROM
     msg["To"] = EMAIL_TO
     try:
-        with smtplib.SMTP(EMAIL_SMTP_SERVER, EMAIL_SMTP_PORT) as server:
+        with smtplib.SMTP(EMAIL_SMTP_SERVER, 587) as server:
             server.starttls()
             server.login(EMAIL_SMTP_USER, EMAIL_SMTP_PASS)
             server.sendmail(EMAIL_FROM, [EMAIL_TO], msg.as_string())
@@ -49,6 +48,8 @@ def restart_render_service():
     else:
         print(f"Failed to restart service: {response.status_code} {response.text}")
         return False
+
+print("=== Starting render_monitor.py ===")
 
 while True:
     try:
