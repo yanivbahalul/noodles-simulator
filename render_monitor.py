@@ -2,10 +2,11 @@ import requests
 import time
 import smtplib
 from email.mime.text import MIMEText
+import os
 
 # === CONFIGURATION ===
-RENDER_API_KEY = "rnd_aPNjt9rvXje6qUGTjI6atz8bl9Wo"
-SERVICE_ID = "srv-d0957jqdbo4c73960bn0"
+RENDER_API_KEY = os.environ.get("RENDER_API_KEY")
+SERVICE_ID = os.environ.get("SERVICE_ID")
 CHECK_URL = "https://noodles-simulator.onrender.com"
 CHECK_INTERVAL = 60  # seconds
 
@@ -16,7 +17,7 @@ EMAIL_SUBJECT = "[Noodles Simulator] Restart Triggered"
 EMAIL_SMTP_SERVER = "smtp.gmail.com"
 EMAIL_SMTP_PORT = 587
 EMAIL_SMTP_USER = "yanivbahlul@gmail.com"
-EMAIL_SMTP_PASS = "ixakgpzsxfxamyqs"
+EMAIL_SMTP_PASS = os.environ.get("EMAIL_SMTP_PASS")
 
 # === END CONFIGURATION ===
 
