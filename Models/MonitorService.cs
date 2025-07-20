@@ -31,7 +31,7 @@ namespace NoodlesSimulator.Models
             _httpClientFactory = httpClientFactory;
             _config = config;
             _checkUrl = _config["CHECK_URL"] ?? "https://noodles-simulator.onrender.com";
-            _intervalSeconds = int.TryParse(_config["CHECK_INTERVAL"], out var s) ? s : 60;
+            _intervalSeconds = int.TryParse(_config["CHECK_INTERVAL"], out var s) ? s : 300;
             _renderApiKey = _config["RENDER_API_KEY"];
             _serviceId = _config["SERVICE_ID"];
             _emailFrom = _config["EMAIL_FROM"] ?? "yanivbahlul@gmail.com";
