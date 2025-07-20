@@ -11,8 +11,4 @@ RUN dotnet publish "./HelloWorldWeb.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-RUN apt-get update && apt-get install -y python3-pip python3-requests
-COPY render_monitor.py .
-# Debug: List files and show first lines of render_monitor.py
-RUN ls -l /app && head -5 /app/render_monitor.py
-ENTRYPOINT ["bash", "-c", "dotnet NoodlesSimulator.dll & python3 render_monitor.py"]
+ENTRYPOINT ["dotnet", "NoodlesSimulator.dll"]

@@ -22,6 +22,9 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(1);
 });
 
+builder.Services.AddHttpClient();
+builder.Services.AddHostedService<NoodlesSimulator.Models.MonitorService>();
+
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
