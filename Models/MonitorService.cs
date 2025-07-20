@@ -39,7 +39,7 @@ namespace NoodlesSimulator.Models
             _emailSmtpUser = _config["EMAIL_SMTP_USER"] ?? "yanivbahlul@gmail.com";
             _emailSmtpPass = _config["EMAIL_SMTP_PASS"];
             _emailSmtpServer = _config["EMAIL_SMTP_SERVER"] ?? "smtp.gmail.com";
-            _emailSubject = _config["EMAIL_SUBJECT"] ?? "[Noodles Simulator] Restarted!";
+            _emailSubject = _config["EMAIL_SUBJECT"] ?? "[noodles Simulator] Restarted!";
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -106,12 +106,12 @@ namespace NoodlesSimulator.Models
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("Noodles Simulator", _emailFrom));
+                message.From.Add(new MailboxAddress("Nodels Simulator", _emailFrom));
                 message.To.Add(new MailboxAddress("Yaniv Bahlul", _emailTo));
                 message.Subject = _emailSubject;
                 message.Body = new TextPart("plain")
                 {
-                    Text = $"The server at {_checkUrl} was restarted due to: {reason}"
+                    Text = $"השרת של Nodels Simulator בכתובת {_checkUrl} הופעל מחדש בעקבות: {reason}"
                 };
                 using var client = new SmtpClient();
                 await client.ConnectAsync(_emailSmtpServer, 587, MailKit.Security.SecureSocketOptions.StartTls);
