@@ -58,6 +58,29 @@ app.MapPost("/clear-session", async context =>
     }
 });
 
+app.MapGet("/health", async context =>
+{
+    var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
+    var key = Environment.GetEnvironmentVariable("SUPABASE_KEY");
+    var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+    var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
+    var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine($"SUPABASE_URL: {(string.IsNullOrEmpty(url) ? "MISSING" : "OK")}");
+    sb.AppendLine($"SUPABASE_KEY: {(string.IsNullOrEmpty(key) ? "MISSING" : "OK")}");
+    sb.AppendLine($"wwwroot/images: {(Directory.Exists(imagesDir) ? "OK" : "MISSING")}");
+    sb.AppendLine($"wwwroot/reports: {(Directory.Exists(reportsDir) ? "OK" : "MISSING")}");
+    sb.AppendLine($"progress: {(Directory.Exists(progressDir) ? "OK" : "MISSING")}");
+    if (Directory.Exists(imagesDir))
+        sb.AppendLine($"images count: {Directory.GetFiles(imagesDir).Length}");
+    if (Directory.Exists(reportsDir))
+        sb.AppendLine($"reports count: {Directory.GetFiles(reportsDir).Length}");
+    if (Directory.Exists(progressDir))
+        sb.AppendLine($"progress count: {Directory.GetFiles(progressDir).Length}");
+    context.Response.ContentType = "text/plain";
+    await context.Response.WriteAsync(sb.ToString());
+});
+
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     try
