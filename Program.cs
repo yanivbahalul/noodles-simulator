@@ -31,17 +31,17 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(1);
 });
 
-// Add rate limiting
-builder.Services.AddMemoryCache();
-builder.Services.AddRateLimiting(options =>
-{
-    options.GeneralRules.Add(new RateLimitRule
-    {
-        Endpoint = "*",
-        Period = "1m",
-        Limit = 100
-    });
-});
+// Remove rate limiting setup (not supported in this project)
+// builder.Services.AddMemoryCache();
+// builder.Services.AddRateLimiting(options =>
+// {
+//     options.GeneralRules.Add(new RateLimitRule
+//     {
+//         Endpoint = "*",
+//         Period = "1m",
+//         Limit = 100
+//     });
+// });
 
 builder.Services.AddHttpClient();
 
