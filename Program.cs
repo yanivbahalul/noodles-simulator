@@ -73,6 +73,7 @@ app.MapPost("/clear-session", async context =>
     }
     catch (Exception ex)
     {
+        // קריטי להשאיר לוג שגיאה על ניקוי session
         Console.WriteLine($"[ClearSession Error] {ex}");
         context.Response.StatusCode = 500;
         await context.Response.WriteAsync($"Server error: {ex.Message}");
@@ -107,11 +108,13 @@ app.Lifetime.ApplicationStarted.Register(() =>
     try
     {
         var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
+        // השארת הודעות על עליית השרת בלבד
         Console.WriteLine("🍜 Noodles Simulator is running!");
         Console.WriteLine($"🔗 Listening on: {url}");
     }
     catch (Exception ex)
     {
+        // קריטי להשאיר לוג שגיאה על אתחול
         Console.WriteLine($"[Startup Log Error] {ex}");
     }
 });
@@ -143,6 +146,7 @@ if (Directory.Exists(progressDir))
             }
             catch (Exception ex)
             {
+                // קריטי להשאיר לוג שגיאה על מחיקת קבצים ישנים
                 Console.WriteLine($"[Progress File Delete Error] {ex}");
             }
         }

@@ -30,7 +30,7 @@ namespace NoodlesSimulator.Pages
                     return new JsonResult(new { error = "No session" });
 
                 User user = null;
-                try { user = await _authService.GetUser(username); } catch (Exception ex) { Console.WriteLine($"[Stats GetUser Error] {ex}"); }
+                try { user = await _authService.GetUser(username); } catch (Exception) { /* ignore get user errors for log clarity */ }
                 if (user == null)
                     return new JsonResult(new { error = "User not found" });
 

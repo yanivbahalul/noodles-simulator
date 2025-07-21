@@ -20,14 +20,11 @@ def main():
     run_count = 0
     while True:
         run_count += 1
-        print(f"\n--- Run number: {run_count} ---")
         try:
             resp = requests.get(CHECK_URL, timeout=10)
             if resp.status_code >= 500:
                 print(f"Detected error {resp.status_code}, deploying last commit...")
                 restart_render_service()
-            else:
-                print(f"Site is up: {resp.status_code}")
         except Exception as ex:
             print(f"Site unreachable: {ex}, deploying last commit...")
             restart_render_service()

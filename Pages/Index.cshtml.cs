@@ -46,7 +46,7 @@ namespace NoodlesSimulator.Pages
 
                 var isUp = false;
                 try { isUp = await _authService.CheckConnection(); }
-                catch (Exception ex) { Console.WriteLine($"[CheckConnection Error] {ex}"); }
+                catch (Exception) { /* ignore connection check errors for log clarity */ }
                 ConnectionStatus = isUp ? "✅ Supabase connection OK" : "❌ Supabase connection FAILED";
 
                 if (HttpContext.Session.GetString("SessionStart") == null)
@@ -58,7 +58,7 @@ namespace NoodlesSimulator.Pages
 
                 User user = null;
                 try { user = await _authService.GetUser(Username); }
-                catch (Exception ex) { Console.WriteLine($"[GetUser Error] {ex}"); }
+                catch (Exception) { /* ignore single get user errors for log clarity */ }
                 if (user != null)
                 {
                     if (user.IsBanned)
@@ -68,16 +68,16 @@ namespace NoodlesSimulator.Pages
                         return RedirectToPage("/Login");
                     }
                     user.LastSeen = DateTime.UtcNow;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[UpdateUser Error] {ex}"); }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
                 }
 
                 try
                 {
                     OnlineCount = await _authService.GetOnlineUserCount();
                 }
-                catch (Exception ex) { Console.WriteLine($"[GetOnlineUserCount Error] {ex}"); OnlineCount = 0; }
+                catch (Exception) { OnlineCount = 0; }
 
-                try { LoadRandomQuestion(); } catch (Exception ex) { Console.WriteLine($"[LoadRandomQuestion Error] {ex}"); }
+                try { LoadRandomQuestion(); } catch (Exception) { /* ignore random question errors for log clarity */ }
                 return Page();
             }
             catch (Exception ex)
@@ -103,7 +103,7 @@ namespace NoodlesSimulator.Pages
                     return RedirectToPage("/Login");
 
                 User user = null;
-                try { user = await _authService.GetUser(Username); } catch (Exception ex) { Console.WriteLine($"[GetUser Error] {ex}"); }
+                try { user = await _authService.GetUser(Username); } catch (Exception) { /* ignore get user errors for log clarity */ }
                 if (user == null)
                     return RedirectToPage("/Login");
 
@@ -119,7 +119,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = false;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[UpdateUser Error] {ex}"); }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
                     return RedirectToPage("/Index");
                 }
 
@@ -129,7 +129,7 @@ namespace NoodlesSimulator.Pages
 
                 if (string.IsNullOrEmpty(answersJson))
                 {
-                    try { LoadRandomQuestion(); } catch (Exception ex) { Console.WriteLine($"[LoadRandomQuestion Error] {ex}"); }
+                    try { LoadRandomQuestion(); } catch (Exception) { /* ignore random question errors for log clarity */ }
                     return Page();
                 }
 
@@ -137,7 +137,7 @@ namespace NoodlesSimulator.Pages
                 AnswerChecked = true;
                 QuestionImage = questionImage;
                 try { ShuffledAnswers = JsonConvert.DeserializeObject<Dictionary<string, string>>(answersJson); }
-                catch (Exception ex) { Console.WriteLine($"[Deserialize Answers Error] {ex}"); ShuffledAnswers = new Dictionary<string, string>(); }
+                catch (Exception) { ShuffledAnswers = new Dictionary<string, string>(); }
                 IsCorrect = answer == "correct";
 
                 user.TotalAnswered++;
@@ -147,7 +147,7 @@ namespace NoodlesSimulator.Pages
                     try { MoveCorrectImages(); } catch (Exception ex) { Console.WriteLine($"[MoveCorrectImages Error] {ex}"); }
                 }
 
-                try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[UpdateUser Error] {ex}"); }
+                try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
 
                 var sessionStartStr = HttpContext.Session.GetString("SessionStart");
                 DateTime.TryParse(sessionStartStr, out var sessionStart);
@@ -181,7 +181,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = true;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[UpdateUser Error] {ex}"); }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
 
                     cheaterCount++;
                     HttpContext.Session.SetInt32("CheaterCount", cheaterCount);
@@ -189,7 +189,7 @@ namespace NoodlesSimulator.Pages
                     if (cheaterCount >= 3)
                     {
                         user.IsBanned = true;
-                        try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[UpdateUser Error] {ex}"); }
+                        try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
                         HttpContext.Session.Clear();
                         Response.Cookies.Delete("Username");
                         return RedirectToPage("/Login");
@@ -204,7 +204,7 @@ namespace NoodlesSimulator.Pages
                 {
                     OnlineCount = await _authService.GetOnlineUserCount();
                 }
-                catch (Exception ex) { Console.WriteLine($"[GetOnlineUserCount Error] {ex}"); OnlineCount = 0; }
+                catch (Exception) { OnlineCount = 0; }
 
                 return Page();
             }
@@ -246,7 +246,7 @@ namespace NoodlesSimulator.Pages
                     if (!string.IsNullOrWhiteSpace(answers))
                         answersDict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(answers);
                 }
-                catch (Exception ex) { Console.WriteLine($"[Deserialize Answers Error] {ex}"); }
+                catch (Exception) { /* ignore answer parse errors for log clarity */ }
 
                 var abcd = new[] { "A", "B", "C", "D" };
                 var answersBlock = new StringBuilder();
@@ -402,12 +402,7 @@ namespace NoodlesSimulator.Pages
                 .OrderBy(x => Guid.NewGuid())
                 .ToDictionary(x => x.Item1, x => x.Item2);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[LoadRandomQuestion Error] {ex}");
-                QuestionImage = "placeholder.jpg";
-                ShuffledAnswers = new Dictionary<string, string>();
-            }
+            catch (Exception) { /* ignore random question errors for log clarity */ }
         }
     }
 }
