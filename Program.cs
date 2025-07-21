@@ -15,12 +15,11 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<EmailService>();
 
-// Add logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-// Configure session with better security
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session";
@@ -30,18 +29,6 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.IdleTimeout = TimeSpan.FromHours(1);
 });
-
-// Remove rate limiting setup (not supported in this project)
-// builder.Services.AddMemoryCache();
-// builder.Services.AddRateLimiting(options =>
-// {
-//     options.GeneralRules.Add(new RateLimitRule
-//     {
-//         Endpoint = "*",
-//         Period = "1m",
-//         Limit = 100
-//     });
-// });
 
 builder.Services.AddHttpClient();
 
@@ -73,7 +60,6 @@ app.MapPost("/clear-session", async context =>
     }
     catch (Exception ex)
     {
-        // קריטי להשאיר לוג שגיאה על ניקוי session
         Console.WriteLine($"[ClearSession Error] {ex}");
         context.Response.StatusCode = 500;
         await context.Response.WriteAsync($"Server error: {ex.Message}");
@@ -108,18 +94,15 @@ app.Lifetime.ApplicationStarted.Register(() =>
     try
     {
         var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
-        // השארת הודעות על עליית השרת בלבד
         Console.WriteLine("🍜 Noodles Simulator is running!");
         Console.WriteLine($"🔗 Listening on: {url}");
     }
     catch (Exception ex)
     {
-        // קריטי להשאיר לוג שגיאה על אתחול
         Console.WriteLine($"[Startup Log Error] {ex}");
     }
 });
 
-// יצירת תיקיות וקבצים קריטיים אם חסרים
 var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
 if (!Directory.Exists(reportsDir))
     Directory.CreateDirectory(reportsDir);
@@ -146,7 +129,6 @@ if (Directory.Exists(progressDir))
             }
             catch (Exception ex)
             {
-                // קריטי להשאיר לוג שגיאה על מחיקת קבצים ישנים
                 Console.WriteLine($"[Progress File Delete Error] {ex}");
             }
         }
