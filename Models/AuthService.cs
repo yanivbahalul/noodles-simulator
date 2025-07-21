@@ -225,5 +225,20 @@ namespace NoodlesSimulator.Models
                 return false;
             }
         }
+
+        public async Task<List<User>> GetAllUsersLight()
+        {
+            try
+            {
+                var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered");
+                var json = await res.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetAllUsersLight Exception] {ex}");
+                return new List<User>();
+            }
+        }
     }
 }

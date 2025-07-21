@@ -58,14 +58,11 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
-                Cheaters = await _authService.GetCheaters();
-                BannedUsers = await _authService.GetBannedUsers();
-                TopUsers = await _authService.GetTopUsers(5);
-                OnlineUsers = Cheaters.Concat(BannedUsers).Concat(TopUsers)
-                    .Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5))
-                    .Distinct().ToList();
-                // אם אתה רוצה את כל המשתמשים המחוברים, אפשר להוסיף פונקציה ייעודית ב-AuthService
-                AllUsers = Cheaters.Concat(BannedUsers).Concat(TopUsers).Distinct().ToList();
+                AllUsers = await _authService.GetAllUsersLight();
+                Cheaters = AllUsers.Where(u => u.IsCheater).ToList();
+                BannedUsers = AllUsers.Where(u => u.IsBanned).ToList();
+                OnlineUsers = AllUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();
+                TopUsers = AllUsers.OrderByDescending(u => u.CorrectAnswers).Take(5).ToList();
                 AverageSuccessRate = AllUsers.Where(u => u.TotalAnswered > 0)
                     .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
                     .DefaultIfEmpty(0).Average() * 100;
