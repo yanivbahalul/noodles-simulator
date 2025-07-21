@@ -42,7 +42,13 @@ namespace NoodlesSimulator.Pages
             {
                 Username = HttpContext.Session.GetString("Username");
                 if (string.IsNullOrEmpty(Username))
+                {
+                    // Force clear session and cookies if session is invalid (e.g., after deploy or key rotation)
+                    HttpContext.Session.Clear();
+                    Response.Cookies.Delete(".Noodles.Session");
+                    Response.Cookies.Delete("Username");
                     return RedirectToPage("/Login");
+                }
 
                 var isUp = false;
                 try { isUp = await _authService.CheckConnection(); }
@@ -82,8 +88,12 @@ namespace NoodlesSimulator.Pages
             }
             catch (Exception ex)
             {
+                // If any session error occurs, clear session and cookies and force re-login
+                HttpContext.Session.Clear();
+                Response.Cookies.Delete(".Noodles.Session");
+                Response.Cookies.Delete("Username");
                 Console.WriteLine($"[OnGetAsync Error] {ex}");
-                return StatusCode(500, $"Server error: {ex.Message}");
+                return RedirectToPage("/Login");
             }
         }
 
