@@ -105,11 +105,13 @@ namespace NoodlesSimulator.Models
                 {
                     new {
                         Username = updatedUser.Username,
+                        Password = updatedUser.Password, // הוסף אם צריך לעדכן סיסמה
                         CorrectAnswers = updatedUser.CorrectAnswers,
                         TotalAnswered = updatedUser.TotalAnswered,
                         IsCheater = updatedUser.IsCheater,
                         IsBanned = updatedUser.IsBanned,
-                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
+                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow,
+                        CreatedAt = updatedUser.CreatedAt // אם יש צורך
                     }
                 };
 
