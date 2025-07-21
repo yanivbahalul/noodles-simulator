@@ -101,18 +101,14 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var patch = new[]
-                {
-                    new {
-                        Username = updatedUser.Username,
-                        Password = updatedUser.Password, // הוסף אם צריך לעדכן סיסמה
-                        CorrectAnswers = updatedUser.CorrectAnswers,
-                        TotalAnswered = updatedUser.TotalAnswered,
-                        IsCheater = updatedUser.IsCheater,
-                        IsBanned = updatedUser.IsBanned,
-                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
-                        // CreatedAt הוסר כי לא קיים במודל
-                    }
+                var patch = new {
+                    Username = updatedUser.Username,
+                    Password = updatedUser.Password, // הוסף אם צריך לעדכן סיסמה
+                    CorrectAnswers = updatedUser.CorrectAnswers,
+                    TotalAnswered = updatedUser.TotalAnswered,
+                    IsCheater = updatedUser.IsCheater,
+                    IsBanned = updatedUser.IsBanned,
+                    LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
                 };
 
                 var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
