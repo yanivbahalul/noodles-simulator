@@ -22,11 +22,7 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
-                var users = await _authService.GetAllUsers();
-                SortedUsers = users
-                    .OrderByDescending(u => u.CorrectAnswers)
-                    .ThenBy(u => u.TotalAnswered)
-                    .ToList();
+                SortedUsers = await _authService.GetTopUsers(50); // get top 50 users for leaderboard
             }
             catch (Exception ex)
             {

@@ -73,10 +73,9 @@ namespace NoodlesSimulator.Pages
 
                 try
                 {
-                    var allUsers = await _authService.GetAllUsers();
-                    OnlineCount = allUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).Count();
+                    OnlineCount = await _authService.GetOnlineUserCount();
                 }
-                catch (Exception ex) { Console.WriteLine($"[GetAllUsers Error] {ex}"); OnlineCount = 0; }
+                catch (Exception ex) { Console.WriteLine($"[GetOnlineUserCount Error] {ex}"); OnlineCount = 0; }
 
                 try { LoadRandomQuestion(); } catch (Exception ex) { Console.WriteLine($"[LoadRandomQuestion Error] {ex}"); }
                 return Page();
@@ -203,10 +202,9 @@ namespace NoodlesSimulator.Pages
 
                 try
                 {
-                    var allUsers = await _authService.GetAllUsers();
-                    OnlineCount = allUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).Count();
+                    OnlineCount = await _authService.GetOnlineUserCount();
                 }
-                catch (Exception ex) { Console.WriteLine($"[GetAllUsers Error] {ex}"); OnlineCount = 0; }
+                catch (Exception ex) { Console.WriteLine($"[GetOnlineUserCount Error] {ex}"); OnlineCount = 0; }
 
                 return Page();
             }

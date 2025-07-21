@@ -13,13 +13,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<EmailService>();
+
+// Add logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+// Configure session with better security
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.IdleTimeout = TimeSpan.FromHours(1);
+});
+
+// Add rate limiting
+builder.Services.AddMemoryCache();
+builder.Services.AddRateLimiting(options =>
+{
+    options.GeneralRules.Add(new RateLimitRule
+    {
+        Endpoint = "*",
+        Period = "1m",
+        Limit = 100
+    });
 });
 
 builder.Services.AddHttpClient();
@@ -30,8 +51,6 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
     options.Secure = CookieSecurePolicy.SameAsRequest;
 });
-
-builder.Logging.ClearProviders();
 
 var app = builder.Build();
 
