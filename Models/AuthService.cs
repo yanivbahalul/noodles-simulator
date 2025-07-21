@@ -110,8 +110,8 @@ namespace NoodlesSimulator.Models
                         TotalAnswered = updatedUser.TotalAnswered,
                         IsCheater = updatedUser.IsCheater,
                         IsBanned = updatedUser.IsBanned,
-                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow,
-                        CreatedAt = updatedUser.CreatedAt // אם יש צורך
+                        LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
+                        // CreatedAt הוסר כי לא קיים במודל
                     }
                 };
 
