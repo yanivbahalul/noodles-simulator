@@ -16,7 +16,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<EmailService>();
 
-// Persist Data Protection keys to /etc/secrets/data-keys for Render Secret File or Persistent Disk
+// Persist Data Protection keys to /data-keys for Render Persistent Disk
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/data-keys"));
 
