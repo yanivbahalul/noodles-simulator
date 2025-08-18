@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: noodles-simulator
+    runtime: dotnet
+    repo: https://github.com/yanivbahalul/noodles-simulator
+    branch: main
+    buildCommand: |
+      dotnet publish -c Release -o out
+      pip3 install -r requirements.txt || true
+    startCommand: |
+      bash -c "dotnet out/NoodlesSimulator.dll & python3 render_monitor.py"
+    env:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: SUPABASE_URL
+      - key: SUPABASE_KEY
+      - key: RENDER_API_KEY
+      - key: SERVICE_ID
+      - key: EMAIL_SMTP_PASS
+      - key: EMAIL_SMTP_USER
+      - key: EMAIL_SMTP_SERVER
+      - key: EMAIL_FROM
+      - key: EMAIL_TO
+      - key: EMAIL_SUBJECT
+      - key: CHECK_URL
+      - key: CHECK_INTERVAL

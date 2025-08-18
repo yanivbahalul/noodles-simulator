@@ -1,0 +1,33 @@
+@page
+@model NoodlesSimulator.Pages.StatsModel
+@{
+    ViewData["Title"] = "📊 סטטיסטיקה אישית";
+}
+
+<link rel="stylesheet" href="/css/site.css" />
+<img src="/assets/background.gif" class="background-gif" />
+
+<div class="quiz-container" style="text-align:center;">
+    <h2>📊 סטטיסטיקה אישית</h2>
+
+    <!-- הצגת הנתונים -->
+    <ul style="list-style:none; font-size:18px; margin-top:20px; color: white;">
+        <li>👤 Logged in as: <strong>@Model.Username</strong></li>
+        <li>✅ תשובות נכונות: <strong>@Model.CorrectAnswers</strong></li>
+        <li>📋 שאלות שנענו: <strong>@Model.TotalAnswered</strong></li>
+        <li>📈 אחוז הצלחה: <strong>@Model.SuccessRate</strong>%</li>
+    </ul>
+
+    <!-- תצוגת DEBUG -->
+    <div style="margin-top:30px; font-family: monospace; color: lightgray;">
+        <p><strong>Debug:</strong></p>
+        <p>Username: @Model.Username</p>
+        <p>Correct: @Model.CorrectAnswers</p>
+        <p>Total: @Model.TotalAnswered</p>
+        <p>Success: @Model.SuccessRate%</p>
+    </div>
+
+    <div style="margin-top:30px;">
+        <a href="/Index" class="next-question-btn">⬅ חזרה לחידון</a>
+    </div>
+</div>
