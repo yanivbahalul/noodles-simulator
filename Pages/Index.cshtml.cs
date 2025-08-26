@@ -26,6 +26,9 @@ namespace NoodlesSimulator.Pages
         private static List<string> _localImagesCache;
         private static DateTime _localImagesCachedAt;
         private static readonly TimeSpan _localImagesTtl = TimeSpan.FromMinutes(2);
+        // Prevent the same question (first image in a group of 5) from showing >3 times/hour
+        private static readonly object _questionRateLock = new object();
+        private static readonly Dictionary<string, List<DateTime>> _questionShownTimes = new Dictionary<string, List<DateTime>>();
 
         public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
         {
@@ -394,8 +397,12 @@ namespace NoodlesSimulator.Pages
                     return;
                 }
 
-                int index = RandomNumberGenerator.GetInt32(grouped.Count);
-                var chosen = grouped[index];
+                // Filter out groups whose question image was shown >= 3 times in the last hour
+                var eligible = grouped.Where(g => g.Count >= 1 && !IsQuestionThrottled(g[0])).ToList();
+                var pool = eligible.Count > 0 ? eligible : grouped;
+
+                int index = RandomNumberGenerator.GetInt32(pool.Count);
+                var chosen = pool[index];
                 QuestionImage = chosen[0];
                 var correct = chosen[1];
                 var wrong = chosen.Skip(2).Take(3).ToList();
@@ -411,10 +418,40 @@ namespace NoodlesSimulator.Pages
                 .OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue))
                 .ToDictionary(x => x.Item1, x => x.Item2);
 
+                RecordQuestionShown(QuestionImage);
                 await PopulateUrlsAsync();
             }
             catch (Exception)
             {
+            }
+        }
+
+        private static bool IsQuestionThrottled(string questionImage)
+        {
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddHours(-1);
+            lock (_questionRateLock)
+            {
+                if (!_questionShownTimes.TryGetValue(questionImage, out var times))
+                    return false;
+                times.RemoveAll(t => t < cutoff);
+                return times.Count >= 3;
+            }
+        }
+
+        private static void RecordQuestionShown(string questionImage)
+        {
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddHours(-1);
+            lock (_questionRateLock)
+            {
+                if (!_questionShownTimes.TryGetValue(questionImage, out var times))
+                {
+                    times = new List<DateTime>();
+                    _questionShownTimes[questionImage] = times;
+                }
+                times.RemoveAll(t => t < cutoff);
+                times.Add(now);
             }
         }
 
