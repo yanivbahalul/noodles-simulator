@@ -37,6 +37,7 @@ namespace NoodlesSimulator.Pages
         private static int _bagSourceCount = 0;
         private static DateTime _bagBuiltAt;
         private static readonly TimeSpan _bagTtl = TimeSpan.FromMinutes(30);
+        private static readonly Dictionary<string, int> _groupShownCount = new Dictionary<string, int>();
 
         public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
         {
@@ -405,6 +406,9 @@ namespace NoodlesSimulator.Pages
                     return;
                 }
 
+                // Exclude very recent questions per session to reduce visible repeats
+                var recent = GetRecentQuestionsFromSession();
+
                 // Build or reuse a shuffle-bag of group indices to ensure coverage
                 int chosenIdx;
                 lock (_bagLock)
@@ -413,8 +417,25 @@ namespace NoodlesSimulator.Pages
                     var needRebuild = _bagOrder == null || _bagSourceCount != grouped.Count || _bagIndex >= _bagOrder.Count || (now - _bagBuiltAt) > _bagTtl;
                     if (needRebuild)
                     {
-                        _bagOrder = Enumerable.Range(0, grouped.Count).ToList();
-                        FisherYatesShuffle(_bagOrder);
+                        // Build indices and prefer least-shown groups; shuffle within equal-count buckets
+                        var withCounts = new List<(int idx, int count, string key)>();
+                        for (int i = 0; i < grouped.Count; i++)
+                        {
+                            var key = grouped[i].Count > 0 ? grouped[i][0] : $"group-{i}";
+                            var cnt = _groupShownCount.TryGetValue(key, out var c) ? c : 0;
+                            withCounts.Add((i, cnt, key));
+                        }
+                        var buckets = withCounts.GroupBy(x => x.count)
+                            .OrderBy(g => g.Key)
+                            .Select(g => g.ToList()).ToList();
+                        var order = new List<int>();
+                        foreach (var bucket in buckets)
+                        {
+                            var indices = bucket.Select(b => b.idx).ToList();
+                            FisherYatesShuffle(indices);
+                            order.AddRange(indices);
+                        }
+                        _bagOrder = order;
                         _bagIndex = 0;
                         _bagSourceCount = grouped.Count;
                         _bagBuiltAt = now;
@@ -428,7 +449,7 @@ namespace NoodlesSimulator.Pages
                         _bagIndex++;
                         attempts++;
                         var candidate = grouped[idx];
-                        if (candidate.Count > 0 && !IsQuestionThrottled(candidate[0]))
+                        if (candidate.Count > 0 && !IsQuestionThrottled(candidate[0]) && !recent.Contains(candidate[0]))
                         {
                             chosenIdx = idx;
                             goto CHOSEN_FOUND;
@@ -457,6 +478,8 @@ CHOSEN_FOUND:
                 .ToDictionary(x => x.Item1, x => x.Item2);
 
                 RecordQuestionShown(QuestionImage);
+                IncrementGroupShown(QuestionImage);
+                AddRecentQuestionToSession(QuestionImage);
                 await PopulateUrlsAsync();
             }
             catch (Exception)
@@ -475,6 +498,16 @@ CHOSEN_FOUND:
                     list[i] = list[j];
                     list[j] = tmp;
                 }
+            }
+        }
+
+        private static void IncrementGroupShown(string questionImage)
+        {
+            lock (_bagLock)
+            {
+                if (!_groupShownCount.ContainsKey(questionImage))
+                    _groupShownCount[questionImage] = 0;
+                _groupShownCount[questionImage]++;
             }
         }
 
@@ -505,6 +538,34 @@ CHOSEN_FOUND:
                 times.RemoveAll(t => t < cutoff);
                 times.Add(now);
             }
+        }
+
+        private List<string> GetRecentQuestionsFromSession()
+        {
+            try
+            {
+                var json = HttpContext.Session.GetString("RecentQuestions");
+                if (string.IsNullOrWhiteSpace(json)) return new List<string>();
+                var list = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
+                return list.TakeLast(10).ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        private void AddRecentQuestionToSession(string questionImage)
+        {
+            try
+            {
+                var list = GetRecentQuestionsFromSession();
+                list.Add(questionImage);
+                if (list.Count > 20)
+                    list = list.TakeLast(20).ToList();
+                HttpContext.Session.SetString("RecentQuestions", JsonConvert.SerializeObject(list));
+            }
+            catch { }
         }
 
         private async Task PopulateUrlsAsync()
