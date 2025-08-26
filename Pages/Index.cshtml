@@ -57,7 +57,7 @@ function logout() {
 </p>
 
 <div class="quiz-container">
-    <img src="/images/@Model.QuestionImage" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
 
     <form method="post">
         @Html.AntiForgeryToken()
@@ -79,7 +79,7 @@ function logout() {
                         value="@answer.Key"
                         class="answer-btn @answerClass"
                         @(Model.AnswerChecked ? "disabled" : "")>
-                    <img src="/images/@answer.Value" alt="תשובה" loading="lazy" />
+                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
                 </button>
             }
         </div>
@@ -108,7 +108,7 @@ function logout() {
 <!-- Image Modal -->
 <div id="image-modal" class="image-modal" style="display:none;">
     <span class="close-modal" onclick="closeImageModal()">&times;</span>
-    <img class="modal-content" id="modal-img" src="/images/@Model.QuestionImage" alt="שאלה מוגדלת" />
+    <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
 
 <script>
@@ -218,11 +218,6 @@ function toggleStats() {
 }
 
 window.addEventListener("load", fetchStats);
-setInterval(fetchStats, 15000);
-
-document.querySelectorAll("form").forEach(form => {
-    form.addEventListener("submit", () => setTimeout(fetchStats, 2000));
-});
 </script>
 
 <script>

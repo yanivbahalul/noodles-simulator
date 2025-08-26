@@ -68,11 +68,16 @@ namespace NoodlesSimulator.Services
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
 
-            await from.Upload(fileStream, objectPath, new Supabase.Storage.FileOptions
+            using (var ms = new MemoryStream())
             {
-                Upsert = overwrite,
-                ContentType = contentType
-            });
+                await fileStream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+                await from.Upload(bytes, objectPath, new Supabase.Storage.FileOptions
+                {
+                    Upsert = overwrite,
+                    ContentType = contentType
+                });
+            }
         }
 
         public async Task DeleteAsync(string objectPath)
@@ -82,7 +87,24 @@ namespace NoodlesSimulator.Services
 
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
-            await from.Remove(new[] { objectPath });
+            await from.Remove(objectPath);
+        }
+
+        public async Task<List<string>> ListFilesAsync(string prefix = "")
+        {
+            await EnsureInitAsync();
+            var from = _client.Storage.From(_bucket);
+            var results = await from.List(prefix);
+            var list = new List<string>();
+            foreach (var item in results)
+            {
+                var name = string.IsNullOrWhiteSpace(prefix) ? item.Name : (prefix.TrimEnd('/') + "/" + item.Name);
+                if (item.Id != null)
+                    list.Add(name);
+                else if (!name.EndsWith("/"))
+                    list.Add(name);
+            }
+            return list;
         }
     }
 }

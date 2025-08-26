@@ -11,6 +11,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="MailKit" Version="4.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" Version="8.0.0" />
+    <PackageReference Include="Supabase" Version="1.1.1" />
+    <PackageReference Include="Supabase.Storage" Version="2.0.2" />
   </ItemGroup>
 
 </Project>

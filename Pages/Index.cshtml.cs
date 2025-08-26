@@ -12,6 +12,7 @@ using System.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
 using System.Security.Cryptography;
+using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Pages
 {
@@ -19,10 +20,12 @@ namespace NoodlesSimulator.Pages
     public class IndexModel : PageModel
     {
         private readonly AuthService _authService;
+        private readonly SupabaseStorageService _storage; // may be null if not configured
 
-        public IndexModel(AuthService authService)
+        public IndexModel(AuthService authService, SupabaseStorageService storage = null)
         {
             _authService = authService;
+            _storage = storage;
         }
 
         public bool AnswerChecked { get; set; }
@@ -34,7 +37,9 @@ namespace NoodlesSimulator.Pages
         public string ConnectionStatus { get; set; }
         public int OnlineCount { get; set; }
 
-        // private static readonly Random _random = new Random(); // לא צריך יותר
+        // Holds signed URLs for current question and answers for rendering
+        public string QuestionImageUrl { get; set; }
+        public Dictionary<string, string> AnswerImageUrls { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -43,7 +48,6 @@ namespace NoodlesSimulator.Pages
                 Username = HttpContext.Session.GetString("Username");
                 if (string.IsNullOrEmpty(Username))
                 {
-                    // Force clear session and cookies if session is invalid (e.g., after deploy or key rotation)
                     HttpContext.Session.Clear();
                     Response.Cookies.Delete(".Noodles.Session");
                     Response.Cookies.Delete("Username");
@@ -52,7 +56,7 @@ namespace NoodlesSimulator.Pages
 
                 var isUp = false;
                 try { isUp = await _authService.CheckConnection(); }
-                catch (Exception) { /* ignore connection check errors for log clarity */ }
+                catch (Exception) { }
                 ConnectionStatus = isUp ? "✅ Supabase connection OK" : "❌ Supabase connection FAILED";
 
                 if (HttpContext.Session.GetString("SessionStart") == null)
@@ -64,7 +68,7 @@ namespace NoodlesSimulator.Pages
 
                 User user = null;
                 try { user = await _authService.GetUser(Username); }
-                catch (Exception) { /* ignore single get user errors for log clarity */ }
+                catch (Exception) { }
                 if (user != null)
                 {
                     if (user.IsBanned)
@@ -74,7 +78,7 @@ namespace NoodlesSimulator.Pages
                         return RedirectToPage("/Login");
                     }
                     user.LastSeen = DateTime.UtcNow;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { }
                 }
 
                 try
@@ -83,12 +87,11 @@ namespace NoodlesSimulator.Pages
                 }
                 catch (Exception) { OnlineCount = 0; }
 
-                try { LoadRandomQuestion(); } catch (Exception) { /* ignore random question errors for log clarity */ }
+                try { await LoadRandomQuestionAsync(); } catch (Exception) { }
                 return Page();
             }
             catch (Exception ex)
             {
-                // If any session error occurs, clear session and cookies and force re-login
                 HttpContext.Session.Clear();
                 Response.Cookies.Delete(".Noodles.Session");
                 Response.Cookies.Delete("Username");
@@ -113,7 +116,7 @@ namespace NoodlesSimulator.Pages
                     return RedirectToPage("/Login");
 
                 User user = null;
-                try { user = await _authService.GetUser(Username); } catch (Exception) { /* ignore get user errors for log clarity */ }
+                try { user = await _authService.GetUser(Username); } catch (Exception) { }
                 if (user == null)
                     return RedirectToPage("/Login");
 
@@ -129,7 +132,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = false;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { }
                     return RedirectToPage("/Index");
                 }
 
@@ -139,7 +142,7 @@ namespace NoodlesSimulator.Pages
 
                 if (string.IsNullOrEmpty(answersJson))
                 {
-                    try { LoadRandomQuestion(); } catch (Exception) { /* ignore random question errors for log clarity */ }
+                    try { await LoadRandomQuestionAsync(); } catch (Exception) { }
                     return Page();
                 }
 
@@ -154,10 +157,13 @@ namespace NoodlesSimulator.Pages
                 if (IsCorrect)
                 {
                     user.CorrectAnswers++;
-                    try { MoveCorrectImages(); } catch (Exception ex) { Console.WriteLine($"[MoveCorrectImages Error] {ex}"); }
+                    if (_storage == null)
+                    {
+                        try { MoveCorrectImagesLocal(); } catch (Exception ex) { Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}"); }
+                    }
                 }
 
-                try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
+                try { await _authService.UpdateUser(user); } catch (Exception) { }
 
                 var sessionStartStr = HttpContext.Session.GetString("SessionStart");
                 DateTime.TryParse(sessionStartStr, out var sessionStart);
@@ -191,7 +197,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = true;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
+                    try { await _authService.UpdateUser(user); } catch (Exception) { }
 
                     cheaterCount++;
                     HttpContext.Session.SetInt32("CheaterCount", cheaterCount);
@@ -199,7 +205,7 @@ namespace NoodlesSimulator.Pages
                     if (cheaterCount >= 3)
                     {
                         user.IsBanned = true;
-                        try { await _authService.UpdateUser(user); } catch (Exception) { /* ignore update user errors for log clarity */ }
+                        try { await _authService.UpdateUser(user); } catch (Exception) { }
                         HttpContext.Session.Clear();
                         Response.Cookies.Delete("Username");
                         return RedirectToPage("/Login");
@@ -215,6 +221,8 @@ namespace NoodlesSimulator.Pages
                     OnlineCount = await _authService.GetOnlineUserCount();
                 }
                 catch (Exception) { OnlineCount = 0; }
+
+                await PopulateUrlsAsync();
 
                 return Page();
             }
@@ -256,7 +264,7 @@ namespace NoodlesSimulator.Pages
                     if (!string.IsNullOrWhiteSpace(answers))
                         answersDict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(answers);
                 }
-                catch (Exception) { /* ignore answer parse errors for log clarity */ }
+                catch (Exception) { }
 
                 var abcd = new[] { "A", "B", "C", "D" };
                 var answersBlock = new StringBuilder();
@@ -331,7 +339,124 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        private void MoveCorrectImages()
+        private async Task LoadRandomQuestionAsync()
+        {
+            try
+            {
+                List<string> filtered;
+                if (_storage != null)
+                {
+                    var allImages = await _storage.ListFilesAsync("");
+                    filtered = allImages
+                        .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
+                        .OrderBy(name => name)
+                        .ToList();
+                }
+                else
+                {
+                    var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+                    if (!Directory.Exists(imagesDir))
+                    {
+                        QuestionImage = "placeholder.jpg";
+                        ShuffledAnswers = new Dictionary<string, string>();
+                        await PopulateUrlsAsync();
+                        return;
+                    }
+
+                    filtered = Directory.GetFiles(imagesDir)
+                        .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
+                        .Select(Path.GetFileName)
+                        .OrderBy(name => name)
+                        .ToList();
+                }
+
+                var grouped = new List<List<string>>();
+                for (int i = 0; i + 4 < filtered.Count; i += 5)
+                    grouped.Add(filtered.GetRange(i, 5));
+
+                if (grouped.Count == 0)
+                {
+                    QuestionImage = "placeholder.jpg";
+                    ShuffledAnswers = new Dictionary<string, string>();
+                    await PopulateUrlsAsync();
+                    return;
+                }
+
+                int index = RandomNumberGenerator.GetInt32(grouped.Count);
+                var chosen = grouped[index];
+                QuestionImage = chosen[0];
+                var correct = chosen[1];
+                var wrong = chosen.Skip(2).Take(3).ToList();
+
+                ShuffledAnswers = new List<(string, string)>
+                {
+                    ("correct", correct),
+                    ("a", wrong.Count > 0 ? wrong[0] : null),
+                    ("b", wrong.Count > 1 ? wrong[1] : null),
+                    ("c", wrong.Count > 2 ? wrong[2] : null)
+                }
+                .Where(x => !string.IsNullOrEmpty(x.Item2))
+                .OrderBy(x => Guid.NewGuid())
+                .ToDictionary(x => x.Item1, x => x.Item2);
+
+                await PopulateUrlsAsync();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private async Task PopulateUrlsAsync()
+        {
+            if (_storage != null)
+            {
+                await PopulateSignedUrlsAsync();
+                return;
+            }
+
+            try
+            {
+                QuestionImageUrl = string.IsNullOrWhiteSpace(QuestionImage) ? string.Empty : ($"/images/{QuestionImage}");
+                AnswerImageUrls = new Dictionary<string, string>();
+                foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
+                {
+                    if (!string.IsNullOrWhiteSpace(kv.Value))
+                        AnswerImageUrls[kv.Key] = $"/images/{kv.Value}";
+                }
+            }
+            catch (Exception)
+            {
+                QuestionImageUrl = string.Empty;
+                AnswerImageUrls = new Dictionary<string, string>();
+            }
+        }
+
+        private async Task PopulateSignedUrlsAsync()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(QuestionImage))
+                    QuestionImageUrl = await _storage.GetSignedUrlAsync(QuestionImage);
+                else
+                    QuestionImageUrl = string.Empty;
+
+                var keys = ShuffledAnswers?.Values?.Where(v => !string.IsNullOrWhiteSpace(v)).ToList() ?? new List<string>();
+                var urls = await _storage.GetSignedUrlsAsync(keys);
+                AnswerImageUrls = new Dictionary<string, string>();
+                foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
+                {
+                    if (!string.IsNullOrWhiteSpace(kv.Value) && urls.TryGetValue(kv.Value, out var url))
+                        AnswerImageUrls[kv.Key] = url;
+                }
+            }
+            catch (Exception)
+            {
+                QuestionImageUrl = string.Empty;
+                AnswerImageUrls = new Dictionary<string, string>();
+            }
+        }
+
+        private void MoveCorrectImagesLocal()
         {
             try
             {
@@ -362,57 +487,8 @@ namespace NoodlesSimulator.Pages
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[MoveCorrectImages Error] {ex}");
+                Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}");
             }
-        }
-
-        private void LoadRandomQuestion()
-        {
-            try
-            {
-                var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-                if (!Directory.Exists(imagesDir))
-                {
-                    QuestionImage = "placeholder.jpg";
-                    ShuffledAnswers = new Dictionary<string, string>();
-                    return;
-                }
-
-                var allImages = Directory.GetFiles(imagesDir)
-                    .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                    .Select(Path.GetFileName)
-                    .OrderBy(name => name)
-                    .ToList();
-
-                var grouped = new List<List<string>>();
-                for (int i = 0; i + 4 < allImages.Count; i += 5)
-                    grouped.Add(allImages.GetRange(i, 5));
-
-                if (grouped.Count == 0)
-                {
-                    QuestionImage = "placeholder.jpg";
-                    ShuffledAnswers = new Dictionary<string, string>();
-                    return;
-                }
-
-                int index = RandomNumberGenerator.GetInt32(grouped.Count);
-                var chosen = grouped[index];
-                QuestionImage = chosen[0];
-                var correct = chosen[1];
-                var wrong = chosen.Skip(2).Take(3).ToList();
-
-                ShuffledAnswers = new List<(string, string)>
-                {
-                    ("correct", correct),
-                    ("a", wrong.Count > 0 ? wrong[0] : null),
-                    ("b", wrong.Count > 1 ? wrong[1] : null),
-                    ("c", wrong.Count > 2 ? wrong[2] : null)
-                }
-                .Where(x => !string.IsNullOrEmpty(x.Item2))
-                .OrderBy(x => Guid.NewGuid())
-                .ToDictionary(x => x.Item1, x => x.Item2);
-            }
-            catch (Exception) { /* ignore random question errors for log clarity */ }
         }
     }
 }
