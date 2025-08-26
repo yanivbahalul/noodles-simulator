@@ -21,11 +21,17 @@ namespace NoodlesSimulator.Pages
     {
         private readonly AuthService _authService;
         private readonly SupabaseStorageService _storage; // may be null if not configured
+        private readonly EmailService _emailService;
 
-        public IndexModel(AuthService authService, SupabaseStorageService storage = null)
+        private static List<string> _localImagesCache;
+        private static DateTime _localImagesCachedAt;
+        private static readonly TimeSpan _localImagesTtl = TimeSpan.FromMinutes(2);
+
+        public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
         {
             _authService = authService;
             _storage = storage;
+            _emailService = emailService;
         }
 
         public bool AnswerChecked { get; set; }
@@ -87,6 +93,7 @@ namespace NoodlesSimulator.Pages
                 }
                 catch (Exception) { OnlineCount = 0; }
 
+                // Preload next question faster
                 try { await LoadRandomQuestionAsync(); } catch (Exception) { }
                 return Page();
             }
@@ -216,11 +223,11 @@ namespace NoodlesSimulator.Pages
                     return RedirectToPage("/Cheater");
                 }
 
-                try
+                // Do not block response on online count; compute best-effort
+                _ = Task.Run(async () =>
                 {
-                    OnlineCount = await _authService.GetOnlineUserCount();
-                }
-                catch (Exception) { OnlineCount = 0; }
+                    try { OnlineCount = await _authService.GetOnlineUserCount(); } catch { OnlineCount = 0; }
+                });
 
                 await PopulateUrlsAsync();
 
@@ -253,8 +260,6 @@ namespace NoodlesSimulator.Pages
                 var timestamp = DateTime.UtcNow;
 
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("Noodles Simulator", "yanivbahlul@gmail.com"));
-                message.To.Add(new MailboxAddress("Yaniv Bahlul", "yanivbahlul@gmail.com"));
                 message.Subject = $"[Noodles Simulator] דיווח טעות חדשה מהמשתמש {username}";
 
                 var bodyBuilder = new BodyBuilder();
@@ -312,22 +317,20 @@ namespace NoodlesSimulator.Pages
 
                 bodyBuilder.HtmlBody = htmlBody;
                 bodyBuilder.TextBody = null;
-                message.Body = bodyBuilder.ToMessageBody();
 
+                // Fire-and-forget via EmailService to avoid blocking the user response
                 try
                 {
-                    using (var client = new SmtpClient())
+                    var to = Environment.GetEnvironmentVariable("EMAIL_TO") ?? "";
+                    if (!string.IsNullOrWhiteSpace(to) && _emailService != null)
                     {
-                        await client.ConnectAsync("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-                        await client.AuthenticateAsync("yanivbahlul@gmail.com", "ixakgpzsxfxamyqs");
-                        await client.SendAsync(message);
-                        await client.DisconnectAsync(true);
+                        var html = bodyBuilder.HtmlBody;
+                        _ = _emailService.SendEmailAsync(to, message.Subject, html);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[MailKit Error] {ex}");
-                    return new JsonResult(new { error = "Failed to send email: " + ex.Message }) { StatusCode = 500 };
+                    Console.WriteLine($"[ReportEmail Dispatch Error] {ex}");
                 }
 
                 return new JsonResult(new { success = true });
@@ -363,11 +366,20 @@ namespace NoodlesSimulator.Pages
                         return;
                     }
 
-                    filtered = Directory.GetFiles(imagesDir)
-                        .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                        .Select(Path.GetFileName)
-                        .OrderBy(name => name)
-                        .ToList();
+                    if (_localImagesCache != null && (DateTime.UtcNow - _localImagesCachedAt) < _localImagesTtl)
+                    {
+                        filtered = _localImagesCache;
+                    }
+                    else
+                    {
+                        filtered = Directory.GetFiles(imagesDir)
+                            .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
+                            .Select(Path.GetFileName)
+                            .OrderBy(name => name)
+                            .ToList();
+                        _localImagesCache = filtered;
+                        _localImagesCachedAt = DateTime.UtcNow;
+                    }
                 }
 
                 var grouped = new List<List<string>>();
@@ -396,7 +408,7 @@ namespace NoodlesSimulator.Pages
                     ("c", wrong.Count > 2 ? wrong[2] : null)
                 }
                 .Where(x => !string.IsNullOrEmpty(x.Item2))
-                .OrderBy(x => Guid.NewGuid())
+                .OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue))
                 .ToDictionary(x => x.Item1, x => x.Item2);
 
                 await PopulateUrlsAsync();

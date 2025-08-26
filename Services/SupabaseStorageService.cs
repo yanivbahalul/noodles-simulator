@@ -12,6 +12,11 @@ namespace NoodlesSimulator.Services
         private readonly string _bucket;
         private readonly int _ttlSeconds;
         private bool _initialized;
+        private List<string> _listCache;
+        private DateTime _listCacheAt;
+        private readonly TimeSpan _listTtl = TimeSpan.FromMinutes(5);
+        private readonly Dictionary<string, (string url, DateTime cachedAt)> _signedUrlCache = new();
+        private readonly TimeSpan _signedUrlTtl;
 
         public SupabaseStorageService(string url, string serviceRoleKey, string bucket, int ttlSeconds = 3600)
         {
@@ -25,6 +30,7 @@ namespace NoodlesSimulator.Services
             _client = new Client(url, serviceRoleKey);
             _bucket = bucket;
             _ttlSeconds = ttlSeconds > 0 ? ttlSeconds : 3600;
+            _signedUrlTtl = TimeSpan.FromSeconds(Math.Max(60, _ttlSeconds - 60));
         }
 
         private async Task EnsureInitAsync()
@@ -39,9 +45,17 @@ namespace NoodlesSimulator.Services
             if (string.IsNullOrWhiteSpace(objectPath))
                 throw new ArgumentException("objectPath is required.", nameof(objectPath));
 
+            // Return cached if fresh
+            if (_signedUrlCache.TryGetValue(objectPath, out var entry))
+            {
+                if (DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
+                    return entry.url;
+            }
+
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
             var url = await from.CreateSignedUrl(objectPath, _ttlSeconds);
+            _signedUrlCache[objectPath] = (url, DateTime.UtcNow);
             return url;
         }
 
@@ -51,11 +65,28 @@ namespace NoodlesSimulator.Services
             var from = _client.Storage.From(_bucket);
 
             var dict = new Dictionary<string, string>();
+            var tasks = new List<Task>();
             foreach (var p in objectPaths)
             {
                 if (string.IsNullOrWhiteSpace(p)) continue;
-                dict[p] = await from.CreateSignedUrl(p, _ttlSeconds);
+
+                if (_signedUrlCache.TryGetValue(p, out var entry) && (DateTime.UtcNow - entry.cachedAt < _signedUrlTtl))
+                {
+                    dict[p] = entry.url;
+                    continue;
+                }
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    var url = await from.CreateSignedUrl(p, _ttlSeconds);
+                    _signedUrlCache[p] = (url, DateTime.UtcNow);
+                    lock (dict)
+                    {
+                        dict[p] = url;
+                    }
+                }));
             }
+            await Task.WhenAll(tasks);
             return dict;
         }
 
@@ -92,6 +123,10 @@ namespace NoodlesSimulator.Services
 
         public async Task<List<string>> ListFilesAsync(string prefix = "")
         {
+            // Use simple in-memory cache to avoid listing on every request
+            if (_listCache != null && (DateTime.UtcNow - _listCacheAt) < _listTtl)
+                return _listCache;
+
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
             var results = await from.List(prefix);
@@ -104,6 +139,8 @@ namespace NoodlesSimulator.Services
                 else if (!name.EndsWith("/"))
                     list.Add(name);
             }
+            _listCache = list;
+            _listCacheAt = DateTime.UtcNow;
             return list;
         }
     }

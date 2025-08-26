@@ -26,7 +26,10 @@ namespace NoodlesSimulator.Models
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
                 throw new Exception("Missing Supabase ENV vars.");
 
-            _client = new HttpClient();
+            _client = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(6)
+            };
             _client.DefaultRequestHeaders.Add("apikey", _apiKey);
             _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
@@ -86,6 +89,7 @@ namespace NoodlesSimulator.Models
             try
             {
                 var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&select=*");
+                var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&select=*");
                 var json = await res.Content.ReadAsStringAsync();
                 var users = JsonSerializer.Deserialize<List<User>>(json);
                 return users?.FirstOrDefault();
@@ -137,10 +141,11 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?select=LastSeen");
+                var threshold = DateTime.UtcNow.AddMinutes(-5).ToString("o");
+                var res = await _client.GetAsync($"{_url}/rest/v1/users?select=LastSeen&LastSeen=gt.{Uri.EscapeDataString(threshold)}");
                 var json = await res.Content.ReadAsStringAsync();
                 var users = JsonSerializer.Deserialize<List<User>>(json);
-                return users?.Count(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)) ?? 0;
+                return users?.Count ?? 0;
             }
             catch (Exception ex)
             {
