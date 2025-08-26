@@ -136,6 +136,36 @@ app.MapGet("/signed", async (HttpContext ctx, SupabaseStorageService storage) =>
     await ctx.Response.WriteAsync(signedUrl);
 });
 
+app.MapGet("/debug-random", async context =>
+{
+    try
+    {
+        var (tracked, throttled) = NoodlesSimulator.Pages.IndexModel.GetThrottleSnapshot();
+        var hist = NoodlesSimulator.Pages.IndexModel.GetGroupShownHistogramSnapshot();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Randomizer Debug");
+        sb.AppendLine($"trackedQuestions: {tracked}");
+        sb.AppendLine($"throttledNow: {throttled}");
+        sb.AppendLine("groupShownHistogram: count->groups");
+        foreach (var kv in hist.OrderBy(k => k.Key))
+            sb.AppendLine($"  {kv.Key}: {kv.Value}");
+
+        // Session recent list
+        var session = context.Session;
+        var recentJson = session.GetString("RecentQuestions") ?? "[]";
+        sb.AppendLine($"recentSessionQuestions: {recentJson}");
+
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync(sb.ToString());
+    }
+    catch (Exception ex)
+    {
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync($"debug error: {ex.Message}");
+    }
+});
+
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     try

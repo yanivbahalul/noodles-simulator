@@ -39,6 +39,39 @@ namespace NoodlesSimulator.Pages
         private static readonly TimeSpan _bagTtl = TimeSpan.FromMinutes(30);
         private static readonly Dictionary<string, int> _groupShownCount = new Dictionary<string, int>();
 
+        // Debug snapshots for diagnostics endpoint
+        public static (int trackedQuestions, int throttledNow) GetThrottleSnapshot()
+        {
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddHours(-1);
+            lock (_questionRateLock)
+            {
+                int throttled = 0;
+                foreach (var kv in _questionShownTimes)
+                {
+                    var list = kv.Value;
+                    list.RemoveAll(t => t < cutoff);
+                    if (list.Count >= 3) throttled++;
+                }
+                return (_questionShownTimes.Count, throttled);
+            }
+        }
+
+        public static Dictionary<int, int> GetGroupShownHistogramSnapshot()
+        {
+            lock (_bagLock)
+            {
+                var hist = new Dictionary<int, int>();
+                foreach (var kv in _groupShownCount)
+                {
+                    var c = kv.Value;
+                    if (!hist.ContainsKey(c)) hist[c] = 0;
+                    hist[c]++;
+                }
+                return hist;
+            }
+        }
+
         public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
         {
             _authService = authService;
