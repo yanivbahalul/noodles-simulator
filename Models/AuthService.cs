@@ -89,7 +89,6 @@ namespace NoodlesSimulator.Models
             try
             {
                 var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&select=*");
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&select=*");
                 var json = await res.Content.ReadAsStringAsync();
                 var users = JsonSerializer.Deserialize<List<User>>(json);
                 return users?.FirstOrDefault();
