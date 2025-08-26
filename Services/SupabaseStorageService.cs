@@ -129,15 +129,36 @@ namespace NoodlesSimulator.Services
 
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
-            var results = await from.List(prefix);
             var list = new List<string>();
-            foreach (var item in results)
+
+            // Paginate to fetch all files (SDK default may be limited)
+            int limit = 1000;
+            int offset = 0;
+            while (true)
             {
-                var name = string.IsNullOrWhiteSpace(prefix) ? item.Name : (prefix.TrimEnd('/') + "/" + item.Name);
-                if (item.Id != null)
-                    list.Add(name);
-                else if (!name.EndsWith("/"))
-                    list.Add(name);
+                Supabase.Storage.SearchOptions options = new Supabase.Storage.SearchOptions
+                {
+                    Limit = limit,
+                    Offset = offset,
+                    SortBy = new Supabase.Storage.SortBy("name", "asc")
+                };
+
+                var page = await from.List(prefix, options);
+                if (page == null || page.Count == 0)
+                    break;
+
+                foreach (var item in page)
+                {
+                    var name = string.IsNullOrWhiteSpace(prefix) ? item.Name : (prefix.TrimEnd('/') + "/" + item.Name);
+                    if (item.Id != null)
+                        list.Add(name);
+                    else if (!name.EndsWith("/"))
+                        list.Add(name);
+                }
+
+                if (page.Count < limit)
+                    break;
+                offset += page.Count;
             }
             _listCache = list;
             _listCacheAt = DateTime.UtcNow;
