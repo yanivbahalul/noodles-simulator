@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.DataProtection;
 using NoodlesSimulator.Models;
+using NoodlesSimulator.Services; // 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<EmailService>();
 
-// Persist Data Protection keys to /data-keys for Render Persistent Disk
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/data-keys"));
 
@@ -43,6 +43,26 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
     options.Secure = CookieSecurePolicy.SameAsRequest;
 });
+
+
+var sbUrl     = Environment.GetEnvironmentVariable("SUPABASE_URL");
+var sbAnon    = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
+                ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")       
+                ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
+var sbService = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+                ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
+var sbBucket  = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles-images";
+var sbTtlStr  = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
+var sbTtl     = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
+
+if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
+{
+    builder.Services.AddSingleton(new SupabaseStorageService(sbUrl!, sbService!, sbBucket, sbTtl));
+}
+else
+{
+    Console.WriteLine("⚠️  Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
+}
 
 var app = builder.Build();
 
@@ -73,25 +93,47 @@ app.MapPost("/clear-session", async context =>
 
 app.MapGet("/health", async context =>
 {
-    var url = Environment.GetEnvironmentVariable("SUPABASE_URL");
-    var key = Environment.GetEnvironmentVariable("SUPABASE_KEY");
-    var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-    var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
+    var url      = Environment.GetEnvironmentVariable("SUPABASE_URL");
+    var anon     = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
+                   ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
+                   ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
+    var service  = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+                   ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
+    var bucket   = Environment.GetEnvironmentVariable("SUPABASE_BUCKET");
+    var ttl      = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL");
+
+    var imagesDir   = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+    var reportsDir  = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
     var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
+
     var sb = new System.Text.StringBuilder();
     sb.AppendLine($"SUPABASE_URL: {(string.IsNullOrEmpty(url) ? "MISSING" : "OK")}");
-    sb.AppendLine($"SUPABASE_KEY: {(string.IsNullOrEmpty(key) ? "MISSING" : "OK")}");
+    sb.AppendLine($"SUPABASE_ANON_KEY/ANON_PUBLIC: {(string.IsNullOrEmpty(anon) ? "MISSING" : "OK")}");
+    sb.AppendLine($"SUPABASE_SERVICE_ROLE_KEY/SERVICE_ROLE_SECRET: {(string.IsNullOrEmpty(service) ? "MISSING" : "OK")}");
+    sb.AppendLine($"SUPABASE_BUCKET: {(string.IsNullOrEmpty(bucket) ? "MISSING" : bucket)}");
+    sb.AppendLine($"SUPABASE_SIGNED_URL_TTL: {(string.IsNullOrEmpty(ttl) ? "MISSING" : ttl)}");
     sb.AppendLine($"wwwroot/images: {(Directory.Exists(imagesDir) ? "OK" : "MISSING")}");
     sb.AppendLine($"wwwroot/reports: {(Directory.Exists(reportsDir) ? "OK" : "MISSING")}");
     sb.AppendLine($"progress: {(Directory.Exists(progressDir) ? "OK" : "MISSING")}");
-    if (Directory.Exists(imagesDir))
-        sb.AppendLine($"images count: {Directory.GetFiles(imagesDir).Length}");
-    if (Directory.Exists(reportsDir))
-        sb.AppendLine($"reports count: {Directory.GetFiles(reportsDir).Length}");
-    if (Directory.Exists(progressDir))
-        sb.AppendLine($"progress count: {Directory.GetFiles(progressDir).Length}");
+    if (Directory.Exists(imagesDir))   sb.AppendLine($"images count: {Directory.GetFiles(imagesDir).Length}");
+    if (Directory.Exists(reportsDir))  sb.AppendLine($"reports count: {Directory.GetFiles(reportsDir).Length}");
+    if (Directory.Exists(progressDir)) sb.AppendLine($"progress count: {Directory.GetFiles(progressDir).Length}");
+
     context.Response.ContentType = "text/plain";
     await context.Response.WriteAsync(sb.ToString());
+});
+
+app.MapGet("/signed", async (HttpContext ctx, SupabaseStorageService storage) =>
+{
+    var path = ctx.Request.Query["path"].ToString();
+    if (string.IsNullOrWhiteSpace(path))
+    {
+        ctx.Response.StatusCode = 400;
+        await ctx.Response.WriteAsync("query ?path=<objectPath> is required");
+        return;
+    }
+    var signedUrl = await storage.GetSignedUrlAsync(path);
+    await ctx.Response.WriteAsync(signedUrl);
 });
 
 app.Lifetime.ApplicationStarted.Register(() =>
