@@ -30,6 +30,14 @@ namespace NoodlesSimulator.Pages
         private static readonly object _questionRateLock = new object();
         private static readonly Dictionary<string, List<DateTime>> _questionShownTimes = new Dictionary<string, List<DateTime>>();
 
+        // Shuffle-bag to ensure we cycle through all groups before repeating
+        private static readonly object _bagLock = new object();
+        private static List<int> _bagOrder;
+        private static int _bagIndex = 0;
+        private static int _bagSourceCount = 0;
+        private static DateTime _bagBuiltAt;
+        private static readonly TimeSpan _bagTtl = TimeSpan.FromMinutes(30);
+
         public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
         {
             _authService = authService;
@@ -397,12 +405,42 @@ namespace NoodlesSimulator.Pages
                     return;
                 }
 
-                // Filter out groups whose question image was shown >= 3 times in the last hour
-                var eligible = grouped.Where(g => g.Count >= 1 && !IsQuestionThrottled(g[0])).ToList();
-                var pool = eligible.Count > 0 ? eligible : grouped;
+                // Build or reuse a shuffle-bag of group indices to ensure coverage
+                int chosenIdx;
+                lock (_bagLock)
+                {
+                    var now = DateTime.UtcNow;
+                    var needRebuild = _bagOrder == null || _bagSourceCount != grouped.Count || _bagIndex >= _bagOrder.Count || (now - _bagBuiltAt) > _bagTtl;
+                    if (needRebuild)
+                    {
+                        _bagOrder = Enumerable.Range(0, grouped.Count).ToList();
+                        FisherYatesShuffle(_bagOrder);
+                        _bagIndex = 0;
+                        _bagSourceCount = grouped.Count;
+                        _bagBuiltAt = now;
+                    }
 
-                int index = RandomNumberGenerator.GetInt32(pool.Count);
-                var chosen = pool[index];
+                    // Advance until we find a non-throttled group, or give up after one full pass
+                    int attempts = 0;
+                    while (attempts < _bagOrder.Count)
+                    {
+                        var idx = _bagOrder[_bagIndex % _bagOrder.Count];
+                        _bagIndex++;
+                        attempts++;
+                        var candidate = grouped[idx];
+                        if (candidate.Count > 0 && !IsQuestionThrottled(candidate[0]))
+                        {
+                            chosenIdx = idx;
+                            goto CHOSEN_FOUND;
+                        }
+                    }
+
+                    // If all candidates are throttled, just take the next in bag anyway
+                    chosenIdx = _bagOrder[_bagIndex % _bagOrder.Count];
+                    _bagIndex++;
+                }
+CHOSEN_FOUND:
+                var chosen = grouped[chosenIdx];
                 QuestionImage = chosen[0];
                 var correct = chosen[1];
                 var wrong = chosen.Skip(2).Take(3).ToList();
@@ -423,6 +461,20 @@ namespace NoodlesSimulator.Pages
             }
             catch (Exception)
             {
+            }
+        }
+
+        private static void FisherYatesShuffle(List<int> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = RandomNumberGenerator.GetInt32(i + 1);
+                if (j != i)
+                {
+                    var tmp = list[i];
+                    list[i] = list[j];
+                    list[j] = tmp;
+                }
             }
         }
 
