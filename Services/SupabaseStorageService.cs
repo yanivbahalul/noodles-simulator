@@ -139,8 +139,7 @@ namespace NoodlesSimulator.Services
                 Supabase.Storage.SearchOptions options = new Supabase.Storage.SearchOptions
                 {
                     Limit = limit,
-                    Offset = offset,
-                    SortBy = new Supabase.Storage.SortBy("name", "asc")
+                    Offset = offset
                 };
 
                 var page = await from.List(prefix, options);
