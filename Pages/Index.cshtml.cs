@@ -405,10 +405,19 @@ namespace NoodlesSimulator.Pages
                 try
                 {
                     var to = Environment.GetEnvironmentVariable("EMAIL_TO") ?? "";
+                    Console.WriteLine($"[Report Debug] EMAIL_TO: {to}");
+                    Console.WriteLine($"[Report Debug] _emailService is null: {_emailService == null}");
+                    
                     if (!string.IsNullOrWhiteSpace(to) && _emailService != null)
                     {
                         var html = bodyBuilder.HtmlBody;
-                        _ = _emailService.SendEmailAsync(to, message.Subject, html);
+                        Console.WriteLine($"[Report Debug] Sending email to: {to}");
+                        var result = await _emailService.SendEmailAsync(to, message.Subject, html);
+                        Console.WriteLine($"[Report Debug] Email send result: {result}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Report Debug] Skipping email - to: '{to}', emailService: {_emailService != null}");
                     }
                 }
                 catch (Exception ex)

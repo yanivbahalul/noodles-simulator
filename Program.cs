@@ -17,8 +17,13 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<EmailService>();
 
+// Use local directory for data protection keys instead of /data-keys
+var dataKeysDir = Path.Combine(Directory.GetCurrentDirectory(), "data-keys");
+if (!Directory.Exists(dataKeysDir))
+    Directory.CreateDirectory(dataKeysDir);
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/data-keys"));
+    .PersistKeysToFileSystem(new DirectoryInfo(dataKeysDir));
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -213,7 +218,7 @@ if (Directory.Exists(progressDir))
     }
 }
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 app.Urls.Add($"http://*:{port}");
 
 app.Run();
