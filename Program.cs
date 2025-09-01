@@ -123,8 +123,9 @@ app.MapGet("/health", async context =>
     await context.Response.WriteAsync(sb.ToString());
 });
 
-app.MapGet("/signed", async (HttpContext ctx, SupabaseStorageService storage) =>
+app.MapGet("/signed", async (HttpContext ctx) =>
 {
+    var storage = ctx.RequestServices.GetRequiredService<SupabaseStorageService>();
     var path = ctx.Request.Query["path"].ToString();
     if (string.IsNullOrWhiteSpace(path))
     {
