@@ -15,7 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
-builder.Services.AddSingleton<EmailService>();
+
+// Add EmailService with configuration
+builder.Services.AddSingleton<EmailService>(provider =>
+{
+    var logger = provider.GetRequiredService<ILogger<EmailService>>();
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    return new EmailService(logger, configuration);
+});
 
 // Use local directory for data protection keys instead of /data-keys
 var dataKeysDir = Path.Combine(Directory.GetCurrentDirectory(), "data-keys");
@@ -60,6 +67,8 @@ var sbBucket  = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodle
 var sbTtlStr  = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
 var sbTtl     = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
 
+// Email configuration will be set via environment variables in Render
+
 if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 {
     builder.Services.AddSingleton(new SupabaseStorageService(sbUrl!, sbService!, sbBucket, sbTtl));
@@ -67,6 +76,24 @@ if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 else
 {
     Console.WriteLine("⚠️  Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
+}
+
+// Debug email configuration
+var emailTo = Environment.GetEnvironmentVariable("EMAIL_TO");
+var emailUser = Environment.GetEnvironmentVariable("Email__SmtpUser");
+var emailPass = Environment.GetEnvironmentVariable("Email__SmtpPass");
+Console.WriteLine($"📧 Email configuration:");
+Console.WriteLine($"   EMAIL_TO: {emailTo}");
+Console.WriteLine($"   SmtpUser: {emailUser}");
+Console.WriteLine($"   SmtpPass: {(string.IsNullOrEmpty(emailPass) ? "NOT SET" : "SET")}");
+
+if (string.IsNullOrEmpty(emailTo) || string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass))
+{
+    Console.WriteLine("⚠️  Email notifications will not work - missing configuration");
+}
+else
+{
+    Console.WriteLine("✅ Email configuration looks good");
 }
 
 var app = builder.Build();
@@ -130,7 +157,14 @@ app.MapGet("/health", async context =>
 
 app.MapGet("/signed", async (HttpContext ctx) =>
 {
-    var storage = ctx.RequestServices.GetRequiredService<SupabaseStorageService>();
+    var storage = ctx.RequestServices.GetService<SupabaseStorageService>();
+    if (storage == null)
+    {
+        ctx.Response.StatusCode = 503;
+        await ctx.Response.WriteAsync("Supabase Storage Service not available");
+        return;
+    }
+    
     var path = ctx.Request.Query["path"].ToString();
     if (string.IsNullOrWhiteSpace(path))
     {
