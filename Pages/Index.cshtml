@@ -134,9 +134,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <div style="display: flex; flex-direction: column; align-items: center; margin-top: 32px;">
     <form id="report-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 400px; width: 100%;">
-        <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
-        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.ShuffledAnswers)' />
-        <input type="hidden" name="correctAnswer" value='@(Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : "")' />
+        <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
+        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers)' />
+        <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
         <label for="explanation" style="font-weight: bold;">יש טעות בשאלה? דווח לנו</label>
         <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." style="width: 100%; min-height: 60px; border-radius: 8px; border: 1px solid #ccc; padding: 8px; font-size: 16px;"></textarea>

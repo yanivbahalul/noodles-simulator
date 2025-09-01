@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Web;
 using Supabase;
 
 namespace NoodlesSimulator.Services
@@ -162,6 +163,59 @@ namespace NoodlesSimulator.Services
             _listCache = list;
             _listCacheAt = DateTime.UtcNow;
             return list;
+        }
+
+        /// <summary>
+        /// Extracts the original file name from a signed URL
+        /// </summary>
+        /// <param name="signedUrl">The signed URL from Supabase Storage</param>
+        /// <returns>The original file name or null if extraction fails</returns>
+        public static string ExtractFileNameFromSignedUrl(string signedUrl)
+        {
+            if (string.IsNullOrWhiteSpace(signedUrl))
+                return null;
+
+            try
+            {
+                // Parse the JWT token from the URL
+                var uri = new Uri(signedUrl);
+                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                var token = query["token"];
+                
+                if (string.IsNullOrWhiteSpace(token))
+                    return null;
+
+                // Decode the JWT token (we only need the payload)
+                var parts = token.Split('.');
+                if (parts.Length != 3)
+                    return null;
+
+                var payload = parts[1];
+                // Add padding if needed
+                payload = payload.PadRight(4 * ((payload.Length + 3) / 4), '=');
+                
+                // Decode base64url to base64
+                payload = payload.Replace('-', '+').Replace('_', '/');
+                
+                var jsonBytes = Convert.FromBase64String(payload);
+                var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
+                
+                // Parse the JSON to get the "url" field
+                var tokenData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
+                if (tokenData.TryGetValue("url", out var urlObj))
+                {
+                    var url = urlObj.ToString();
+                    // Extract the file name from the URL
+                    var fileName = System.IO.Path.GetFileName(url);
+                    return fileName;
+                }
+            }
+            catch (Exception)
+            {
+                // If extraction fails, return null
+            }
+            
+            return null;
         }
     }
 }

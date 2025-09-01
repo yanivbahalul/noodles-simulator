@@ -91,6 +91,10 @@ namespace NoodlesSimulator.Pages
         // Holds signed URLs for current question and answers for rendering
         public string QuestionImageUrl { get; set; }
         public Dictionary<string, string> AnswerImageUrls { get; set; }
+        
+        // Store original file names for reporting purposes
+        public string QuestionImageOriginalName { get; set; }
+        public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -304,6 +308,22 @@ namespace NoodlesSimulator.Pages
                 var username = HttpContext.Session.GetString("Username") ?? "Unknown";
                 var timestamp = DateTime.UtcNow;
 
+                // If questionImage looks like a signed URL, try to extract the original filename
+                if (!string.IsNullOrWhiteSpace(questionImage) && questionImage.Contains("token="))
+                {
+                    var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(questionImage);
+                    if (!string.IsNullOrWhiteSpace(extractedName))
+                        questionImage = extractedName;
+                }
+
+                // If correctAnswer looks like a signed URL, try to extract the original filename
+                if (!string.IsNullOrWhiteSpace(correctAnswer) && correctAnswer.Contains("token="))
+                {
+                    var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(correctAnswer);
+                    if (!string.IsNullOrWhiteSpace(extractedName))
+                        correctAnswer = extractedName;
+                }
+
                 var message = new MimeMessage();
                 message.Subject = $"[Noodles Simulator] דיווח טעות חדשה מהמשתמש {username}";
 
@@ -313,6 +333,24 @@ namespace NoodlesSimulator.Pages
                 {
                     if (!string.IsNullOrWhiteSpace(answers))
                         answersDict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(answers);
+                    
+                    // If any answers look like signed URLs, try to extract original filenames
+                    if (answersDict != null)
+                    {
+                        var cleanedAnswers = new Dictionary<string, string>();
+                        foreach (var kv in answersDict)
+                        {
+                            var value = kv.Value;
+                            if (!string.IsNullOrWhiteSpace(value) && value.Contains("token="))
+                            {
+                                var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(value);
+                                if (!string.IsNullOrWhiteSpace(extractedName))
+                                    value = extractedName;
+                            }
+                            cleanedAnswers[kv.Key] = value;
+                        }
+                        answersDict = cleanedAnswers;
+                    }
                 }
                 catch (Exception) { }
 
@@ -611,6 +649,15 @@ CHOSEN_FOUND:
 
             try
             {
+                // Store original file names for reporting
+                QuestionImageOriginalName = QuestionImage;
+                AnswerImageOriginalNames = new Dictionary<string, string>();
+                foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
+                {
+                    if (!string.IsNullOrWhiteSpace(kv.Value))
+                        AnswerImageOriginalNames[kv.Key] = kv.Value;
+                }
+
                 QuestionImageUrl = string.IsNullOrWhiteSpace(QuestionImage) ? string.Empty : ($"/images/{QuestionImage}");
                 AnswerImageUrls = new Dictionary<string, string>();
                 foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
@@ -623,6 +670,8 @@ CHOSEN_FOUND:
             {
                 QuestionImageUrl = string.Empty;
                 AnswerImageUrls = new Dictionary<string, string>();
+                QuestionImageOriginalName = string.Empty;
+                AnswerImageOriginalNames = new Dictionary<string, string>();
             }
         }
 
@@ -630,6 +679,15 @@ CHOSEN_FOUND:
         {
             try
             {
+                // Store original file names for reporting
+                QuestionImageOriginalName = QuestionImage;
+                AnswerImageOriginalNames = new Dictionary<string, string>();
+                foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
+                {
+                    if (!string.IsNullOrWhiteSpace(kv.Value))
+                        AnswerImageOriginalNames[kv.Key] = kv.Value;
+                }
+
                 if (!string.IsNullOrWhiteSpace(QuestionImage))
                     QuestionImageUrl = await _storage.GetSignedUrlAsync(QuestionImage);
                 else
@@ -648,6 +706,8 @@ CHOSEN_FOUND:
             {
                 QuestionImageUrl = string.Empty;
                 AnswerImageUrls = new Dictionary<string, string>();
+                QuestionImageOriginalName = string.Empty;
+                AnswerImageOriginalNames = new Dictionary<string, string>();
             }
         }
 
