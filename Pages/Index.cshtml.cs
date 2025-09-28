@@ -247,7 +247,7 @@ namespace NoodlesSimulator.Pages
 
                 int cheaterCount = HttpContext.Session.GetInt32("CheaterCount") ?? 0;
 
-                if (rapidTotal >= 30 || rapidCorrect >= 20)
+                if (rapidTotal >= 10 || rapidCorrect >= 15)
                 {
                     Console.WriteLine($"[CHEATER DETECTED] User: {user.Username} | RapidTotal: {rapidTotal} | RapidCorrect: {rapidCorrect}");
                     user.CorrectAnswers = 0;
