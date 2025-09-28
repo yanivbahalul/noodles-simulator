@@ -32,7 +32,13 @@ if (!Directory.Exists(dataKeysDir))
     Directory.CreateDirectory(dataKeysDir);
 
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataKeysDir));
+    .PersistKeysToFileSystem(new DirectoryInfo(dataKeysDir))
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90))
+    .UseCryptographicAlgorithms(new Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorConfiguration()
+    {
+        EncryptionAlgorithm = Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.EncryptionAlgorithm.AES_256_CBC,
+        ValidationAlgorithm = Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ValidationAlgorithm.HMACSHA256
+    });
 
 // Logging
 builder.Logging.ClearProviders();
@@ -47,8 +53,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.IdleTimeout = TimeSpan.FromHours(1);
+    options.Cookie.MaxAge = TimeSpan.FromHours(1);
 });
 
 builder.Services.AddHttpClient();
@@ -59,6 +66,15 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
     options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
     options.Secure = CookieSecurePolicy.SameAsRequest;
+});
+
+// Antiforgery configuration
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = ".Noodles.Antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 // Environment variables
