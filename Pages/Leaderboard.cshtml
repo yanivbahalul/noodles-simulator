@@ -50,7 +50,10 @@
             <tr style="background-color:@(i % 2 == 0 ? "#222" : "#111");">
                 <td style="padding: 10px; text-align: left; direction: ltr;">@(@i + 1)</td>
                 <td style="padding: 10px; text-align: left; direction: ltr;">
-                    @if (isCurrentUser)
+                    @{
+                        var isOnline = user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5);
+                    }
+                    @if (isOnline)
                     {
                         <strong style="color: #00ff00;">@user.Username</strong>
                     }
@@ -114,7 +117,7 @@ function updateLeaderboardTable(data, currentUsername) {
         usernameCell.style.textAlign = 'left';
         usernameCell.style.direction = 'ltr';
         
-        if (user.isCurrentUser || user.username === currentUsername) {
+        if (user.isOnline) {
             const strongElement = document.createElement('strong');
             strongElement.style.color = '#00ff00';
             strongElement.textContent = user.username;
