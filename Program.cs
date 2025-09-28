@@ -296,6 +296,9 @@ app.MapGet("/api/leaderboard-data", async context =>
             return;
         }
 
+        // Get current username from session
+        var currentUsername = context.Session.GetString("Username") ?? "";
+
         var topUsers = await authService.GetTopUsers(50);
         var data = topUsers.Select((u, index) => new
         {
@@ -304,11 +307,18 @@ app.MapGet("/api/leaderboard-data", async context =>
             totalAnswered = u.TotalAnswered,
             correctAnswers = u.CorrectAnswers,
             successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
-            isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)
+            isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
+            isCurrentUser = u.Username == currentUsername
         }).ToList();
 
+        var response = new
+        {
+            users = data,
+            currentUsername = currentUsername
+        };
+
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
     }
     catch (Exception ex)
     {

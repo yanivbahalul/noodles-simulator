@@ -34,12 +34,12 @@
     <h2 style="margin-bottom: 5px;">🏆 טבלת המובילים</h2>
     <div id="last-update" style="font-size: 12px; color: #888; margin-bottom: 20px;">(מתעדכן...)</div>
 
-    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; direction: ltr;">
+    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; direction: ltr; text-align: left; margin-left: 0; margin-right: auto;">
         <thead>
             <tr style="background-color: #333;">
-                <th style="padding: 12px; text-align: left;">#</th>
-                <th style="padding: 12px; text-align: left;">שם משתמש</th>
-                <th style="padding: 12px; text-align: left;">תשובות נכונות</th>
+                <th style="padding: 12px; text-align: left; direction: ltr;">#</th>
+                <th style="padding: 12px; text-align: left; direction: ltr;">שם משתמש</th>
+                <th style="padding: 12px; text-align: left; direction: ltr;">תשובות נכונות</th>
             </tr>
         </thead>
         <tbody>
@@ -48,8 +48,8 @@
             var user = Model.SortedUsers[i];
             var isCurrentUser = user.Username == Model.CurrentUsername;
             <tr style="background-color:@(i % 2 == 0 ? "#222" : "#111");">
-                <td style="padding: 10px; text-align: left;">@(@i + 1)</td>
-                <td style="padding: 10px; text-align: left;">
+                <td style="padding: 10px; text-align: left; direction: ltr;">@(@i + 1)</td>
+                <td style="padding: 10px; text-align: left; direction: ltr;">
                     @if (isCurrentUser)
                     {
                         <strong style="color: #00ff00;">@user.Username</strong>
@@ -59,7 +59,7 @@
                         @user.Username
                     }
                 </td>
-                <td style="padding: 10px; text-align: left;">@user.CorrectAnswers</td>
+                <td style="padding: 10px; text-align: left; direction: ltr;">@user.CorrectAnswers</td>
             </tr>
         }
         </tbody>
@@ -75,7 +75,7 @@ async function fetchLeaderboardData() {
         const data = await response.json();
         
         // Update leaderboard table
-        updateLeaderboardTable(data);
+        updateLeaderboardTable(data.users, data.currentUsername);
         
         // Update last update time
         const now = new Date();
@@ -87,7 +87,7 @@ async function fetchLeaderboardData() {
     }
 }
 
-function updateLeaderboardTable(data) {
+function updateLeaderboardTable(data, currentUsername) {
     const table = document.getElementById('leaderboard-table');
     if (!table) return;
     
@@ -95,9 +95,6 @@ function updateLeaderboardTable(data) {
     const headerRow = table.querySelector('thead tr');
     const tbody = table.querySelector('tbody');
     tbody.innerHTML = '';
-    
-    // Get current username from session (we'll need to pass this from the server)
-    const currentUsername = '@Model.CurrentUsername';
     
     // Add new data rows
     data.forEach((user, index) => {
@@ -108,14 +105,16 @@ function updateLeaderboardTable(data) {
         const rankCell = row.insertCell();
         rankCell.style.padding = '10px';
         rankCell.style.textAlign = 'left';
+        rankCell.style.direction = 'ltr';
         rankCell.textContent = user.rank;
         
         // Username
         const usernameCell = row.insertCell();
         usernameCell.style.padding = '10px';
         usernameCell.style.textAlign = 'left';
+        usernameCell.style.direction = 'ltr';
         
-        if (user.username === currentUsername) {
+        if (user.isCurrentUser || user.username === currentUsername) {
             const strongElement = document.createElement('strong');
             strongElement.style.color = '#00ff00';
             strongElement.textContent = user.username;
@@ -128,6 +127,7 @@ function updateLeaderboardTable(data) {
         const correctCell = row.insertCell();
         correctCell.style.padding = '10px';
         correctCell.style.textAlign = 'left';
+        correctCell.style.direction = 'ltr';
         correctCell.textContent = user.correctAnswers;
     });
 }
