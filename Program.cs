@@ -63,8 +63,8 @@ var sbUrl     = Environment.GetEnvironmentVariable("SUPABASE_URL");
 var sbAnon    = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
                 ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")       
                 ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
-var sbService = Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET")
-                ?? Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY");
+var sbService = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+                ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
 var sbBucket  = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles-images";
 var sbTtlStr  = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
 var sbTtl     = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
