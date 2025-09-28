@@ -27,36 +27,8 @@ builder.Services.AddSingleton<EmailService>(provider =>
     return new EmailService(logger, configuration);
 });
 
-// Data protection
-var dataKeysDir = Path.Combine(Directory.GetCurrentDirectory(), "data-keys");
-if (!Directory.Exists(dataKeysDir))
-    Directory.CreateDirectory(dataKeysDir);
-
-// Clear old keys to prevent key ring issues
-try
-{
-    if (Directory.Exists(dataKeysDir))
-    {
-        var oldKeys = Directory.GetFiles(dataKeysDir, "*.xml");
-        foreach (var keyFile in oldKeys)
-        {
-            try { File.Delete(keyFile); } catch { }
-        }
-    }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"[Data Protection Cleanup] {ex.Message}");
-}
-
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataKeysDir))
-    .SetDefaultKeyLifetime(TimeSpan.FromDays(30))
-    .UseCryptographicAlgorithms(new Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorConfiguration()
-    {
-        EncryptionAlgorithm = Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.EncryptionAlgorithm.AES_256_CBC,
-        ValidationAlgorithm = Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ValidationAlgorithm.HMACSHA256
-    });
+// Data protection - disabled to prevent key ring issues
+// builder.Services.AddDataProtection();
 
 // Logging
 builder.Logging.ClearProviders();
@@ -64,7 +36,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-// Session configuration
+// Session configuration - simplified
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session";
@@ -72,9 +44,8 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.MaxAge = TimeSpan.FromMinutes(30);
-    options.IOTimeout = TimeSpan.FromMinutes(1);
+    options.IdleTimeout = TimeSpan.FromHours(1);
+    options.Cookie.MaxAge = TimeSpan.FromHours(1);
 });
 
 builder.Services.AddHttpClient();
@@ -87,16 +58,8 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.Secure = CookieSecurePolicy.SameAsRequest;
 });
 
-// Antiforgery configuration
-builder.Services.AddAntiforgery(options =>
-{
-    options.Cookie.Name = ".Noodles.Antiforgery";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.MaxAge = TimeSpan.FromMinutes(30);
-    options.SuppressXFrameOptionsHeader = false;
-});
+// Antiforgery - disabled to prevent key ring issues
+// builder.Services.AddAntiforgery();
 
 // Environment variables
 var sbUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
