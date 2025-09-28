@@ -17,11 +17,15 @@ namespace NoodlesSimulator.Pages
         }
 
         public List<User> SortedUsers { get; set; } = new();
+        public string CurrentUsername { get; set; } = "";
 
         public async Task OnGetAsync()
         {
             try
             {
+                // Get current logged in user
+                CurrentUsername = HttpContext.Session.GetString("Username") ?? "";
+                
                 SortedUsers = await _authService.GetTopUsers(50); // get top 50 users for leaderboard
             }
             catch (Exception ex)

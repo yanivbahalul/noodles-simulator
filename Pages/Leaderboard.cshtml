@@ -46,9 +46,19 @@
         @for (int i = 0; i < Model.SortedUsers.Count; i++)
         {
             var user = Model.SortedUsers[i];
+            var isCurrentUser = user.Username == Model.CurrentUsername;
             <tr style="background-color:@(i % 2 == 0 ? "#222" : "#111");">
                 <td style="padding: 10px; text-align: left;">@(@i + 1)</td>
-                <td style="padding: 10px; text-align: left;">@user.Username</td>
+                <td style="padding: 10px; text-align: left;">
+                    @if (isCurrentUser)
+                    {
+                        <strong style="color: #00ff00;">@user.Username</strong>
+                    }
+                    else
+                    {
+                        @user.Username
+                    }
+                </td>
                 <td style="padding: 10px; text-align: left;">@user.CorrectAnswers</td>
             </tr>
         }
@@ -86,6 +96,9 @@ function updateLeaderboardTable(data) {
     const tbody = table.querySelector('tbody');
     tbody.innerHTML = '';
     
+    // Get current username from session (we'll need to pass this from the server)
+    const currentUsername = '@Model.CurrentUsername';
+    
     // Add new data rows
     data.forEach((user, index) => {
         const row = tbody.insertRow();
@@ -94,16 +107,27 @@ function updateLeaderboardTable(data) {
         // Rank
         const rankCell = row.insertCell();
         rankCell.style.padding = '10px';
+        rankCell.style.textAlign = 'left';
         rankCell.textContent = user.rank;
         
         // Username
         const usernameCell = row.insertCell();
         usernameCell.style.padding = '10px';
-        usernameCell.textContent = user.username;
+        usernameCell.style.textAlign = 'left';
+        
+        if (user.username === currentUsername) {
+            const strongElement = document.createElement('strong');
+            strongElement.style.color = '#00ff00';
+            strongElement.textContent = user.username;
+            usernameCell.appendChild(strongElement);
+        } else {
+            usernameCell.textContent = user.username;
+        }
         
         // Correct answers
         const correctCell = row.insertCell();
         correctCell.style.padding = '10px';
+        correctCell.style.textAlign = 'left';
         correctCell.textContent = user.correctAnswers;
     });
 }
