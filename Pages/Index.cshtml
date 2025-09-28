@@ -198,29 +198,47 @@ let updateInterval;
 async function fetchStats() {
     try {
         const res = await fetch('/Stats?_=' + new Date().getTime());
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const data = await res.json();
-        if (data.correct !== undefined) {
+        
+        // Only update if we have valid data
+        if (data && data.correct !== undefined) {
             document.getElementById('stat-correct').innerText = data.correct;
             document.getElementById('stat-total').innerText = data.total;
             document.getElementById('stat-success').innerText = data.successRate + '%';
         }
-        if (data.online !== undefined) {
+        if (data && data.online !== undefined && data.online !== null) {
             document.getElementById('online-count').innerText = data.online;
         }
     } catch (e) {
         console.warn("Failed to fetch stats:", e);
+        // Don't clear the stats on error, just keep the current values
     }
 }
 
 async function fetchOnlineCount() {
     try {
         const res = await fetch('/api/online-count?_=' + new Date().getTime());
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
         const data = await res.json();
-        if (data.online !== undefined) {
+        
+        // Only update if we have valid data
+        if (data && data.online !== undefined && data.online !== null) {
             document.getElementById('online-count').innerText = data.online;
+        } else {
+            console.warn("Invalid online count data received");
         }
     } catch (e) {
         console.warn("Failed to fetch online count:", e);
+        // Don't clear the count on error, just keep the current value
     }
 }
 
