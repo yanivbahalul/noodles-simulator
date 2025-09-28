@@ -10,15 +10,15 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.DataProtection;
 using NoodlesSimulator.Models;
-using NoodlesSimulator.Services; 
+using NoodlesSimulator.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure services
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 
-// Add EmailService with configuration
 builder.Services.AddSingleton<EmailService>(provider =>
 {
     var logger = provider.GetRequiredService<ILogger<EmailService>>();
@@ -26,7 +26,7 @@ builder.Services.AddSingleton<EmailService>(provider =>
     return new EmailService(logger, configuration);
 });
 
-// Use local directory for data protection keys instead of /data-keys
+// Data protection
 var dataKeysDir = Path.Combine(Directory.GetCurrentDirectory(), "data-keys");
 if (!Directory.Exists(dataKeysDir))
     Directory.CreateDirectory(dataKeysDir);
@@ -34,11 +34,13 @@ if (!Directory.Exists(dataKeysDir))
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataKeysDir));
 
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
+// Session configuration
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session";
@@ -51,6 +53,7 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpClient();
 
+// Cookie policy
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
@@ -58,19 +61,18 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
     options.Secure = CookieSecurePolicy.SameAsRequest;
 });
 
-
-var sbUrl     = Environment.GetEnvironmentVariable("SUPABASE_URL");
-var sbAnon    = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
-                ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")       
-                ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
+// Environment variables
+var sbUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
+var sbAnon = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
+            ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
+            ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
 var sbService = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
-                ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
-var sbBucket  = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles-images";
-var sbTtlStr  = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
-var sbTtl     = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
+               ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
+var sbBucket = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles-images";
+var sbTtlStr = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
+var sbTtl = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
 
-// Email configuration will be set via environment variables in Render
-
+// Supabase storage service
 if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 {
     builder.Services.AddSingleton(new SupabaseStorageService(sbUrl!, sbService!, sbBucket, sbTtl));
@@ -80,10 +82,11 @@ else
     Console.WriteLine("⚠️  Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
 }
 
-// Debug email configuration
+// Email configuration debug
 var emailTo = Environment.GetEnvironmentVariable("EMAIL_TO");
 var emailUser = Environment.GetEnvironmentVariable("Email__SmtpUser");
 var emailPass = Environment.GetEnvironmentVariable("Email__SmtpPass");
+
 Console.WriteLine($"📧 Email configuration:");
 Console.WriteLine($"   EMAIL_TO: {emailTo}");
 Console.WriteLine($"   SmtpUser: {emailUser}");
@@ -100,6 +103,7 @@ else
 
 var app = builder.Build();
 
+// Middleware pipeline
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
@@ -208,7 +212,7 @@ app.MapGet("/debug-random", async context =>
     }
 });
 
-// Real-time API endpoints
+// API endpoints
 app.MapGet("/api/dashboard-data", async context =>
 {
     try
@@ -324,6 +328,7 @@ app.MapGet("/api/online-count", async context =>
     }
 });
 
+// Application startup
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     try
@@ -338,16 +343,20 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
 });
 
+// Initialize directories
 var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
 if (!Directory.Exists(reportsDir))
     Directory.CreateDirectory(reportsDir);
+
 var reportsJson = Path.Combine(reportsDir, "reports.json");
 if (!File.Exists(reportsJson))
     File.WriteAllText(reportsJson, "[]");
+
 var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);
 
+// Cleanup old progress files
 if (Directory.Exists(progressDir))
 {
     var files = Directory.GetFiles(progressDir, "*.json");
@@ -370,6 +379,7 @@ if (Directory.Exists(progressDir))
     }
 }
 
+// Start application
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 app.Urls.Add($"http://*:{port}");
 

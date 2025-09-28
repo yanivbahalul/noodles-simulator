@@ -23,7 +23,7 @@ namespace NoodlesSimulator.Models
         {
             _logger = logger;
             _configuration = configuration;
-            _emailThrottler = new SemaphoreSlim(5); // max 5 concurrent emails
+            _emailThrottler = new SemaphoreSlim(5);
             _maxEmailsPerHour = configuration.GetValue<int>("Email:MaxPerHour", 100);
             _maxRetriesOnFailure = configuration.GetValue<int>("Email:MaxRetries", 3);
         }
