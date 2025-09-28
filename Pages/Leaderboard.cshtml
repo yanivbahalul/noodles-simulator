@@ -75,18 +75,28 @@ let updateInterval;
 async function fetchLeaderboardData() {
     try {
         const response = await fetch('/api/leaderboard-data?_=' + new Date().getTime());
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        // Update leaderboard table
-        updateLeaderboardTable(data.users, data.currentUsername);
-        
-        // Update last update time
-        const now = new Date();
-        document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        // Only update if we have valid data
+        if (data && data.users && Array.isArray(data.users)) {
+            updateLeaderboardTable(data.users, data.currentUsername);
+            
+            // Update last update time
+            const now = new Date();
+            document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        } else {
+            console.warn('Invalid data received from server');
+        }
         
     } catch (error) {
         console.warn('Failed to fetch leaderboard data:', error);
-        document.getElementById('last-update').textContent = '(שגיאה בעדכון)';
+        // Don't clear the table on error, just show error message
+        document.getElementById('last-update').textContent = '(שגיאה בעדכון - מחכה...)';
     }
 }
 

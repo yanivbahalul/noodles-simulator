@@ -300,10 +300,17 @@ app.MapGet("/api/leaderboard-data", async context =>
         var currentUsername = context.Session.GetString("Username") ?? "";
 
         var topUsers = await authService.GetTopUsers(50);
+        
+        // Ensure we have valid data
+        if (topUsers == null)
+        {
+            topUsers = new List<User>();
+        }
+        
         var data = topUsers.Select((u, index) => new
         {
             rank = index + 1,
-            username = u.Username,
+            username = u.Username ?? "",
             totalAnswered = u.TotalAnswered,
             correctAnswers = u.CorrectAnswers,
             successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
@@ -314,7 +321,8 @@ app.MapGet("/api/leaderboard-data", async context =>
         var response = new
         {
             users = data,
-            currentUsername = currentUsername
+            currentUsername = currentUsername,
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };
 
         context.Response.ContentType = "application/json";
