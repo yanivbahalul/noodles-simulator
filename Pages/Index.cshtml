@@ -193,6 +193,8 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 <script>
+let updateInterval;
+
 async function fetchStats() {
     try {
         const res = await fetch('/Stats?_=' + new Date().getTime());
@@ -210,16 +212,61 @@ async function fetchStats() {
     }
 }
 
+async function fetchOnlineCount() {
+    try {
+        const res = await fetch('/api/online-count?_=' + new Date().getTime());
+        const data = await res.json();
+        if (data.online !== undefined) {
+            document.getElementById('online-count').innerText = data.online;
+        }
+    } catch (e) {
+        console.warn("Failed to fetch online count:", e);
+    }
+}
+
 function toggleStats() {
     const panel = document.getElementById('stats-panel');
     const toggle = document.getElementById('stats-toggle');
     const isOpen = !panel.classList.contains('hidden');
     panel.classList.toggle('hidden');
     toggle.innerText = isOpen ? '⬆️' : '⬇️';
-    if (!isOpen) fetchStats();
+    if (!isOpen) {
+        fetchStats();
+        fetchOnlineCount();
+    }
 }
 
-window.addEventListener("load", fetchStats);
+// Start auto-update every 5 seconds for stats
+function startAutoUpdate() {
+    updateInterval = setInterval(() => {
+        fetchStats();
+        fetchOnlineCount();
+    }, 5000);
+}
+
+// Stop auto-update
+function stopAutoUpdate() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+// Start updates when page loads
+window.addEventListener("load", () => {
+    fetchStats(); // Initial load
+    fetchOnlineCount();
+    startAutoUpdate();
+});
+
+// Stop updates when page is hidden (to save resources)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopAutoUpdate();
+    } else {
+        startAutoUpdate();
+    }
+});
 </script>
 
 <script>

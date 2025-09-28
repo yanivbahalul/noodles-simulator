@@ -1,3 +1,4 @@
+
 using System;
 using System.IO;
 using System.Linq;
@@ -204,6 +205,122 @@ app.MapGet("/debug-random", async context =>
     {
         context.Response.StatusCode = 500;
         await context.Response.WriteAsync($"debug error: {ex.Message}");
+    }
+});
+
+// Real-time API endpoints
+app.MapGet("/api/dashboard-data", async context =>
+{
+    try
+    {
+        var authService = context.RequestServices.GetService<AuthService>();
+        if (authService == null)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsync("AuthService not available");
+            return;
+        }
+
+        var allUsers = await authService.GetAllUsersLight();
+        var onlineUsers = allUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();
+        var cheaters = allUsers.Where(u => u.IsCheater).ToList();
+        var bannedUsers = allUsers.Where(u => u.IsBanned).ToList();
+        var topUsers = allUsers.OrderByDescending(u => u.CorrectAnswers).Take(5).ToList();
+        var averageSuccessRate = allUsers.Where(u => u.TotalAnswered > 0)
+            .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
+            .DefaultIfEmpty(0).Average() * 100;
+
+        var data = new
+        {
+            allUsersCount = allUsers.Count,
+            onlineUsersCount = onlineUsers.Count,
+            cheatersCount = cheaters.Count,
+            bannedUsersCount = bannedUsers.Count,
+            averageSuccessRate = Math.Round(averageSuccessRate, 1),
+            onlineUsersList = onlineUsers.Select(u => new
+            {
+                username = u.Username,
+                totalAnswered = u.TotalAnswered,
+                correctAnswers = u.CorrectAnswers,
+                successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0
+            }).ToList(),
+            topUsersList = topUsers.Select(u => new
+            {
+                username = u.Username,
+                totalAnswered = u.TotalAnswered,
+                correctAnswers = u.CorrectAnswers,
+                successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0
+            }).ToList()
+        };
+
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Dashboard API Error] {ex}");
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync($"Server error: {ex.Message}");
+    }
+});
+
+app.MapGet("/api/leaderboard-data", async context =>
+{
+    try
+    {
+        var authService = context.RequestServices.GetService<AuthService>();
+        if (authService == null)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsync("AuthService not available");
+            return;
+        }
+
+        var topUsers = await authService.GetTopUsers(50);
+        var data = topUsers.Select((u, index) => new
+        {
+            rank = index + 1,
+            username = u.Username,
+            totalAnswered = u.TotalAnswered,
+            correctAnswers = u.CorrectAnswers,
+            successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
+            isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)
+        }).ToList();
+
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Leaderboard API Error] {ex}");
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync($"Server error: {ex.Message}");
+    }
+});
+
+app.MapGet("/api/online-count", async context =>
+{
+    try
+    {
+        var authService = context.RequestServices.GetService<AuthService>();
+        if (authService == null)
+        {
+            context.Response.StatusCode = 503;
+            await context.Response.WriteAsync("AuthService not available");
+            return;
+        }
+
+        var onlineCount = await authService.GetOnlineUserCount();
+        var data = new { online = onlineCount };
+
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Online Count API Error] {ex}");
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync($"Server error: {ex.Message}");
     }
 });
 

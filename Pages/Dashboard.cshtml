@@ -55,17 +55,17 @@
         </div>
     }
 
-    <h2>✅ סטטיסטיקה כללית</h2>
+    <h2>✅ סטטיסטיקה כללית <span id="last-update" style="font-size: 14px; color: #888;">(מתעדכן...)</span></h2>
     <ul>
-        <li>👥 משתמשים רשומים: <strong>@Model.AllUsers.Count</strong></li>
-        <li>🟢 מחוברים כרגע: <strong>@Model.OnlineUsers.Count</strong></li>
-        <li>🚩 מסומנים כ־Cheaters: <strong>@Model.Cheaters.Count</strong></li>
-        <li>🔒 חסומים: <strong>@Model.BannedUsers.Count</strong></li>
-        <li>📈 ממוצע הצלחה: <strong>@Model.AverageSuccessRate.ToString("0.0")%</strong></li>
+        <li>👥 משתמשים רשומים: <strong id="all-users-count">@Model.AllUsers.Count</strong></li>
+        <li>🟢 מחוברים כרגע: <strong id="online-users-count">@Model.OnlineUsers.Count</strong></li>
+        <li>🚩 מסומנים כ־Cheaters: <strong id="cheaters-count">@Model.Cheaters.Count</strong></li>
+        <li>🔒 חסומים: <strong id="banned-users-count">@Model.BannedUsers.Count</strong></li>
+        <li>📈 ממוצע הצלחה: <strong id="average-success-rate">@Model.AverageSuccessRate.ToString("0.0")%</strong></li>
     </ul>
 
     <h2>📶 משתמשים מחוברים כרגע</h2>
-    <table>
+    <table id="online-users-table">
         <tr>
             <th>מיקום</th>
             <th>שם משתמש</th>
@@ -87,7 +87,7 @@
     </table>
 
     <h2>🏆 טבלת מובילים</h2>
-    <table>
+    <table id="top-users-table">
         <tr>
             <th>מיקום</th>
             <th>שם משתמש</th>
@@ -137,6 +137,93 @@
     </table>
 
 </body>
+
+<script>
+let updateInterval;
+
+async function fetchDashboardData() {
+    try {
+        const response = await fetch('/api/dashboard-data?_=' + new Date().getTime());
+        const data = await response.json();
+        
+        // Update statistics
+        document.getElementById('all-users-count').textContent = data.allUsersCount;
+        document.getElementById('online-users-count').textContent = data.onlineUsersCount;
+        document.getElementById('cheaters-count').textContent = data.cheatersCount;
+        document.getElementById('banned-users-count').textContent = data.bannedUsersCount;
+        document.getElementById('average-success-rate').textContent = data.averageSuccessRate + '%';
+        
+        // Update online users table
+        updateTable('online-users-table', data.onlineUsersList, ['rank', 'username', 'totalAnswered', 'correctAnswers', 'successRate']);
+        
+        // Update top users table
+        updateTable('top-users-table', data.topUsersList, ['rank', 'username', 'totalAnswered', 'correctAnswers', 'successRate']);
+        
+        // Update last update time
+        const now = new Date();
+        document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        
+    } catch (error) {
+        console.warn('Failed to fetch dashboard data:', error);
+        document.getElementById('last-update').textContent = '(שגיאה בעדכון)';
+    }
+}
+
+function updateTable(tableId, data, columns) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    // Keep header row, remove data rows
+    const headerRow = table.querySelector('tr');
+    table.innerHTML = '';
+    table.appendChild(headerRow);
+    
+    // Add new data rows
+    data.forEach((user, index) => {
+        const row = table.insertRow();
+        
+        columns.forEach((column, colIndex) => {
+            const cell = row.insertCell();
+            if (column === 'rank') {
+                cell.textContent = index + 1;
+            } else if (column === 'successRate') {
+                cell.textContent = user[column] + '%';
+            } else {
+                cell.textContent = user[column];
+            }
+        });
+    });
+}
+
+// Start auto-update every 3 seconds
+function startAutoUpdate() {
+    updateInterval = setInterval(fetchDashboardData, 3000);
+}
+
+// Stop auto-update
+function stopAutoUpdate() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+// Start updates when page loads
+window.addEventListener('load', () => {
+    fetchDashboardData(); // Initial load
+    startAutoUpdate();
+});
+
+// Stop updates when page is hidden (to save resources)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopAutoUpdate();
+    } else {
+        startAutoUpdate();
+    }
+});
+</script>
+
 @if (Model.AllUsers.Any(u => u.Username == "Admin"))
 {
     // הוסרה הצגת דיווחי טעויות בשאלות לפי בקשת המשתמש

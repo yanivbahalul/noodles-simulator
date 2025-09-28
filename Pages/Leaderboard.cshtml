@@ -33,14 +33,17 @@
 
 <!-- leaderoard -->
 <div class="quiz-container" style="text-align:center;">
-    <h2 style="margin-bottom: 30px;">🏆 טבלת המובילים</h2>
+    <h2 style="margin-bottom: 30px;">🏆 טבלת המובילים <span id="last-update" style="font-size: 14px; color: #888;">(מתעדכן...)</span></h2>
 
-    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white;">
+    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white;">
         <thead>
             <tr style="background-color: #333;">
                 <th style="padding: 12px;">#</th>
                 <th style="padding: 12px;">שם משתמש</th>
                 <th style="padding: 12px;">תשובות נכונות</th>
+                <th style="padding: 12px;">סך הכל</th>
+                <th style="padding: 12px;">הצלחה</th>
+                <th style="padding: 12px;">סטטוס</th>
             </tr>
         </thead>
         <tbody>
@@ -51,8 +54,107 @@
                 <td style="padding: 10px;">@(@i + 1)</td>
                 <td style="padding: 10px;">@user.Username</td>
                 <td style="padding: 10px;">@user.CorrectAnswers</td>
+                <td style="padding: 10px;">@user.TotalAnswered</td>
+                <td style="padding: 10px;">@(user.TotalAnswered > 0 ? ((double)user.CorrectAnswers / user.TotalAnswered).ToString("0%") : "N/A")</td>
+                <td style="padding: 10px;">@(user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5) ? "🟢" : "⚫")</td>
             </tr>
         }
         </tbody>
     </table>
 </div>
+
+<script>
+let updateInterval;
+
+async function fetchLeaderboardData() {
+    try {
+        const response = await fetch('/api/leaderboard-data?_=' + new Date().getTime());
+        const data = await response.json();
+        
+        // Update leaderboard table
+        updateLeaderboardTable(data);
+        
+        // Update last update time
+        const now = new Date();
+        document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        
+    } catch (error) {
+        console.warn('Failed to fetch leaderboard data:', error);
+        document.getElementById('last-update').textContent = '(שגיאה בעדכון)';
+    }
+}
+
+function updateLeaderboardTable(data) {
+    const table = document.getElementById('leaderboard-table');
+    if (!table) return;
+    
+    // Keep header row, remove data rows
+    const headerRow = table.querySelector('thead tr');
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    // Add new data rows
+    data.forEach((user, index) => {
+        const row = tbody.insertRow();
+        row.style.backgroundColor = index % 2 === 0 ? '#222' : '#111';
+        
+        // Rank
+        const rankCell = row.insertCell();
+        rankCell.style.padding = '10px';
+        rankCell.textContent = user.rank;
+        
+        // Username
+        const usernameCell = row.insertCell();
+        usernameCell.style.padding = '10px';
+        usernameCell.textContent = user.username;
+        
+        // Correct answers
+        const correctCell = row.insertCell();
+        correctCell.style.padding = '10px';
+        correctCell.textContent = user.correctAnswers;
+        
+        // Total answered
+        const totalCell = row.insertCell();
+        totalCell.style.padding = '10px';
+        totalCell.textContent = user.totalAnswered;
+        
+        // Success rate
+        const successCell = row.insertCell();
+        successCell.style.padding = '10px';
+        successCell.textContent = user.successRate + '%';
+        
+        // Online status
+        const statusCell = row.insertCell();
+        statusCell.style.padding = '10px';
+        statusCell.textContent = user.isOnline ? '🟢' : '⚫';
+    });
+}
+
+// Start auto-update every 3 seconds
+function startAutoUpdate() {
+    updateInterval = setInterval(fetchLeaderboardData, 3000);
+}
+
+// Stop auto-update
+function stopAutoUpdate() {
+    if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+    }
+}
+
+// Start updates when page loads
+window.addEventListener('load', () => {
+    fetchLeaderboardData(); // Initial load
+    startAutoUpdate();
+});
+
+// Stop updates when page is hidden (to save resources)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopAutoUpdate();
+    } else {
+        startAutoUpdate();
+    }
+});
+</script>
