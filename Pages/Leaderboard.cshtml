@@ -34,12 +34,12 @@
     <h2 style="margin-bottom: 5px;">🏆 טבלת המובילים</h2>
     <div id="last-update" style="font-size: 12px; color: #888; margin-bottom: 20px;">(מתעדכן...)</div>
 
-    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; direction: rtl;">
+    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; direction: ltr;">
         <thead>
             <tr style="background-color: #333;">
-                <th style="padding: 12px; text-align: right;">#</th>
-                <th style="padding: 12px; text-align: right;">שם משתמש</th>
-                <th style="padding: 12px; text-align: right;">תשובות נכונות</th>
+                <th style="padding: 12px; text-align: left;">#</th>
+                <th style="padding: 12px; text-align: left;">שם משתמש</th>
+                <th style="padding: 12px; text-align: left;">תשובות נכונות</th>
             </tr>
         </thead>
         <tbody>
@@ -47,9 +47,9 @@
         {
             var user = Model.SortedUsers[i];
             <tr style="background-color:@(i % 2 == 0 ? "#222" : "#111");">
-                <td style="padding: 10px; text-align: right;">@(@i + 1)</td>
-                <td style="padding: 10px; text-align: right;">@user.Username</td>
-                <td style="padding: 10px; text-align: right;">@user.CorrectAnswers</td>
+                <td style="padding: 10px; text-align: left;">@(@i + 1)</td>
+                <td style="padding: 10px; text-align: left;">@user.Username</td>
+                <td style="padding: 10px; text-align: left;">@user.CorrectAnswers</td>
             </tr>
         }
         </tbody>
