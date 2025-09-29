@@ -181,13 +181,13 @@ async function fetchDashboardData() {
         // Update top users table
         updateTable('top-users-table', data.topUsersList, ['rank', 'username', 'totalAnswered', 'correctAnswers', 'successRate']);
         
-        // Update last update time
-        const now = new Date();
-        document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        // Baseline time; smooth clock updates separately
+        window.__dashLastUpdateAt = Date.now();
         
     } catch (error) {
         console.warn('Failed to fetch dashboard data:', error);
-        document.getElementById('last-update').textContent = '(שגיאה בעדכון)';
+        // keep previous time; no clearing
+        document.getElementById('last-update').textContent = '(שגיאה בעדכון - מחכה...)';
     }
 }
 
@@ -220,6 +220,15 @@ function updateTable(tableId, data, columns) {
 // Start auto-update every 3 seconds
 function startAutoUpdate() {
     updateInterval = setInterval(fetchDashboardData, 3000);
+    // Smooth clock every 200ms
+    if (!window.__dashClockInterval) {
+        window.__dashClockInterval = setInterval(() => {
+            const el = document.getElementById('last-update');
+            if (!el) return;
+            const now = new Date();
+            el.textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        }, 200);
+    }
 }
 
 // Stop auto-update

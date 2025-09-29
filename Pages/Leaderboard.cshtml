@@ -71,6 +71,7 @@
 
 <script>
 let updateInterval;
+let clockInterval;
 
 async function fetchLeaderboardData() {
     try {
@@ -86,9 +87,8 @@ async function fetchLeaderboardData() {
         if (data && data.users && Array.isArray(data.users)) {
             updateLeaderboardTable(data.users, data.currentUsername);
             
-            // Update last update time
-            const now = new Date();
-            document.getElementById('last-update').textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+            // Update last update time baseline (smooth clock will refresh separately)
+            window.__lastUpdateAt = Date.now();
         } else {
             console.warn('Invalid data received from server');
         }
@@ -148,6 +148,17 @@ function updateLeaderboardTable(data, currentUsername) {
 // Start auto-update every 3 seconds
 function startAutoUpdate() {
     updateInterval = setInterval(fetchLeaderboardData, 3000);
+    // Smooth clock every 200ms
+    if (!clockInterval) {
+        clockInterval = setInterval(() => {
+            const el = document.getElementById('last-update');
+            if (!el) return;
+            const t = window.__lastUpdateAt || Date.now();
+            const now = new Date();
+            // Show current time ticking regardless of fetch cadence
+            el.textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
+        }, 200);
+    }
 }
 
 // Stop auto-update
@@ -155,6 +166,10 @@ function stopAutoUpdate() {
     if (updateInterval) {
         clearInterval(updateInterval);
         updateInterval = null;
+    }
+    if (clockInterval) {
+        clearInterval(clockInterval);
+        clockInterval = null;
     }
 }
 
