@@ -147,7 +147,7 @@ function updateLeaderboardTable(data, currentUsername) {
 
 // Start auto-update every 3 seconds
 function startAutoUpdate() {
-    updateInterval = setInterval(fetchLeaderboardData, 3000);
+    updateInterval = setInterval(fetchLeaderboardData, 200);
     // Smooth clock every 200ms
     if (!clockInterval) {
         clockInterval = setInterval(() => {

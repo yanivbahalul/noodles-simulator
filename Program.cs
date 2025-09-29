@@ -39,7 +39,7 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 // Session configuration - simplified
 builder.Services.AddSession(options =>
 {
-    options.Cookie.Name = ".Noodles.Session";
+    options.Cookie.Name = ".Noodles.Session.v2";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -107,6 +107,20 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+// Drop legacy cookies so the server won't try to decrypt them
+app.Use(async (context, next) =>
+{
+    var reqCookies = context.Request.Cookies;
+    if (reqCookies.ContainsKey(".Noodles.Session"))
+    {
+        context.Response.Cookies.Delete(".Noodles.Session");
+    }
+    if (reqCookies.ContainsKey(".Noodles.Antiforgery"))
+    {
+        context.Response.Cookies.Delete(".Noodles.Antiforgery");
+    }
+    await next();
+});
 app.UseCookiePolicy();
 app.UseSession();
 app.UseAuthorization();

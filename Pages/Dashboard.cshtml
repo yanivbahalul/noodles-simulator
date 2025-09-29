@@ -219,7 +219,7 @@ function updateTable(tableId, data, columns) {
 
 // Start auto-update every 3 seconds
 function startAutoUpdate() {
-    updateInterval = setInterval(fetchDashboardData, 3000);
+    updateInterval = setInterval(fetchDashboardData, 200);
     // Smooth clock every 200ms
     if (!window.__dashClockInterval) {
         window.__dashClockInterval = setInterval(() => {
