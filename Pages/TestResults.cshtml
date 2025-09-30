@@ -1,0 +1,49 @@
+@page
+@model NoodlesSimulator.Pages.TestResultsModel
+@{
+    ViewData["Title"] = "סיכום מבחן";
+}
+
+<div class="quiz-container">
+    <h2 style="margin-top: 0;">סיכום מבחן</h2>
+    <p style="margin: 6px 0 16px 0;">
+        ניקוד: <strong>@Model.Score</strong> מתוך @Model.MaxScore
+        · נכונות: <strong>@Model.CorrectCount</strong> / @Model.Total
+        · זמן: <strong>@Model.ElapsedText</strong>
+    </p>
+
+    <div style="width: 100%;">
+        @for (int i = 0; i < Model.Items.Count; i++)
+        {
+            var item = Model.Items[i];
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom: 16px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 12px;">
+                <img src="@item.QuestionUrl" alt="שאלה @(@(i+1))" style="max-width: 220px; max-height: 140px; border-radius: 8px; object-fit: contain; background: #111;" />
+                <div style="flex:1;">
+                    <div style="margin-bottom: 6px; font-weight: bold; color: @(item.IsCorrect ? "#32cd32" : "#ff4c4c")">
+                        שאלה @(@(i+1)) — @(item.IsCorrect ? "נכון" : "לא נכון")
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        @if (!string.IsNullOrWhiteSpace(item.SelectedUrl))
+                        {
+                            <div>
+                                <div style="font-size: 12px; color: #ccc;">התשובה שנענתה</div>
+                                <img src="@item.SelectedUrl" alt="נענתה" style="max-width: 160px; max-height: 120px; border-radius: 6px; object-fit: contain; background: #111;" />
+                            </div>
+                        }
+                        <div>
+                            <div style="font-size: 12px; color: #ccc;">התשובה הנכונה</div>
+                            <img src="@item.CorrectUrl" alt="נכונה" style="max-width: 160px; max-height: 120px; border-radius: 6px; object-fit: contain; background: #111;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="button-row">
+        <form method="get" action="/Index">
+            <button class="next-question-btn">חזרה לחידון</button>
+        </form>
+    </div>
+</div>
+

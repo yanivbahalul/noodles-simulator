@@ -1,0 +1,94 @@
+@page
+@model NoodlesSimulator.Pages.TestModel
+@{
+    ViewData["Title"] = "מצב מבחן";
+}
+
+<div class="quiz-container">
+    <h2 style="margin: 0 0 10px 0;">מצב מבחן</h2>
+    <p style="margin: 0 0 10px 0; font-size: 14px; color: #ccc;">
+        שאלה @Model.DisplayQuestionNumber מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>
+    </p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
+    {
+        <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+    }
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="questionIndex" value="@Model.CurrentIndex" />
+
+        <div class="answers">
+            @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
+            {
+                var answerClass = "";
+                if (Model.AnswerChecked)
+                {
+                    answerClass = answer.Key == "correct" ? "correct" : (Model.SelectedAnswer == answer.Key ? "incorrect" : "");
+                }
+
+                <button type="submit"
+                        name="answer"
+                        value="@answer.Key"
+                        class="answer-btn @answerClass"
+                        @(Model.AnswerChecked ? "disabled" : "")>
+                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
+                </button>
+            }
+        </div>
+    </form>
+
+    @if (Model.AnswerChecked)
+    {
+        <div class="button-row">
+            <form method="get" action="/Test">
+                <input type="hidden" name="advance" value="1" />
+                <button class="next-question-btn">המשך</button>
+            </form>
+        </div>
+    }
+</div>
+
+<!-- Image Modal -->
+<div id="image-modal" class="image-modal" style="display:none;">
+    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+    <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
+</div>
+
+<script>
+function openImageModal() {
+    var modal = document.getElementById('image-modal');
+    var modalImg = document.getElementById('modal-img');
+    modalImg.src = '@Model.QuestionImageUrl';
+    modal.style.display = 'flex';
+}
+function closeImageModal() {
+    var modal = document.getElementById('image-modal');
+    modal.style.display = 'none';
+}
+
+// Client-side countdown (for UX only; server enforces)
+(function() {
+    var endUtc = '@Model.TestEndUtcString';
+    if (!endUtc) return;
+    var end = new Date(endUtc).getTime();
+    function tick() {
+        var now = new Date().getTime();
+        var diff = Math.max(0, end - now);
+        var h = Math.floor(diff / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        var pad = n => (n < 10 ? '0' + n : '' + n);
+        var el = document.getElementById('countdown');
+        if (el) el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+        if (diff <= 0) {
+            window.location.reload();
+            return;
+        }
+        setTimeout(tick, 1000);
+    }
+    tick();
+})();
+</script>
+

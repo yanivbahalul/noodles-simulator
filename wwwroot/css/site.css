@@ -397,3 +397,81 @@ button.answer-btn:hover {
 .close-modal:hover {
     color: #ff4c4c;
 }
+
+/*
+ Unified button system
+ Ensures consistent sizing, typography, radius, and transitions for all buttons.
+*/
+.btn,
+.next-question-btn,
+.logout-btn,
+.main-btn,
+.secondary-btn {
+    padding: 12px 20px;
+    font-size: 16px;
+    line-height: 1.2;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.btn:hover,
+.next-question-btn:hover,
+.logout-btn:hover,
+.main-btn:hover,
+.secondary-btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active,
+.next-question-btn:active,
+.logout-btn:active,
+.main-btn:active,
+.secondary-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* Ensure image answer buttons remain visual tiles */
+.answer-btn {
+    padding: 0 !important;
+    display: block !important;
+    box-shadow: none !important;
+}
+
+/* Color variants (preserve existing colors) */
+.next-question-btn,
+.logout-btn {
+    background-color: #333;
+    color: #fff;
+}
+
+.next-question-btn:hover,
+.logout-btn:hover {
+    background-color: #555;
+}
+
+.main-btn {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.main-btn:hover {
+    background-color: #45a049;
+}
+
+.secondary-btn {
+    background-color: #008cba;
+    color: #fff;
+}
+
+.secondary-btn:hover {
+    background-color: #007bb5;
+}
