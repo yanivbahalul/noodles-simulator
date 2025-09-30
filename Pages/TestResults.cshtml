@@ -20,7 +20,7 @@
                 <img src="@item.QuestionUrl" alt="שאלה @(i+1)" style="max-width: 220px; max-height: 140px; border-radius: 8px; object-fit: contain; background: #111;" />
                 <div style="flex:1;">
                     <div style="margin-bottom: 6px; font-weight: bold; color: @(item.IsCorrect ? "#32cd32" : "#ff4c4c")">
-                        שאלה @(@(i+1)) — @(item.IsCorrect ? "נכון" : "לא נכון")
+                        שאלה @(i+1) — @(item.IsCorrect ? "נכון" : "לא נכון")
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         @if (!string.IsNullOrWhiteSpace(item.SelectedUrl))
