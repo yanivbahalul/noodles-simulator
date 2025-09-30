@@ -99,7 +99,18 @@ function logout() {
     <div class="button-row">
         <form method="get" action="/Test">
             <input type="hidden" name="start" value="1" />
-            <button class="next-question-btn">מצב מבחן</button>
+            <input type="hidden" name="level" value="easy" />
+            <button class="next-question-btn">מצב מבחן — קל</button>
+        </form>
+        <form method="get" action="/Test">
+            <input type="hidden" name="start" value="1" />
+            <input type="hidden" name="level" value="medium" />
+            <button class="next-question-btn">מצב מבחן — בינוני</button>
+        </form>
+        <form method="get" action="/Test">
+            <input type="hidden" name="start" value="1" />
+            <input type="hidden" name="level" value="hard" />
+            <button class="next-question-btn">מצב מבחן — קשה</button>
         </form>
         <form method="get">
             <button class="next-question-btn">שאלה הבאה</button>

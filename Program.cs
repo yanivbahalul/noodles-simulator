@@ -50,6 +50,10 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpClient();
 
+// Question difficulty stats
+var statsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
+builder.Services.AddSingleton(new QuestionStatsService(statsPath));
+
 // Cookie policy
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
@@ -357,6 +361,22 @@ app.MapGet("/api/online-count", async context =>
         Console.WriteLine($"[Online Count API Error] {ex}");
         context.Response.StatusCode = 500;
         await context.Response.WriteAsync($"Server error: {ex.Message}");
+    }
+});
+
+// Difficulty API
+app.MapGet("/api/question-difficulty", (HttpContext context) =>
+{
+    try
+    {
+        var svc = context.RequestServices.GetService<QuestionStatsService>();
+        if (svc == null) return Results.Problem("Stats service unavailable", statusCode: 503);
+        var items = svc.GetAll();
+        return Results.Json(new { items });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message, statusCode: 500);
     }
 });
 

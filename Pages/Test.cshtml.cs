@@ -19,10 +19,12 @@ namespace NoodlesSimulator.Pages
         private static readonly TimeSpan TestDuration = TimeSpan.FromHours(2);
 
         private readonly SupabaseStorageService _storage;
+        private readonly QuestionStatsService _stats;
 
-        public TestModel(SupabaseStorageService storage = null)
+        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null)
         {
             _storage = storage;
+            _stats = stats;
         }
 
         public bool AnswerChecked { get; set; }
@@ -109,6 +111,9 @@ namespace NoodlesSimulator.Pages
                     state.Answers.Add(new TestAnswer());
                 state.Answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
             }
+
+            // record stats
+            try { var qid = (idx >= 0 && idx < state.Questions.Count) ? state.Questions[idx].Question : null; _stats?.Record(qid, isCorrect); } catch { }
 
             // advance to next question without revealing correctness
             state.CurrentIndex = Math.Min(idx + 1, state.Questions.Count);

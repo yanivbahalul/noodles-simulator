@@ -22,6 +22,7 @@ namespace NoodlesSimulator.Pages
         private readonly AuthService _authService;
         private readonly SupabaseStorageService _storage; // may be null if not configured
         private readonly EmailService _emailService;
+        private readonly QuestionStatsService _stats;
 
         private static List<string> _localImagesCache;
         private static DateTime _localImagesCachedAt;
@@ -72,11 +73,12 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null)
+        public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null)
         {
             _authService = authService;
             _storage = storage;
             _emailService = emailService;
+            _stats = stats;
         }
 
         public bool AnswerChecked { get; set; }
@@ -218,6 +220,8 @@ namespace NoodlesSimulator.Pages
                         try { MoveCorrectImagesLocal(); } catch (Exception ex) { Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}"); }
                     }
                 }
+
+                try { _stats?.Record(QuestionImage, IsCorrect); } catch { }
 
                 try { await _authService.UpdateUser(user); } catch (Exception) { }
 
