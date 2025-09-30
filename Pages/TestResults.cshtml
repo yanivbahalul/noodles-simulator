@@ -38,7 +38,8 @@
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom: 16px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 12px;">
                 <img src="@item.QuestionUrl" alt="שאלה @(i+1)" style="max-width: 220px; max-height: 140px; border-radius: 8px; object-fit: contain; background: #111;" />
                 <div style="flex:1;">
-                    <div style="margin-bottom: 6px; font-weight: bold; color: @(item.IsCorrect ? "#32cd32" : "#ff4c4c")">
+                    <div style="margin-bottom: 6px; font-weight: bold;">
+                        <span style="display:inline-block; background:#ffc107; color:#222; padding:2px 8px; border-radius:6px; font-size:12px; margin-left:8px;">סקירה</span>
                         שאלה @(i+1) — @(item.IsCorrect ? "נכון" : "לא נכון")
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
