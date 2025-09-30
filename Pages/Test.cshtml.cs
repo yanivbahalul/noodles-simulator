@@ -110,13 +110,14 @@ namespace NoodlesSimulator.Pages
                 state.Answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
             }
 
+            // advance to next question without revealing correctness
+            state.CurrentIndex = Math.Min(idx + 1, state.Questions.Count);
             SaveState(state);
 
-            AnswerChecked = true;
-            IsCorrect = isCorrect;
-            SelectedAnswer = selected;
-            await BindCurrentAsync(state);
-            return Page();
+            if (IsExpired(state) || state.CurrentIndex >= state.Questions.Count)
+                return RedirectToPage("/TestResults");
+
+            return RedirectToPage("/Test");
         }
 
         private bool IsExpired(TestState state)

@@ -42,32 +42,16 @@
         <div class="answers">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
             {
-                var answerClass = "";
-                if (Model.AnswerChecked)
-                {
-                    answerClass = answer.Key == "correct" ? "correct" : (Model.SelectedAnswer == answer.Key ? "incorrect" : "");
-                }
-
                 <button type="submit"
                         name="answer"
                         value="@answer.Key"
-                        class="answer-btn @answerClass"
-                        @(Model.AnswerChecked ? "disabled" : "")>
+                        class="answer-btn">
                     <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
                 </button>
             }
         </div>
     </form>
 
-    @if (Model.AnswerChecked)
-    {
-        <div class="button-row">
-            <form method="get" action="/Test">
-                <input type="hidden" name="advance" value="1" />
-                <button class="next-question-btn">המשך</button>
-            </form>
-        </div>
-    }
 </div>
 
 <!-- Image Modal -->
