@@ -84,7 +84,7 @@ namespace NoodlesSimulator.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        public IActionResult OnPost()
         {
             var state = GetState();
             if (state == null)

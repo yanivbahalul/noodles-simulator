@@ -42,7 +42,8 @@ namespace NoodlesSimulator.Pages
             if (_storage != null)
             {
                 var paths = new List<string> { q.Question };
-                paths.AddRange(q.Answers?.Values ?? new List<string>());
+                var answerVals = (q.Answers != null) ? new List<string>(q.Answers.Values) : new List<string>();
+                paths.AddRange(answerVals);
                 var signed = await _storage.GetSignedUrlsAsync(paths);
                 QuestionImageUrl = signed.TryGetValue(q.Question, out var qu) ? qu : string.Empty;
                 foreach (var kv in q.Answers ?? new Dictionary<string, string>())
