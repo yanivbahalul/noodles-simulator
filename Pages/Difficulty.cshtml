@@ -1,0 +1,83 @@
+@page
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — רמות קושי</title>
+    <link rel="stylesheet" href="/css/site.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background:#111; color:#fff; font-family:'Segoe UI',sans-serif; padding:32px; }
+        h1 { margin:0 0 16px 0; }
+        .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+        .card { background:#1e1e1e; border-radius:12px; padding:16px; box-shadow:0 2px 12px rgba(0,0,0,0.3); }
+        .tag { display:inline-block; padding:2px 8px; border-radius:6px; font-size:12px; margin-left:6px; }
+        .easy { background:#2e7d32; }
+        .medium { background:#ffc107; color:#222; }
+        .hard { background:#c62828; }
+        table { width:100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding:8px; border-bottom:1px solid #333; text-align:center; }
+        th { background:#222; }
+        .small { font-size: 13px; color:#ccc; }
+        a.btn { display:inline-block; padding:8px 12px; border-radius:8px; background:#333; color:#fff; text-decoration:none; }
+        a.btn:hover { background:#555; }
+    </style>
+</head>
+<body>
+    <a href="/Dashboard" class="back-to-quiz">⬅ חזרה לניהול</a>
+    <img src="/assets/background.gif" class="background-gif" alt="רקע" />
+    <h1>רמות קושי לפי שיעור הצלחה</h1>
+    <div class="small">Easy ≥ 65% · Medium 35–65% · Hard < 35%</div>
+
+    <div id="summary" class="grid" style="margin-top:16px;"></div>
+    <div class="grid" style="margin-top:16px;">
+        <div class="card">
+            <h3><span class="tag hard">קשה</span> שאלות עם הצלחה < 35%</h3>
+            <table id="tbl-hard"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+            <h3><span class="tag medium">בינוני</span> 35%–65%</h3>
+            <table id="tbl-medium"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+        </div>
+        <div class="card">
+            <h3><span class="tag easy">קל</span> ≥ 65%</h3>
+            <table id="tbl-easy"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+        </div>
+    </div>
+
+    <script>
+    function pct(x){ return Math.round((x||0)*100); }
+    function rowHTML(item){
+        const q = item.questionId;
+        const s = pct(item.successRate);
+        const review = `<a class="btn" href="/TestReview?i=0" title="סקירה">🔍</a>`; // placeholder index, mapping by id can be added later
+        return `<tr><td style="text-align:right;">${q}</td><td>${item.attempts}</td><td>${item.correct}</td><td>${s}%</td><td>${review}</td></tr>`;
+    }
+    fetch('/api/question-difficulty').then(r=>r.json()).then(data=>{
+        const items = (data && data.items) ? data.items : [];
+        const hard = items.filter(x=>x.successRate < 0.35);
+        const medium = items.filter(x=>x.successRate >= 0.35 && x.successRate < 0.65);
+        const easy = items.filter(x=>x.successRate >= 0.65);
+
+        document.querySelector('#tbl-hard tbody').innerHTML = hard.map(rowHTML).join('');
+        document.querySelector('#tbl-medium tbody').innerHTML = medium.map(rowHTML).join('');
+        document.querySelector('#tbl-easy tbody').innerHTML = easy.map(rowHTML).join('');
+
+        const total = items.length, ta = items.reduce((a,b)=>a+b.attempts,0), tc = items.reduce((a,b)=>a+b.correct,0);
+        const ts = ta>0 ? Math.round(tc/ta*100) : 0;
+        const cards = [
+            `<div class="card"><h3>סיכום כולל</h3><div>סה"כ שאלות: ${total}</div><div>סה"כ ניסיונות: ${ta}</div><div>סה"כ נכונות: ${tc}</div><div>אחוז הצלחה כולל: ${ts}%</div></div>`,
+            `<div class="card"><h3>חלוקה</h3><div>קשות: ${hard.length}</div><div>בינוניות: ${medium.length}</div><div>קלות: ${easy.length}</div></div>`
+        ];
+        document.getElementById('summary').innerHTML = cards.join('');
+    }).catch(()=>{
+        document.getElementById('summary').innerHTML = `<div class="card">לא נמצאו נתונים</div>`;
+    });
+    </script>
+</body>
+</html>
+
+
