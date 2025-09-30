@@ -94,5 +94,14 @@ function closeImageModal() {
     }
     tick();
 })();
+
+// Close image modal when clicking outside the enlarged image (on the overlay)
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('image-modal');
+    if (!modal) return;
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeImageModal();
+    });
+});
 </script>
 
