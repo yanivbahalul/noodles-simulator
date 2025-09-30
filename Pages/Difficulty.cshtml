@@ -36,15 +36,15 @@
     <div class="grid" style="margin-top:16px;">
         <div class="card">
             <h3><span class="tag hard">קשה</span> שאלות עם הצלחה < 35%</h3>
-            <table id="tbl-hard"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+            <table id="tbl-hard"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
             <h3><span class="tag medium">בינוני</span> 35%–65%</h3>
-            <table id="tbl-medium"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+            <table id="tbl-medium"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card">
             <h3><span class="tag easy">קל</span> ≥ 65%</h3>
-            <table id="tbl-easy"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th><th>סקירה</th></tr></thead><tbody></tbody></table>
+            <table id="tbl-easy"><thead><tr><th>שאלה</th><th>ניסיונות</th><th>נכון</th><th>%</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
 
@@ -53,8 +53,7 @@
     function rowHTML(item){
         const q = item.questionId;
         const s = pct(item.successRate);
-        const review = `<a class="btn" href="/TestReview?i=0" title="סקירה">🔍</a>`; // placeholder index, mapping by id can be added later
-        return `<tr><td style="text-align:right;">${q}</td><td>${item.attempts}</td><td>${item.correct}</td><td>${s}%</td><td>${review}</td></tr>`;
+        return `<tr><td style=\"text-align:right;\">${q}</td><td>${item.attempts}</td><td>${item.correct}</td><td>${s}%</td></tr>`;
     }
     fetch('/api/question-difficulty').then(r=>r.json()).then(data=>{
         const items = (data && data.items) ? data.items : [];
