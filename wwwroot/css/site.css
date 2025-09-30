@@ -475,3 +475,13 @@ button.answer-btn:hover {
 .secondary-btn:hover {
     background-color: #007bb5;
 }
+
+/* Result thumbnails on summary page - keep consistent tile look without green/yellow overlays */
+.result-ans {
+    max-width: 160px;
+    max-height: 120px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: #111;
+    display: block;
+}
