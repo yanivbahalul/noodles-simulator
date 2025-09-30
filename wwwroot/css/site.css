@@ -478,10 +478,11 @@ button.answer-btn:hover {
 
 /* Result thumbnails on summary page - keep consistent tile look without green/yellow overlays */
 .result-ans {
-    max-width: 160px;
-    max-height: 120px;
+    width: 160px;
+    height: 120px;
     border-radius: 6px;
     object-fit: contain;
     background: #111;
     display: block;
+    overflow: hidden;
 }
