@@ -35,7 +35,11 @@
         @for (int i = 0; i < Model.Items.Count; i++)
         {
             var item = Model.Items[i];
-            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom: 16px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 12px;">
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom: 16px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 12px; position: relative;">
+                <a href="/TestReview?i=@i" title="הצג סקירה"
+                   style="position:absolute; top:8px; right:8px; text-decoration:none; background:#333; color:#fff; width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+                    🔍
+                </a>
                 <img src="@item.QuestionUrl" alt="שאלה @(i+1)" style="max-width: 220px; max-height: 140px; border-radius: 8px; object-fit: contain; background: #111;" />
                 <div style="flex:1;">
                     <div style="margin-bottom: 6px; font-weight: bold;">

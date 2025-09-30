@@ -1,0 +1,72 @@
+@page
+@model NoodlesSimulator.Pages.TestReviewModel
+@{
+    ViewData["Title"] = "סקירת שאלה";
+}
+
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — Test Review</title>
+    <link rel="stylesheet" href="/css/site.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+}</head>
+
+<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+
+<div class="logo-header">
+    <img src="/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" />
+</div>
+
+<div class="quiz-container">
+    @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
+    {
+        <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+    }
+
+    <div class="answers">
+        @foreach (var kv in Model.AnswerImageUrls)
+        {
+            var key = kv.Key;
+            var url = kv.Value;
+            var cls = (key == "correct") ? "correct" : (Model.SelectedKey == key ? "incorrect" : "");
+            <button class="answer-btn @cls" disabled>
+                <img src="@url" alt="תשובה" loading="lazy" />
+            </button>
+        }
+    </div>
+
+    <div class="button-row">
+        <form method="get" action="/TestResults">
+            <button class="next-question-btn">חזרה לסיכום</button>
+        </form>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="image-modal" class="image-modal" style="display:none;">
+    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+    <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
+</div>
+
+<script>
+function openImageModal() {
+    var modal = document.getElementById('image-modal');
+    var modalImg = document.getElementById('modal-img');
+    modalImg.src = '@Model.QuestionImageUrl';
+    modal.style.display = 'flex';
+}
+function closeImageModal() {
+    var modal = document.getElementById('image-modal');
+    modal.style.display = 'none';
+}
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('image-modal');
+    if (!modal) return;
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeImageModal();
+    });
+});
+</script>
+
+
