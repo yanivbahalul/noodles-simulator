@@ -482,7 +482,7 @@ button.answer-btn:hover {
     height: 120px;
     border-radius: 6px;
     object-fit: contain;
-    background: #111;
+    background: transparent;
     display: block;
     overflow: hidden;
     filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
