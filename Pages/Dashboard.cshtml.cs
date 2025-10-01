@@ -83,7 +83,10 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
-                var reportsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "reports.json");
+                var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+                var reportsPath = isProd 
+                    ? "/data-keys/reports/reports.json"
+                    : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "reports.json");
                 if (System.IO.File.Exists(reportsPath))
                 {
                     var json = System.IO.File.ReadAllText(reportsPath);

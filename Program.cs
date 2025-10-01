@@ -50,8 +50,11 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpClient();
 
-// Question difficulty stats
-var statsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
+// Question difficulty stats - use persistent storage in production
+var isProd = builder.Environment.IsProduction();
+var statsPath = isProd 
+    ? Path.Combine("/data-keys", "question_stats.json")
+    : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
 // Cookie policy
@@ -158,9 +161,10 @@ app.MapGet("/health", async context =>
     var bucket   = Environment.GetEnvironmentVariable("SUPABASE_BUCKET");
     var ttl      = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL");
 
+    var isProdEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
     var imagesDir   = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-    var reportsDir  = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
-    var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
+    var reportsDir  = isProdEnv ? "/data-keys/reports" : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
+    var progressDir = isProdEnv ? "/data-keys/progress" : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 
     var sb = new System.Text.StringBuilder();
     sb.AppendLine($"SUPABASE_URL: {(string.IsNullOrEmpty(url) ? "MISSING" : "OK")}");
@@ -395,8 +399,9 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
 });
 
-// Initialize directories
-var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
+// Initialize directories - use persistent storage in production
+var isProdStart = app.Environment.IsProduction();
+var reportsDir = isProdStart ? "/data-keys/reports" : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
 if (!Directory.Exists(reportsDir))
     Directory.CreateDirectory(reportsDir);
 
@@ -404,7 +409,7 @@ var reportsJson = Path.Combine(reportsDir, "reports.json");
 if (!File.Exists(reportsJson))
     File.WriteAllText(reportsJson, "[]");
 
-var progressDir = Path.Combine(Directory.GetCurrentDirectory(), "progress");
+var progressDir = isProdStart ? "/data-keys/progress" : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);
 
