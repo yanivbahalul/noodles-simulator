@@ -27,11 +27,11 @@
             <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
         }
 
-        <div class="answers" style="margin-top:20px;">
+        <div class="answers">
             @foreach (var kv in Model.AnswerImageUrls)
             {
-                <button class="answer-btn" disabled>
-                    <img src="@kv.Value" alt="תשובה" loading="lazy" />
+                <button class="answer-btn" disabled style="display: flex; justify-content: center; align-items: center;">
+                    <img src="@kv.Value" alt="תשובה" loading="lazy" style="margin: 0 auto;" />
                 </button>
             }
         </div>
