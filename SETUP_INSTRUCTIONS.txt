@@ -1,0 +1,60 @@
+🚀 הוראות התקנה - Noodles Simulator
+=====================================
+
+⚠️ חשוב! לפני שתריץ את האפליקציה, עשה את השלבים הבאים:
+
+1️⃣ הרץ את database_setup.sql ב-Supabase
+-----------------------------------------
+   א. היכנס ל-Supabase Dashboard: https://supabase.com/dashboard
+   ב. בחר את הפרויקט שלך
+   ג. לחץ על "SQL Editor" בתפריט השמאלי
+   ד. פתח את הקובץ database_setup.sql
+   ה. העתק והדבק את כל התוכן ב-SQL Editor
+   ו. לחץ "Run" (או Ctrl+Enter)
+   
+   ✅ זה יוצר את הטבלה test_sessions שנדרשת למערכת הטוקנים!
+
+2️⃣ הגדר משתני סביבה
+---------------------
+   וודא שהמשתנים הבאים מוגדרים (ב-.env או בהגדרות הסביבה):
+
+   # SendGrid (למיילים)
+   SENDGRID_API_KEY=your_sendgrid_key
+   EMAIL_TO=your_email@example.com
+   EMAIL_FROM=sender@example.com
+
+   # Supabase (למסד נתונים)
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_KEY=your_anon_key
+   SERVICE_ROLE_SECRET=your_service_role_key
+   SUPABASE_BUCKET=noodles-images
+   SUPABASE_SIGNED_URL_TTL=3600
+
+3️⃣ הרץ את האפליקציה
+---------------------
+   dotnet run
+
+4️⃣ בדוק שהכל עובד
+-------------------
+   א. פתח http://localhost:5001
+   ב. התחבר עם משתמש
+   ג. לחץ "מצב מבחן"
+   ד. בחר רמת קושי (קל/בינוני/קשה)
+   ה. וודא שב-URL מופיע: /Test?token=XXXXX
+   
+   ✅ אם הטוקן מופיע - הכל עובד!
+   ❌ אם אין טוקן - בדוק שהרצת את database_setup.sql
+
+🎯 תכונות המערכת החדשה:
+=========================
+✅ טוקן ייחודי לכל מבחן (מופיע ב-URL)
+✅ שמירת מבחנים במסד נתונים (לא נמחקים!)
+✅ המשכיות מבחן - אפשר לצאת ולחזור
+✅ עמוד "המבחנים שלי" עם היסטוריה מלאה
+✅ רמות קושי: קל (189 שאלות), בינוני (52 שאלות), קשה (73 שאלות)
+✅ התראות אימייל דרך SendGrid
+
+📧 צור קשר:
+============
+לשאלות או בעיות: https://github.com/yanivbahalul/noodles-simulator
+

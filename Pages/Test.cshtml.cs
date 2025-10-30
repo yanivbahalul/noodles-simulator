@@ -367,11 +367,12 @@ namespace NoodlesSimulator.Pages
 
         private async Task<List<List<string>>> LoadAllQuestionGroupsAsync(string difficulty = null)
         {
-            List<string> filtered;
+            // Load ALL images from Supabase/local (sorted)
+            List<string> allImages;
             if (_storage != null)
             {
-                var allImages = await _storage.ListFilesAsync("");
-                filtered = allImages
+                var images = await _storage.ListFilesAsync("");
+                allImages = images
                     .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
                     .OrderBy(name => name)
                     .ToList();
@@ -382,28 +383,48 @@ namespace NoodlesSimulator.Pages
                 if (!System.IO.Directory.Exists(imagesDir))
                     return new List<List<string>>();
 
-                filtered = System.IO.Directory.GetFiles(imagesDir)
+                allImages = System.IO.Directory.GetFiles(imagesDir)
                     .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
                     .Select(System.IO.Path.GetFileName)
                     .OrderBy(name => name)
                     .ToList();
             }
 
-            // Filter by difficulty if specified
+            var grouped = new List<List<string>>();
+
+            // If difficulty specified, only use questions from that difficulty list
             if (!string.IsNullOrEmpty(difficulty))
             {
                 var allowedQuestions = await LoadDifficultyQuestionsAsync(difficulty);
                 if (allowedQuestions != null && allowedQuestions.Any())
                 {
-                    // Keep only questions that are in the difficulty list
-                    var allowedSet = new HashSet<string>(allowedQuestions);
-                    filtered = filtered.Where(f => allowedSet.Contains(f)).ToList();
+                    Console.WriteLine($"[Test] Filtering by difficulty '{difficulty}': {allowedQuestions.Count} questions available");
+                    
+                    // For each question in the difficulty list, find it in allImages and take it + next 4
+                    foreach (var questionFile in allowedQuestions)
+                    {
+                        int idx = allImages.IndexOf(questionFile);
+                        if (idx >= 0 && idx + 4 < allImages.Count)
+                        {
+                            // Take the question image + 4 consecutive images (answers)
+                            var group = allImages.GetRange(idx, 5);
+                            grouped.Add(group);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[Test] Warning: Could not find question '{questionFile}' or not enough images after it (idx={idx}, total={allImages.Count})");
+                        }
+                    }
+                    
+                    Console.WriteLine($"[Test] Created {grouped.Count} question groups from difficulty '{difficulty}'");
+                    return grouped;
                 }
             }
 
-            var grouped = new List<List<string>>();
-            for (int i = 0; i + 4 < filtered.Count; i += 5)
-                grouped.Add(filtered.GetRange(i, 5));
+            // No difficulty filter - take all questions in groups of 5
+            for (int i = 0; i + 4 < allImages.Count; i += 5)
+                grouped.Add(allImages.GetRange(i, 5));
+            
             return grouped;
         }
 

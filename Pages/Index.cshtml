@@ -99,7 +99,7 @@ function logout() {
 
     <!-- test-mode button (single) - updated -->
     <div class="button-row">
-        <button class="next-question-btn" onclick="openDifficultyModal()">מצב מבחן</button>
+        <button type="button" class="next-question-btn" onclick="openDifficultyModal()">מצב מבחן</button>
         <form method="get">
             <button class="next-question-btn">שאלה הבאה</button>
         </form>
@@ -115,8 +115,8 @@ function logout() {
 <!-- Difficulty Selection Modal -->
 <div id="difficulty-modal" class="difficulty-modal" style="display:none;">
     <div class="difficulty-modal-content">
-        <span class="close-modal" onclick="closeDifficultyModal()">&times;</span>
-        <h2 style="text-align: center; color: #333; margin-bottom: 30px;">בחר רמת קושי</h2>
+        <span class="close-difficulty-modal" onclick="closeDifficultyModal()">&times;</span>
+        <h2 style="text-align: center; color: white; margin-bottom: 30px; font-size: 28px;">בחר רמת קושי</h2>
         <div class="difficulty-buttons">
             <a href="/Test?start=1&difficulty=easy" class="difficulty-btn difficulty-easy">
                 <span class="difficulty-emoji">🟢</span>
@@ -150,17 +150,18 @@ function logout() {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.85);
     animation: fadeIn 0.3s;
 }
 
 .difficulty-modal-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    margin: 10% auto;
+    background: rgba(30, 30, 30, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    margin: 15% auto;
     padding: 40px;
-    border-radius: 20px;
-    max-width: 500px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    max-width: 450px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
     animation: slideDown 0.3s;
     direction: rtl;
 }
@@ -168,7 +169,7 @@ function logout() {
 .difficulty-buttons {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
 }
 
 .difficulty-btn {
@@ -176,57 +177,60 @@ function logout() {
     align-items: center;
     justify-content: center;
     gap: 15px;
-    padding: 20px;
-    background: white;
-    border: none;
-    border-radius: 15px;
-    font-size: 24px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    font-size: 22px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s;
     text-decoration: none;
-    color: #333;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .difficulty-btn:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .difficulty-easy:hover {
-    background: #d4edda;
-    border: 2px solid #28a745;
+    border-color: #4caf50;
+    box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
 }
 
 .difficulty-medium:hover {
-    background: #fff3cd;
-    border: 2px solid #ffc107;
+    border-color: #ffa726;
+    box-shadow: 0 5px 20px rgba(255, 167, 38, 0.4);
 }
 
 .difficulty-hard:hover {
-    background: #f8d7da;
-    border: 2px solid #dc3545;
+    border-color: #ef5350;
+    box-shadow: 0 5px 20px rgba(239, 83, 80, 0.4);
 }
 
 .difficulty-emoji {
-    font-size: 36px;
+    font-size: 32px;
 }
 
 .difficulty-text {
-    font-size: 28px;
+    font-size: 24px;
 }
 
-.close-modal {
-    color: white;
+.close-difficulty-modal {
+    color: rgba(255, 255, 255, 0.6);
     float: left;
     font-size: 35px;
     font-weight: bold;
     cursor: pointer;
     transition: 0.3s;
+    line-height: 1;
 }
 
-.close-modal:hover {
+.close-difficulty-modal:hover {
+    color: white;
     transform: scale(1.2);
 }
 
