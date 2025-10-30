@@ -35,13 +35,12 @@ services:
       - key: SERVICE_ROLE_SECRET           
       - key: ANON_PUBLIC
 
-      - key: RENDER_API_KEY
-      - key: SERVICE_ID
+      # Email (SendGrid preferred for production)
+      - key: SENDGRID_API_KEY
+      - key: EMAIL_FROM
+      - key: EMAIL_TO
+      
+      # SMTP Fallback (optional - Render blocks SMTP ports)
       - key: EMAIL_SMTP_PASS
       - key: EMAIL_SMTP_USER
       - key: EMAIL_SMTP_SERVER
-      - key: EMAIL_FROM
-      - key: EMAIL_TO
-      - key: EMAIL_SUBJECT
-      - key: CHECK_URL
-      - key: CHECK_INTERVAL

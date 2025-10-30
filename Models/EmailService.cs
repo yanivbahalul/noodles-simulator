@@ -71,7 +71,7 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"  - UseSsl: {_useSsl}");
             Console.WriteLine($"  - EmailTo: {(_emailTo ?? "NULL")}");
             Console.WriteLine($"  - EmailFrom: {(_emailFrom ?? "NULL")}");
-            Console.WriteLine($"  - SendGridKey: {(string.IsNullOrWhiteSpace(_sendGridKey) ? "NOT SET" : "***SET***")}");
+            Console.WriteLine($"  - SendGridKey: {(string.IsNullOrWhiteSpace(_sendGridKey) ? "⚠️ NOT SET - Email will fail on Render!" : "✅ SET (length: " + _sendGridKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
             
             if (!IsConfigured)
@@ -107,14 +107,26 @@ namespace NoodlesSimulator.Models
                 // Prefer SendGrid API (works on Render/PaaS that block SMTP)
                 if (!string.IsNullOrWhiteSpace(_sendGridKey))
                 {
-                    Console.WriteLine("[EmailService] Using SendGrid API...");
+                    Console.WriteLine("[EmailService] ✅ SendGrid API key found, using SendGrid...");
                     var ok = SendViaSendGrid(_emailFrom, _emailTo, subject, htmlBody, _sendGridKey);
                     if (ok)
                     {
                         Console.WriteLine("[EmailService] ✅ Email sent successfully via SendGrid!");
                         return true;
                     }
-                    Console.WriteLine("[EmailService] SendGrid failed, trying SMTP fallback...");
+                    Console.WriteLine("[EmailService] ⚠️ SendGrid failed, trying SMTP fallback...");
+                }
+                else
+                {
+                    Console.WriteLine("[EmailService] ⚠️ SendGrid API key NOT found, falling back to SMTP");
+                }
+
+                // Check if we're in production (Render blocks SMTP)
+                var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+                if (isProd && string.IsNullOrWhiteSpace(_sendGridKey))
+                {
+                    Console.WriteLine("[EmailService] ❌ Cannot use SMTP in Production without SendGrid! Please set SENDGRID_API_KEY");
+                    return false;
                 }
 
                 Console.WriteLine($"[EmailService] Creating mail message (Gmail SMTP)...");
