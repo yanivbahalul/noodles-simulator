@@ -362,45 +362,102 @@ namespace NoodlesSimulator.Pages
                 var answersBlock = new StringBuilder();
                 var allAnswers = answersDict.Values.ToList();
                 int correctIdx = allAnswers.IndexOf(correctAnswer);
-                if (correctIdx >= 0)
-                {
-                    answersBlock.Append($"A: {allAnswers[correctIdx]} <br>");
-                }
+                
+                // Always show correct answer as A (highlighted in green, matching template)
+                answersBlock.Append($"<span style='display: inline-block; width: 30px; color: #28a745;'><strong>A:</strong></span> <span style='color: #28a745;'>{(string.IsNullOrWhiteSpace(correctAnswer) ? "לא זוהתה" : correctAnswer)}</span><br/>");
+                
+                // Show other answers as B, C, D (exclude correct answer if found)
                 var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
-                for (int i = 0; i < distractors.Count && i < 3; i++)
+                int displayCount = Math.Min(3, distractors.Count);
+                for (int i = 0; i < displayCount; i++)
                 {
-                    answersBlock.Append($"{abcd[i + 1]}: {distractors[i]} <br>");
+                    answersBlock.Append($"<span style='display: inline-block; width: 30px;'><strong>{abcd[i + 1]}:</strong></span> {distractors[i]}<br/>");
                 }
                 string selectedLetter = "לא סומנה תשובה";
+                string selectedAnswerValue = "";
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
+                    // Try to get the actual answer value
+                    if (answersDict.ContainsKey(selectedAnswer))
+                    {
+                        selectedAnswerValue = answersDict[selectedAnswer];
+                    }
+                    
+                    // Check if user selected the correct answer
                     if (correctIdx >= 0 && selectedAnswer == answersDict.Keys.ElementAt(correctIdx))
+                    {
                         selectedLetter = "A";
+                    }
                     else
                     {
-                        int idx = allAnswers.IndexOf(answersDict.ContainsKey(selectedAnswer) ? answersDict[selectedAnswer] : null);
+                        // Find which distractor was selected (B, C, or D)
+                        int idx = allAnswers.IndexOf(selectedAnswerValue);
                         if (idx >= 0 && idx != correctIdx)
                         {
                             int distractorIdx = idx < correctIdx ? idx : idx - 1;
                             if (distractorIdx >= 0 && distractorIdx < 3)
-                                selectedLetter = abcd[distractorIdx + 1];
+                                selectedLetter = abcd[distractorIdx + 1]; // B, C, or D (uppercase)
                         }
                     }
                 }
 
-                var htmlBody =
-                    "<div dir='rtl' style='text-align:right; font-family:Arial,sans-serif;'>" +
-                    $"📩 דווח חדש התקבל מהמערכת<br><br>" +
-                    $"👤 משתמש: {username} <br>" +
-                    $"🕓 תאריך: {timestamp:yyyy-MM-dd HH:mm:ss} <br><br>" +
-                    $"❓ שאלה: {questionImage} <br><br>" +
-                    $"📝 תשובות אפשריות:<br>{answersBlock}<br>" +
-                    $"❌ תשובה שסומנה: {selectedLetter} <br><br>" +
-                    $"סיבה: {explanation} <br><br>" +
-                    "━━━━━━━━━━━━━━━━━━━━━━ <br>" +
-                    "מערכת: Noodles Simulator <br>" +
-                    "🎮 Find your limits. Or crash into them.<br>" +
-                    "</div>";
+                var htmlBody = $@"
+<!DOCTYPE html>
+<html dir='rtl' lang='he'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>דיווח שגיאה</title>
+</head>
+<body style='margin: 0; padding: 0; background-color: #f5f5f5; direction: rtl;'>
+    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; direction: rtl;'>
+        <!-- Header with gradient -->
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center; direction: rtl;'>
+            <h2 style='color: white; margin: 0; direction: rtl; unicode-bidi: embed;'>📩 דיווח חדש התקבל מהמערכת</h2>
+        </div>
+        
+        <!-- Main content -->
+        <div style='background-color: white; padding: 25px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); direction: rtl; text-align: right;'>
+            <!-- User and timestamp -->
+            <p style='font-size: 16px; color: #333; line-height: 1.8; direction: rtl; text-align: right; unicode-bidi: embed;'>
+                <strong>👤 משתמש:</strong> {username}<br/>
+                <strong>🕓 תאריך:</strong> {timestamp:dd/MM/yyyy HH:mm:ss}<br/>
+            </p>
+            
+            <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'/>
+            
+            <!-- Question -->
+            <p style='font-size: 16px; color: #333; direction: rtl; text-align: right; unicode-bidi: embed;'>
+                <strong>❓ שאלה:</strong> {questionImage}<br/>
+            </p>
+            
+            <!-- Answers -->
+            <p style='font-size: 15px; color: #555; margin-top: 15px; direction: rtl; text-align: right; unicode-bidi: embed;'>
+                <strong>📝 תשובות אפשריות:</strong><br/><br/>
+                {answersBlock.ToString().Replace("<br>", "<br/>")}
+            </p>
+            
+            <!-- Selected answer -->
+            <p style='font-size: 16px; color: #333; margin-top: 15px; direction: rtl; text-align: right; unicode-bidi: embed;'>
+                <strong>❌ תשובה שסומנה על ידי המשתמש:</strong> {selectedLetter}<br/>
+            </p>
+            
+            <!-- Explanation (optional box) -->
+            <div style='background-color: #fff3cd; border-right: 4px solid #ffc107; padding: 15px; margin-top: 20px; border-radius: 5px; direction: rtl; text-align: right;'>
+                <strong style='unicode-bidi: embed;'>💬 סיבה:</strong> <span style='unicode-bidi: embed;'>{explanation}</span>
+            </div>
+            
+            <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
+            
+            <!-- Footer -->
+            <p style='text-align: center; color: #888; font-size: 14px; direction: rtl; unicode-bidi: embed;'>
+                <strong>מערכת: Noodles Simulator</strong><br/>
+                🎮 Find your limits. Or crash into them.
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
 
                 bodyBuilder.HtmlBody = htmlBody;
                 bodyBuilder.TextBody = null;
@@ -408,20 +465,23 @@ namespace NoodlesSimulator.Pages
                 // Fire-and-forget via EmailService to avoid blocking the user response
                 try
                 {
-                    var to = Environment.GetEnvironmentVariable("EMAIL_TO") ?? "";
-                    Console.WriteLine($"[Report Debug] EMAIL_TO: {to}");
-                    Console.WriteLine($"[Report Debug] _emailService is null: {_emailService == null}");
-                    
-                    if (!string.IsNullOrWhiteSpace(to) && _emailService != null)
+                    if (_emailService != null && _emailService.IsConfigured)
                     {
                         var html = bodyBuilder.HtmlBody;
-                        Console.WriteLine($"[Report Debug] Sending email to: {to}");
-                        var result = await _emailService.SendEmailAsync(to, message.Subject, html);
-                        Console.WriteLine($"[Report Debug] Email send result: {result}");
+                        Console.WriteLine($"[Report] Sending error report email...");
+                        var result = _emailService.Send(message.Subject, html);
+                        if (result)
+                        {
+                            Console.WriteLine($"[Report] ✅ Error report email sent successfully");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[Report] ❌ Failed to send error report email");
+                        }
                     }
                     else
                     {
-                        Console.WriteLine($"[Report Debug] Skipping email - to: '{to}', emailService: {_emailService != null}");
+                        Console.WriteLine($"[Report] Email service not configured, skipping email notification");
                     }
                 }
                 catch (Exception ex)

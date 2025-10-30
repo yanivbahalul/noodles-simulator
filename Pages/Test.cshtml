@@ -40,6 +40,10 @@
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionIndex" value="@Model.CurrentIndex" />
+        @if (ViewData["Token"] != null)
+        {
+            <input type="hidden" name="token" value="@ViewData["Token"]" />
+        }
 
         <div class="answers">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())

@@ -19,12 +19,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<TestSessionService>();
 
 builder.Services.AddSingleton<EmailService>(provider =>
 {
-    var logger = provider.GetRequiredService<ILogger<EmailService>>();
     var configuration = provider.GetRequiredService<IConfiguration>();
-    return new EmailService(logger, configuration);
+    return new EmailService(configuration);
 });
 
 // Data protection - disabled to prevent key ring issues

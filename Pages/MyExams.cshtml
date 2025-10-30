@@ -1,0 +1,234 @@
+@page
+@model NoodlesSimulator.Pages.MyExamsModel
+@{
+    ViewData["Title"] = "המבחנים שלי";
+}
+
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — המבחנים שלי</title>
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo/noodles-logo-transparent.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo/noodles-logo-transparent.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/logo/noodles-logo-transparent.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#222222">
+    <meta name="robots" content="noindex">
+    <style>
+        .exams-container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            direction: rtl;
+        }
+        
+        .exam-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .exam-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .exam-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .status-active {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-completed {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .status-expired {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .exam-details {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .exam-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        
+        .btn-secondary {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+        
+        .no-exams {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .token-display {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+
+<div class="logo-header">
+    <a href="/Index" style="display:inline-block;">
+        <img src="/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" />
+    </a>
+</div>
+
+<div class="exams-container">
+    <h1 style="text-align: center; margin-bottom: 30px;">המבחנים שלי</h1>
+    
+    @if (Model.Sessions == null || !Model.Sessions.Any())
+    {
+        <div class="no-exams">
+            <h3>עדיין לא ביצעת מבחנים</h3>
+            <p>כשתתחיל מבחן, הוא יופיע כאן</p>
+            <a href="/Index" class="btn btn-primary" style="margin-top: 20px;">התחל לתרגל</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var session in Model.Sessions)
+        {
+            var statusClass = session.Status switch
+            {
+                "active" => "status-active",
+                "completed" => "status-completed",
+                "expired" => "status-expired",
+                _ => ""
+            };
+            
+            var statusText = session.Status switch
+            {
+                "active" => "פעיל",
+                "completed" => "הושלם",
+                "expired" => "פג תוקף",
+                _ => session.Status
+            };
+            
+            <div class="exam-card">
+                <div class="exam-header">
+                    <span class="exam-status @statusClass">@statusText</span>
+                    <span>@session.StartedUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+                
+                <div class="exam-details">
+                    @if (session.Status == "completed" || session.Status == "expired")
+                    {
+                        <div>ציון: <strong>@session.Score מתוך @session.MaxScore</strong></div>
+                        @if (session.MaxScore > 0)
+                        {
+                            var percentage = Math.Round((double)session.Score / session.MaxScore * 100, 1);
+                            <div>אחוז הצלחה: <strong>@percentage%</strong></div>
+                        }
+                    }
+                    else if (session.Status == "active")
+                    {
+                        <div>שאלה נוכחית: <strong>@(session.CurrentIndex + 1) מתוך @Model.GetQuestionCount(session)</strong></div>
+                        @if (Model.GetRemainingTime(session) != null)
+                        {
+                            <div>זמן נותר: <strong>@Model.GetRemainingTime(session)</strong></div>
+                        }
+                    }
+                    
+                    @if (session.CompletedUtc.HasValue)
+                    {
+                        var duration = session.CompletedUtc.Value - session.StartedUtc;
+                        <div>משך זמן: <strong>@string.Format("{0:D2}:{1:D2}:{2:D2}", (int)duration.TotalHours, duration.Minutes, duration.Seconds)</strong></div>
+                    }
+                    
+                    <div class="token-display" title="מזהה ייחודי של המבחן">
+                        Token: @session.Token.Substring(0, Math.Min(16, session.Token.Length))...
+                    </div>
+                </div>
+                
+                <div class="exam-actions">
+                    @if (session.Status == "active")
+                    {
+                        <a href="/Test?token=@session.Token" class="btn btn-primary">המשך מבחן</a>
+                    }
+                    else
+                    {
+                        <a href="/TestResults?token=@session.Token" class="btn btn-secondary">צפה בתוצאות</a>
+                        @if (Model.CanReviewTest)
+                        {
+                            <a href="/TestReview?token=@session.Token" class="btn btn-secondary">סקור מבחן</a>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    }
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="/Index" class="btn btn-primary">חזרה לדף הבית</a>
+        @if (Model.ActiveSession == null)
+        {
+            <a href="/Test?start=1" class="btn btn-primary">התחל מבחן חדש</a>
+        }
+    </div>
+</div>
+

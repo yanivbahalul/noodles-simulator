@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using NoodlesSimulator.Services;
+using NoodlesSimulator.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +14,12 @@ namespace NoodlesSimulator.Pages
     {
         private const string SessionKey = "TestStateV1";
         private readonly SupabaseStorageService _storage;
+        private readonly TestSessionService _testSession;
 
-        public TestResultsModel(SupabaseStorageService storage = null)
+        public TestResultsModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
         {
             _storage = storage;
+            _testSession = testSession;
         }
 
         public int Score { get; set; }
@@ -41,6 +44,25 @@ namespace NoodlesSimulator.Pages
 
         public async Task OnGet()
         {
+            var token = Request.Query["token"].ToString();
+
+            // Try token-based system first
+            if (_testSession != null && !string.IsNullOrEmpty(token))
+            {
+                var session = await _testSession.GetSession(token);
+                if (session != null)
+                {
+                    // Verify user owns this test
+                    var username = HttpContext.Session.GetString("Username");
+                    if (!string.IsNullOrEmpty(username) && session.Username == username)
+                    {
+                        await LoadFromTestSession(session);
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to legacy session-based system
             var state = GetState();
             if (state == null)
             {
@@ -59,6 +81,31 @@ namespace NoodlesSimulator.Pages
             await BuildItemsAsync(state);
             // Optionally clear state to prevent revisiting
             // HttpContext.Session.Remove(SessionKey);
+        }
+
+        private async Task LoadFromTestSession(TestSession session)
+        {
+            var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
+            var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
+
+            Total = questions.Count;
+            CorrectCount = answers.Count(a => a != null && a.IsCorrect);
+            MaxScore = session.MaxScore > 0 ? session.MaxScore : Total * 6;
+            Score = session.Score > 0 ? session.Score : CorrectCount * 6;
+
+            var elapsed = (session.CompletedUtc ?? DateTime.UtcNow) - session.StartedUtc;
+            if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+            ElapsedText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)elapsed.TotalHours, elapsed.Minutes, elapsed.Seconds);
+
+            var state = new TestState
+            {
+                StartedUtc = session.StartedUtc,
+                Questions = questions,
+                Answers = answers,
+                CurrentIndex = session.CurrentIndex
+            };
+
+            await BuildItemsAsync(state);
         }
 
         private async Task BuildItemsAsync(TestState state)

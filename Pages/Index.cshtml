@@ -35,6 +35,7 @@ function logout() {
 </script>
 
 <div style="position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px;">
+    <a href="/MyExams" class="next-question-btn" style="text-decoration: none;">📋 המבחנים שלי</a>
     <a href="/Leaderboard" class="next-question-btn" style="text-decoration: none;">🏆 מובילים</a>
     @if (Model.Username == "Admin")
     {
@@ -98,10 +99,7 @@ function logout() {
 
     <!-- test-mode button (single) - updated -->
     <div class="button-row">
-        <form method="get" action="/Test">
-            <input type="hidden" name="start" value="1" />
-            <button class="next-question-btn">מצב מבחן</button>
-        </form>
+        <button class="next-question-btn" onclick="openDifficultyModal()">מצב מבחן</button>
         <form method="get">
             <button class="next-question-btn">שאלה הבאה</button>
         </form>
@@ -114,11 +112,140 @@ function logout() {
     </div>
 </div>
 
+<!-- Difficulty Selection Modal -->
+<div id="difficulty-modal" class="difficulty-modal" style="display:none;">
+    <div class="difficulty-modal-content">
+        <span class="close-modal" onclick="closeDifficultyModal()">&times;</span>
+        <h2 style="text-align: center; color: #333; margin-bottom: 30px;">בחר רמת קושי</h2>
+        <div class="difficulty-buttons">
+            <a href="/Test?start=1&difficulty=easy" class="difficulty-btn difficulty-easy">
+                <span class="difficulty-emoji">🟢</span>
+                <span class="difficulty-text">קל</span>
+            </a>
+            <a href="/Test?start=1&difficulty=medium" class="difficulty-btn difficulty-medium">
+                <span class="difficulty-emoji">🟡</span>
+                <span class="difficulty-text">בינוני</span>
+            </a>
+            <a href="/Test?start=1&difficulty=hard" class="difficulty-btn difficulty-hard">
+                <span class="difficulty-emoji">🔴</span>
+                <span class="difficulty-text">קשה</span>
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Image Modal -->
 <div id="image-modal" class="image-modal" style="display:none;">
     <span class="close-modal" onclick="closeImageModal()">&times;</span>
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
+
+<style>
+/* Difficulty Modal Styles */
+.difficulty-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s;
+}
+
+.difficulty-modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 10% auto;
+    padding: 40px;
+    border-radius: 20px;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s;
+    direction: rtl;
+}
+
+.difficulty-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.difficulty-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px;
+    background: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: #333;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.difficulty-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.difficulty-easy:hover {
+    background: #d4edda;
+    border: 2px solid #28a745;
+}
+
+.difficulty-medium:hover {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+}
+
+.difficulty-hard:hover {
+    background: #f8d7da;
+    border: 2px solid #dc3545;
+}
+
+.difficulty-emoji {
+    font-size: 36px;
+}
+
+.difficulty-text {
+    font-size: 28px;
+}
+
+.close-modal {
+    color: white;
+    float: left;
+    font-size: 35px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.close-modal:hover {
+    transform: scale(1.2);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
 
 <script>
 function openImageModal() {
@@ -131,10 +258,26 @@ function openImageModal() {
 function closeImageModal() {
     document.getElementById('image-modal').style.display = 'none';
 }
+
+// Difficulty Modal Functions
+function openDifficultyModal() {
+    document.getElementById('difficulty-modal').style.display = 'block';
+}
+function closeDifficultyModal() {
+    document.getElementById('difficulty-modal').style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Image modal click outside to close
     var modal = document.getElementById('image-modal');
     modal.addEventListener('click', function (e) {
         if (e.target === modal) closeImageModal();
+    });
+    
+    // Difficulty modal click outside to close
+    var diffModal = document.getElementById('difficulty-modal');
+    diffModal.addEventListener('click', function (e) {
+        if (e.target === diffModal) closeDifficultyModal();
     });
 });
 </script>
