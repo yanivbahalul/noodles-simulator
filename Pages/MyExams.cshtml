@@ -111,6 +111,15 @@
             background: #0b7dda;
         }
         
+        .btn-danger {
+            background: #d32f2f;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+        
         .no-exams {
             text-align: center;
             padding: 40px;
@@ -140,6 +149,13 @@
 
 <div class="exams-container">
     <h1 style="text-align: center; margin-bottom: 30px;">המבחנים שלי</h1>
+    
+    @if (TempData["TestEndedMessage"] != null)
+    {
+        <div style="background: #d4edda; border: 2px solid #28a745; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;">
+            <strong style="color: #155724;">✅ @TempData["TestEndedMessage"]</strong>
+        </div>
+    }
     
     @if (Model.Sessions == null || !Model.Sessions.Any())
     {
@@ -209,6 +225,14 @@
                     @if (session.Status == "active")
                     {
                         <a href="/Test?token=@session.Token" class="btn btn-primary">המשך מבחן</a>
+                        <form method="post" style="margin: 0; display: inline-block;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="token" value="@session.Token" />
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');">
+                                🛑 סיים מבחן
+                            </button>
+                        </form>
                     }
                     else
                     {

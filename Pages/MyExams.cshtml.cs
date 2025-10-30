@@ -58,6 +58,42 @@ namespace NoodlesSimulator.Pages
             return Page();
         }
 
+        public async Task<IActionResult> OnPost()
+        {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToPage("/Login");
+            }
+
+            var token = Request.Form["token"].ToString();
+            
+            if (_testSession != null && !string.IsNullOrEmpty(token))
+            {
+                var session = await _testSession.GetSession(token);
+                if (session != null && session.Username == username && session.Status == "active")
+                {
+                    // Mark test as completed
+                    await _testSession.UpdateSessionStatus(token, "completed");
+                    
+                    // Calculate final score
+                    var questions = JsonConvert.DeserializeObject<List<object>>(session.QuestionsJson);
+                    var answers = JsonConvert.DeserializeObject<List<object>>(session.AnswersJson);
+                    
+                    session.Score = answers?.Count ?? 0;
+                    session.MaxScore = (questions?.Count ?? 0) * 6;
+                    
+                    await _testSession.UpdateSession(session);
+                    
+                    Console.WriteLine($"[MyExams] User {username} ended test from MyExams page. Token: {token}");
+                    
+                    TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";
+                }
+            }
+            
+            return RedirectToPage("/MyExams");
+        }
+
         public int GetQuestionCount(TestSession session)
         {
             try
