@@ -70,8 +70,11 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/Login");
             }
 
+            Console.WriteLine($"[Test OnGet] User: {username}, TestSessionService available: {_testSession != null}");
+
             if (_testSession == null)
             {
+                Console.WriteLine($"[Test OnGet] ⚠️ TestSessionService is NULL - using legacy session-based system");
                 // Fallback to old session-based system if service not available
                 return await OnGetLegacy();
             }
@@ -109,15 +112,25 @@ namespace NoodlesSimulator.Pages
             if (!string.IsNullOrEmpty(start) || session == null)
             {
                 var difficulty = Request.Query["difficulty"].ToString();
+                Console.WriteLine($"[Test OnGet] Creating new test session for user '{username}' with difficulty '{difficulty}'");
+                
                 var state = await BuildNewStateAsync(difficulty);
+                Console.WriteLine($"[Test OnGet] Built state with {state.Questions.Count} questions");
+                
                 var questionsJson = JsonConvert.SerializeObject(state.Questions);
+                Console.WriteLine($"[Test OnGet] Attempting to create session in database...");
+                
                 session = await _testSession.CreateSession(username, questionsJson);
                 
                 if (session == null)
                 {
+                    Console.WriteLine($"[Test OnGet] ⚠️ CreateSession returned NULL - falling back to legacy session-based system");
                     // Fallback to session-based if database fails
                     return await OnGetLegacy();
                 }
+
+                Console.WriteLine($"[Test OnGet] ✅ Session created successfully! Token: {session.Token}");
+                Console.WriteLine($"[Test OnGet] Redirecting to /Test?token={session.Token}");
 
                 // Send email notification about new test
                 SendTestStartedEmail(username, session.Token);
