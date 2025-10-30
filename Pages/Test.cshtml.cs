@@ -307,6 +307,8 @@ namespace NoodlesSimulator.Pages
             return DateTime.UtcNow >= end;
         }
 
+        private const string SessionKey = "TestStateV1";
+
         private TestState GetState()
         {
             try
