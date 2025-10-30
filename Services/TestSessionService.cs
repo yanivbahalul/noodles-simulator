@@ -53,7 +53,14 @@ namespace NoodlesSimulator.Services
         {
             try
             {
+                Console.WriteLine($"[TestSessionService] CreateSession called for user: {username}");
+                Console.WriteLine($"[TestSessionService] Questions JSON length: {questionsJson?.Length ?? 0}");
+                Console.WriteLine($"[TestSessionService] Supabase URL: {(_url ?? "NULL")}");
+                Console.WriteLine($"[TestSessionService] API Key set: {(!string.IsNullOrWhiteSpace(_apiKey))}");
+                
                 var token = GenerateToken();
+                Console.WriteLine($"[TestSessionService] Generated token: {token}");
+                
                 var now = DateTime.UtcNow;
                 
                 var session = new TestSession
@@ -90,20 +97,27 @@ namespace NoodlesSimulator.Services
                 };
 
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                Console.WriteLine($"[TestSessionService] Posting to: {_url}/rest/v1/test_sessions");
+                
                 var res = await _client.PostAsync($"{_url}/rest/v1/test_sessions", content);
+                
+                Console.WriteLine($"[TestSessionService] Response status: {res.StatusCode}");
                 
                 if (!res.IsSuccessStatusCode)
                 {
                     var error = await res.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[CreateSession Error] {res.StatusCode}: {error}");
+                    Console.WriteLine($"[TestSessionService] ❌ CreateSession Error - Status: {res.StatusCode}");
+                    Console.WriteLine($"[TestSessionService] Error details: {error}");
                     return null;
                 }
 
+                Console.WriteLine($"[TestSessionService] ✅ Session created in database successfully!");
                 return session;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CreateSession Exception] {ex}");
+                Console.WriteLine($"[TestSessionService] ❌ CreateSession Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService] Stack trace: {ex.StackTrace}");
                 return null;
             }
         }
