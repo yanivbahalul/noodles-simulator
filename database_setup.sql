@@ -2,25 +2,25 @@
 -- This table stores all test sessions with token-based access
 
 CREATE TABLE IF NOT EXISTS test_sessions (
-    Token VARCHAR(255) PRIMARY KEY,
-    Username VARCHAR(255) NOT NULL,
-    StartedUtc TIMESTAMP WITH TIME ZONE NOT NULL,
-    CompletedUtc TIMESTAMP WITH TIME ZONE,
-    Status VARCHAR(50) NOT NULL DEFAULT 'active',
-    QuestionsJson TEXT NOT NULL,
-    AnswersJson TEXT NOT NULL DEFAULT '[]',
-    CurrentIndex INTEGER NOT NULL DEFAULT 0,
-    Score INTEGER NOT NULL DEFAULT 0,
-    MaxScore INTEGER NOT NULL DEFAULT 0,
-    CreatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    UpdatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    "Token" VARCHAR(255) PRIMARY KEY,
+    "Username" VARCHAR(255) NOT NULL,
+    "StartedUtc" TIMESTAMP WITH TIME ZONE NOT NULL,
+    "CompletedUtc" TIMESTAMP WITH TIME ZONE,
+    "Status" VARCHAR(50) NOT NULL DEFAULT 'active',
+    "QuestionsJson" TEXT NOT NULL,
+    "AnswersJson" TEXT NOT NULL DEFAULT '[]',
+    "CurrentIndex" INTEGER NOT NULL DEFAULT 0,
+    "Score" INTEGER NOT NULL DEFAULT 0,
+    "MaxScore" INTEGER NOT NULL DEFAULT 0,
+    "CreatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    "UpdatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_test_sessions_username ON test_sessions(Username);
-CREATE INDEX IF NOT EXISTS idx_test_sessions_status ON test_sessions(Status);
-CREATE INDEX IF NOT EXISTS idx_test_sessions_started ON test_sessions(StartedUtc DESC);
-CREATE INDEX IF NOT EXISTS idx_test_sessions_username_status ON test_sessions(Username, Status);
+CREATE INDEX IF NOT EXISTS idx_test_sessions_username ON test_sessions("Username");
+CREATE INDEX IF NOT EXISTS idx_test_sessions_status ON test_sessions("Status");
+CREATE INDEX IF NOT EXISTS idx_test_sessions_started ON test_sessions("StartedUtc" DESC);
+CREATE INDEX IF NOT EXISTS idx_test_sessions_username_status ON test_sessions("Username", "Status");
 
 -- Add RLS (Row Level Security) policies if needed
 -- ALTER TABLE test_sessions ENABLE ROW LEVEL SECURITY;
@@ -41,7 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_test_sessions_username_status ON test_sessions(Us
 CREATE OR REPLACE FUNCTION update_test_sessions_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.UpdatedAt = NOW();
+    NEW."UpdatedAt" = NOW();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
