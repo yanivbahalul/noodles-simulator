@@ -284,28 +284,39 @@ namespace NoodlesSimulator.Pages
             }
 
             var token = Request.Form["token"].ToString();
+            Console.WriteLine($"[Test OnPostEndTest] Called with token: {token}");
             
             if (_testSession != null && !string.IsNullOrEmpty(token))
             {
                 var session = await _testSession.GetSession(token);
                 if (session != null && session.Username == username)
                 {
-                    // Mark test as completed
-                    await _testSession.UpdateSessionStatus(token, "completed");
+                    Console.WriteLine($"[Test OnPostEndTest] Session found. Current status: {session.Status}");
                     
                     // Calculate final score
                     var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
                     var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
                     
+                    session.Status = "completed";
+                    session.CompletedUtc = DateTime.UtcNow;
                     session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
                     session.MaxScore = questions.Count * 6;
                     
+                    Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
                     
-                    Console.WriteLine($"[Test] User {username} ended test early. Token: {token}");
+                    Console.WriteLine($"[Test OnPostEndTest] ✅ Test ended successfully. Redirecting to results...");
                     
                     return RedirectToPage("/TestResults", new { token = token });
                 }
+                else
+                {
+                    Console.WriteLine($"[Test OnPostEndTest] ⚠️ Session not found or username mismatch");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[Test OnPostEndTest] ⚠️ TestSessionService null or token empty");
             }
             
             // Fallback to legacy

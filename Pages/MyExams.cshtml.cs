@@ -67,28 +67,50 @@ namespace NoodlesSimulator.Pages
             }
 
             var token = Request.Form["token"].ToString();
+            Console.WriteLine($"[MyExams OnPost] Called with token: {token}");
             
             if (_testSession != null && !string.IsNullOrEmpty(token))
             {
                 var session = await _testSession.GetSession(token);
+                Console.WriteLine($"[MyExams OnPost] Session found: {session != null}, Status: {session?.Status}");
+                
                 if (session != null && session.Username == username && session.Status == "active")
                 {
-                    // Mark test as completed
-                    await _testSession.UpdateSessionStatus(token, "completed");
+                    // Calculate final score using proper deserialization
+                    var questions = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.QuestionsJson);
+                    var answers = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.AnswersJson);
                     
-                    // Calculate final score
-                    var questions = JsonConvert.DeserializeObject<List<object>>(session.QuestionsJson);
-                    var answers = JsonConvert.DeserializeObject<List<object>>(session.AnswersJson);
+                    int correctCount = 0;
+                    if (answers != null)
+                    {
+                        foreach (var answer in answers)
+                        {
+                            if (answer != null && answer.ContainsKey("IsCorrect") && answer["IsCorrect"] is bool isCorrect && isCorrect)
+                            {
+                                correctCount++;
+                            }
+                        }
+                    }
                     
-                    session.Score = answers?.Count ?? 0;
+                    session.Status = "completed";
+                    session.CompletedUtc = DateTime.UtcNow;
+                    session.Score = correctCount * 6;
                     session.MaxScore = (questions?.Count ?? 0) * 6;
                     
+                    Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
                     
-                    Console.WriteLine($"[MyExams] User {username} ended test from MyExams page. Token: {token}");
-                    
+                    Console.WriteLine($"[MyExams OnPost] ✅ Test ended successfully");
                     TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";
                 }
+                else
+                {
+                    Console.WriteLine($"[MyExams OnPost] ⚠️ Cannot end test - session not found, wrong user, or already completed");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[MyExams OnPost] ⚠️ TestSessionService null or token empty");
             }
             
             return RedirectToPage("/MyExams");

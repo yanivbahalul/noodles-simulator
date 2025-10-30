@@ -192,6 +192,9 @@ namespace NoodlesSimulator.Services
             {
                 session.UpdatedAt = DateTime.UtcNow;
                 
+                Console.WriteLine($"[TestSessionService UpdateSession] Token: {session.Token}, Status: {session.Status}");
+                Console.WriteLine($"[TestSessionService UpdateSession] Score: {session.Score}/{session.MaxScore}");
+                
                 var patch = new
                 {
                     AnswersJson = session.AnswersJson,
@@ -199,7 +202,7 @@ namespace NoodlesSimulator.Services
                     Score = session.Score,
                     MaxScore = session.MaxScore,
                     Status = session.Status,
-                    CompletedUtc = session.CompletedUtc?.ToString("o"),
+                    CompletedUtc = session.CompletedUtc.HasValue ? session.CompletedUtc.Value.ToString("o") : (string)null,
                     UpdatedAt = session.UpdatedAt.ToString("o")
                 };
 
@@ -211,19 +214,26 @@ namespace NoodlesSimulator.Services
                 };
                 request.Headers.Add("Prefer", "return=minimal");
 
+                Console.WriteLine($"[TestSessionService UpdateSession] Sending PATCH to Supabase...");
                 var response = await _client.SendAsync(request);
+                
+                Console.WriteLine($"[TestSessionService UpdateSession] Response: {response.StatusCode}");
+                
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[UpdateSession Error] {response.StatusCode}: {error}");
+                    Console.WriteLine($"[TestSessionService UpdateSession] ❌ Error - Status: {response.StatusCode}");
+                    Console.WriteLine($"[TestSessionService UpdateSession] Error details: {error}");
                     return false;
                 }
                 
+                Console.WriteLine($"[TestSessionService UpdateSession] ✅ Session updated successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UpdateSession Exception] {ex}");
+                Console.WriteLine($"[TestSessionService UpdateSession] ❌ Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService UpdateSession] Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
