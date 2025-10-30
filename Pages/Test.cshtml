@@ -26,8 +26,29 @@
     
 </div>
 
-<div class="quiz-container">
+<div class="quiz-container" style="position: relative;">
+    <!-- End Test Button -->
+    @if (ViewData["Token"] != null)
+    {
+        <form method="post" action="/Test?handler=EndTest" style="position: absolute; top: 10px; left: 10px; margin: 0;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="token" value="@ViewData["Token"]" />
+            <button type="submit" onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');" 
+                    style="padding: 8px 16px; font-size: 14px; background-color: #d32f2f; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
+                🛑 סיים מבחן
+            </button>
+        </form>
+    }
+
     <h2 style="margin: 0 0 10px 0;">מצב מבחן</h2>
+    
+    @if (TempData["ActiveTestAlert"] != null)
+    {
+        <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: center; animation: shake 0.5s;">
+            <strong style="color: #856404;">⚠️ @TempData["ActiveTestAlert"]</strong>
+        </div>
+    }
+    
     <p style="margin: 0 0 10px 0; font-size: 14px; color: #ccc;">
         שאלה @Model.DisplayQuestionNumber מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>
     </p>
@@ -65,6 +86,14 @@
     <span class="close-modal" onclick="closeImageModal()">&times;</span>
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
+
+<style>
+@@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+</style>
 
 <script>
 function openImageModal() {

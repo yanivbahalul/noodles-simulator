@@ -102,9 +102,10 @@ namespace NoodlesSimulator.Pages
                 session = await _testSession.GetActiveSession(username);
             }
 
-            // If user wants to start new test but has active session, redirect to it
+            // If user wants to start new test but has active session, redirect to it with alert
             if (!string.IsNullOrEmpty(start) && session != null && session.Status == "active")
             {
+                TempData["ActiveTestAlert"] = "קיים מבחן פעיל! עליך לסיים אותו על מנת להתחיל מבחן חדש.";
                 return RedirectToPage("/Test", new { token = session.Token });
             }
 
@@ -272,6 +273,43 @@ namespace NoodlesSimulator.Pages
             }
 
             return RedirectToPage("/Test", new { token = session.Token });
+        }
+
+        public async Task<IActionResult> OnPostEndTest()
+        {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToPage("/Login");
+            }
+
+            var token = Request.Form["token"].ToString();
+            
+            if (_testSession != null && !string.IsNullOrEmpty(token))
+            {
+                var session = await _testSession.GetSession(token);
+                if (session != null && session.Username == username)
+                {
+                    // Mark test as completed
+                    await _testSession.UpdateSessionStatus(token, "completed");
+                    
+                    // Calculate final score
+                    var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
+                    var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
+                    
+                    session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
+                    session.MaxScore = questions.Count * 6;
+                    
+                    await _testSession.UpdateSession(session);
+                    
+                    Console.WriteLine($"[Test] User {username} ended test early. Token: {token}");
+                    
+                    return RedirectToPage("/TestResults", new { token = token });
+                }
+            }
+            
+            // Fallback to legacy
+            return RedirectToPage("/TestResults");
         }
 
         private IActionResult OnPostLegacy()
