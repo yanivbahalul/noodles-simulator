@@ -256,6 +256,49 @@ document.addEventListener('visibilitychange', () => {
         startAutoUpdate();
     }
 });
+
+// Difficulty filtering functionality
+let currentFilter = null;
+
+function filterByDifficulty(difficulty) {
+    const rows = document.querySelectorAll('.difficulty-row');
+    const titleEl = document.getElementById('difficulty-title');
+    const countEl = document.getElementById('difficulty-count');
+    
+    // Toggle: if clicking the same difficulty, show all
+    if (currentFilter === difficulty) {
+        currentFilter = null;
+        rows.forEach(row => row.style.display = '');
+        titleEl.textContent = 'רשימת שאלות (מעודכן אוטומטית)';
+        countEl.textContent = `מציג את כל ${rows.length} השאלות`;
+        
+        // Reset card styles
+        document.getElementById('difficulty-card-easy').style.opacity = '1';
+        document.getElementById('difficulty-card-medium').style.opacity = '1';
+        document.getElementById('difficulty-card-hard').style.opacity = '1';
+    } else {
+        currentFilter = difficulty;
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            if (row.getAttribute('data-difficulty') === difficulty) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        const diffText = difficulty === 'easy' ? 'קלות' : difficulty === 'medium' ? 'בינוניות' : 'קשות';
+        titleEl.textContent = `שאלות ${diffText} (${visibleCount} שאלות)`;
+        countEl.textContent = `מציג ${visibleCount} שאלות ${diffText}`;
+        
+        // Highlight active card
+        document.getElementById('difficulty-card-easy').style.opacity = difficulty === 'easy' ? '1' : '0.5';
+        document.getElementById('difficulty-card-medium').style.opacity = difficulty === 'medium' ? '1' : '0.5';
+        document.getElementById('difficulty-card-hard').style.opacity = difficulty === 'hard' ? '1' : '0.5';
+    }
+}
 </script>
 
 <!-- Difficulty Management Section -->
@@ -292,15 +335,24 @@ document.addEventListener('visibilitychange', () => {
     </div>
     
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
-        <div style="background: #2d5016; padding: 20px; border-radius: 8px; text-align: center;">
+        <div id="difficulty-card-easy" onclick="filterByDifficulty('easy')" 
+             style="background: #2d5016; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent;"
+             onmouseover="this.style.borderColor='#4caf50'; this.style.transform='scale(1.05)'"
+             onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)'">
             <div style="font-size: 48px; font-weight: bold; color: #4caf50;">@Model.EasyCount</div>
             <div style="color: #81c784; font-size: 18px; margin-top: 5px;">🟢 קלות</div>
         </div>
-        <div style="background: #4d3800; padding: 20px; border-radius: 8px; text-align: center;">
+        <div id="difficulty-card-medium" onclick="filterByDifficulty('medium')" 
+             style="background: #4d3800; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent;"
+             onmouseover="this.style.borderColor='#ffa726'; this.style.transform='scale(1.05)'"
+             onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)'">
             <div style="font-size: 48px; font-weight: bold; color: #ffa726;">@Model.MediumCount</div>
             <div style="color: #ffb74d; font-size: 18px; margin-top: 5px;">🟡 בינוניות</div>
         </div>
-        <div style="background: #4d1616; padding: 20px; border-radius: 8px; text-align: center;">
+        <div id="difficulty-card-hard" onclick="filterByDifficulty('hard')" 
+             style="background: #4d1616; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent;"
+             onmouseover="this.style.borderColor='#ef5350'; this.style.transform='scale(1.05)'"
+             onmouseout="this.style.borderColor='transparent'; this.style.transform='scale(1)'">
             <div style="font-size: 48px; font-weight: bold; color: #ef5350;">@Model.HardCount</div>
             <div style="color: #e57373; font-size: 18px; margin-top: 5px;">🔴 קשות</div>
         </div>
@@ -308,8 +360,8 @@ document.addEventListener('visibilitychange', () => {
     
     @if (Model.DifficultyQuestions.Any())
     {
-        <h4 style="margin: 20px 0 10px 0;">רשימת שאלות (מעודכן אוטומטית)</h4>
-        <div style="max-height: 400px; overflow-y: auto; background: #111; padding: 15px; border-radius: 8px;">
+        <h4 id="difficulty-title" style="margin: 20px 0 10px 0;">רשימת שאלות (מעודכן אוטומטית)</h4>
+        <div id="difficulty-table-container" style="max-height: 400px; overflow-y: auto; background: #111; padding: 15px; border-radius: 8px;">
             <table style="width: 100%; font-size: 13px;">
                 <thead style="position: sticky; top: 0; background: #222; z-index: 10;">
                     <tr>
@@ -321,8 +373,8 @@ document.addEventListener('visibilitychange', () => {
                         <th>עדכון אחרון</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var q in Model.DifficultyQuestions.Take(100))
+                <tbody id="difficulty-questions-tbody">
+                    @foreach (var q in Model.DifficultyQuestions.Take(500))
                     {
                         var diffColor = q.Difficulty switch
                         {
@@ -339,7 +391,7 @@ document.addEventListener('visibilitychange', () => {
                             _ => q.Difficulty
                         };
                         
-                        <tr style="border-bottom: 1px solid #333;">
+                        <tr class="difficulty-row" data-difficulty="@q.Difficulty" style="border-bottom: 1px solid #333;">
                             <td style="text-align: right; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 @q.QuestionFile
                             </td>
@@ -358,12 +410,9 @@ document.addEventListener('visibilitychange', () => {
             </table>
         </div>
         
-        @if (Model.DifficultyQuestions.Count > 100)
-        {
-            <p style="text-align: center; color: #999; margin-top: 10px;">
-                מציג 100 מתוך @Model.DifficultyQuestions.Count שאלות
-            </p>
-        }
+        <p id="difficulty-count" style="text-align: center; color: #999; margin-top: 10px;">
+            מציג את כל @Model.DifficultyQuestions.Count השאלות
+        </p>
     }
     else
     {

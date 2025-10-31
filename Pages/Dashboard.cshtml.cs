@@ -69,6 +69,10 @@ namespace NoodlesSimulator.Pages
             {
                 if (_difficultyService != null)
                 {
+                    // Auto-recalculate difficulties to ensure they're always up-to-date
+                    await _difficultyService.RecalculateAllDifficulties();
+                    
+                    // Load updated questions
                     DifficultyQuestions = await _difficultyService.GetAllQuestions(500);
                     EasyCount = DifficultyQuestions.Count(q => q.Difficulty == "easy");
                     MediumCount = DifficultyQuestions.Count(q => q.Difficulty == "medium");
