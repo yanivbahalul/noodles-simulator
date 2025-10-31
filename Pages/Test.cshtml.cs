@@ -133,8 +133,8 @@ namespace NoodlesSimulator.Pages
                 Console.WriteLine($"[Test OnGet] ✅ Session created successfully! Token: {session.Token}");
                 Console.WriteLine($"[Test OnGet] Redirecting to /Test?token={session.Token}");
 
-                // Send email notification about new test
-                SendTestStartedEmail(username, session.Token);
+                // Email notification disabled per user request
+                // SendTestStartedEmail(username, session.Token);
 
                 return RedirectToPage("/Test", new { token = session.Token });
             }
@@ -266,8 +266,8 @@ namespace NoodlesSimulator.Pages
                 {
                     await _testSession.UpdateSessionStatus(session.Token, "completed");
                     
-                    // Send email notification about test completion
-                    SendTestCompletedEmail(username, session.Token, session.Score, session.MaxScore);
+                    // Email notification disabled per user request
+                    // SendTestCompletedEmail(username, session.Token, session.Score, session.MaxScore);
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
