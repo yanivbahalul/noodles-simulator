@@ -400,7 +400,7 @@ namespace NoodlesSimulator.Pages
                     var letter = abcd[i + 1];
                     var distractor = distractors[i];
                     var isSelected = selectedAnswerValue == distractor;
-                    var style = isSelected ? "font-weight: bold; font-size: 18px; color: #ffc107;" : "";
+                    var style = isSelected ? "font-weight: bold; color: #ffc107;" : "";
                     answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
                 }
                 
