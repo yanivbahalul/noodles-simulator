@@ -3,12 +3,12 @@
   "short_name": "Noodles",
   "icons": [
     {
-      "src": "/logo/noodles-logo-home.png",
+      "src": "/logo/noodles-logo-transparent.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/logo/noodles-logo-home.png",
+      "src": "/logo/noodles-logo-transparent.png",
       "sizes": "512x512",
       "type": "image/png"
     }
