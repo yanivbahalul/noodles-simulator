@@ -393,7 +393,7 @@ namespace NoodlesSimulator.Pages
                 
                 // Build answers list text
                 var answersList = new StringBuilder();
-                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745;'>{correctAnswer}</span> (תשובה נכונה במערכת)<br/>");
+                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745;'>{correctAnswer}</span><br/>");
                 var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
                 for (int i = 0; i < Math.Min(3, distractors.Count); i++)
                 {
@@ -401,7 +401,7 @@ namespace NoodlesSimulator.Pages
                     var distractor = distractors[i];
                     var isSelected = selectedAnswerValue == distractor;
                     var style = isSelected ? "font-weight: bold; font-size: 18px; color: #ffc107;" : "";
-                    answersList.Append($"<span style='{style}'>{letter}: {distractor}{(isSelected ? " 👈 תשובה שנבחרה" : "")}</span><br/>");
+                    answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
                 }
                 
                 // Build question view URL - need to get the base URL
@@ -443,9 +443,11 @@ namespace NoodlesSimulator.Pages
                     <strong>📝 תשובות אפשריות:</strong><br/>
                     <span style='font-size: 14px; line-height: 1.8;'>{answersList.ToString()}</span>
                 </p>
-                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
-                    <strong>❌ תשובה שסומנה על ידי המשתמש:</strong> {selectedLetter}
-                </p>
+            </div>
+            
+            <!-- Explanation (optional box) -->
+            <div style='background-color: #fff3cd; border-right: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; direction: rtl; text-align: right;'>
+                <strong style='unicode-bidi: embed;'>💬 סיבה:</strong> <span style='unicode-bidi: embed;'>{explanation}</span>
             </div>
             
             <!-- Link to view question -->
@@ -461,11 +463,6 @@ namespace NoodlesSimulator.Pages
             </div>
             
             <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
-            
-            <!-- Explanation (optional box) -->
-            <div style='background-color: #fff3cd; border-right: 4px solid #ffc107; padding: 15px; margin-top: 20px; border-radius: 5px; direction: rtl; text-align: right;'>
-                <strong style='unicode-bidi: embed;'>💬 סיבה:</strong> <span style='unicode-bidi: embed;'>{explanation}</span>
-            </div>
             
             <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
             
