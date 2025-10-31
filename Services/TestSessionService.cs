@@ -202,7 +202,7 @@ namespace NoodlesSimulator.Services
                     Score = session.Score,
                     MaxScore = session.MaxScore,
                     Status = session.Status,
-                    CompletedUtc = session.CompletedUtc.HasValue ? session.CompletedUtc.Value.ToString("o") : (string)null,
+                    CompletedUtc = session.CompletedUtc.HasValue ? session.CompletedUtc.Value.ToString("o") : null,
                     UpdatedAt = session.UpdatedAt.ToString("o")
                 };
 
