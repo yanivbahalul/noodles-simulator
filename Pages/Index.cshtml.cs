@@ -407,7 +407,23 @@ namespace NoodlesSimulator.Pages
                 // Build question view URL - need to get the base URL
                 var request = HttpContext.Request;
                 var baseUrl = $"{request.Scheme}://{request.Host}";
-                var questionViewUrl = $"{baseUrl}/QuestionView?id={Uri.EscapeDataString(questionImage)}";
+                
+                // Build URL with selected answer and correct answer parameters
+                var queryParams = new System.Collections.Specialized.NameValueCollection();
+                queryParams.Add("id", questionImage);
+                if (!string.IsNullOrWhiteSpace(selectedAnswer))
+                {
+                    // Map selectedAnswer key to the actual answer key (correct, a, b, c)
+                    if (answersDict.ContainsKey(selectedAnswer))
+                    {
+                        queryParams.Add("selected", selectedAnswer);
+                    }
+                }
+                queryParams.Add("correct", "correct"); // Always "correct" is the right answer
+                
+                var queryString = string.Join("&", 
+                    queryParams.AllKeys.Select(key => $"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(queryParams[key])}"));
+                var questionViewUrl = $"{baseUrl}/QuestionView?{queryString}";
 
                 var htmlBody = $@"
 <!DOCTYPE html>

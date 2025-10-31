@@ -20,11 +20,24 @@ namespace NoodlesSimulator.Pages
 
         public string QuestionImageUrl { get; set; }
         public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
+        public string SelectedAnswerKey { get; set; }
+        public string CorrectAnswerKey { get; set; } = "correct"; // Always "correct" is the right answer
+        public bool ShowAnswerResults { get; set; }
 
         public async Task OnGet()
         {
             var questionId = Request.Query["id"].ToString();
             if (string.IsNullOrWhiteSpace(questionId)) return;
+            
+            // Get selected and correct answer from query parameters (from error report email)
+            SelectedAnswerKey = Request.Query["selected"].ToString();
+            var correctParam = Request.Query["correct"].ToString();
+            if (!string.IsNullOrWhiteSpace(correctParam))
+            {
+                CorrectAnswerKey = correctParam;
+            }
+            
+            ShowAnswerResults = !string.IsNullOrWhiteSpace(SelectedAnswerKey);
 
             // Build answer guesses from naming convention: [q, correct, a, b, c] are contiguous in sorted list
             // We attempt to find corresponding answers by scanning storage list and matching group containing the question id
