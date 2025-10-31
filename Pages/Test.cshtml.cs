@@ -481,8 +481,23 @@ namespace NoodlesSimulator.Pages
                         if (string.IsNullOrWhiteSpace(questionFile))
                             continue;
                         
-                        // Search for exact match (filenames include spaces as-is)
+                        // Try exact match first (most reliable)
                         int idx = allImages.IndexOf(questionFile);
+                        
+                        // If not found, try case-insensitive search
+                        if (idx < 0)
+                        {
+                            idx = allImages.FindIndex(img => 
+                                string.Equals(img, questionFile, StringComparison.OrdinalIgnoreCase));
+                        }
+                        
+                        // If still not found, try trimming whitespace
+                        if (idx < 0)
+                        {
+                            var trimmed = questionFile.Trim();
+                            idx = allImages.FindIndex(img => 
+                                img.Trim().Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+                        }
                         
                         if (idx >= 0 && idx + 4 < allImages.Count)
                         {
@@ -497,7 +512,11 @@ namespace NoodlesSimulator.Pages
                         else
                         {
                             Console.WriteLine($"[Test] Warning: Question '{questionFile}' not found in Supabase storage (total images: {allImages.Count})");
-                            Console.WriteLine($"[Test] Debug: Looking for exact match. First 5 images in storage: {string.Join(", ", allImages.Take(5))}");
+                            // Only show debug info for first few misses to avoid log spam
+                            if (grouped.Count == 0)
+                            {
+                                Console.WriteLine($"[Test] Debug: First 10 images in storage: {string.Join(", ", allImages.Take(10))}");
+                            }
                         }
                     }
                     
