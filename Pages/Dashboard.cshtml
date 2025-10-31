@@ -316,19 +316,14 @@ function filterByDifficulty(difficulty) {
 }
 
 <div style="background: #1e1e1e; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <h3 style="margin: 0; color: #ffd700;">סיכום רמות קושי</h3>
-            <p style="margin: 5px 0; color: #999; font-size: 14px;">
-                Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%
-            </p>
-        </div>
-        <form method="post" asp-page-handler="RecalculateDifficulties" style="margin: 0;">
-            <button type="submit" onclick="return confirm('האם לחשב מחדש את כל רמות הקושי לפי סטטיסטיקות?');"
-                    style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                🔄 חשב מחדש אוטומטית
-            </button>
-        </form>
+    <div style="margin-bottom: 20px;">
+        <h3 style="margin: 0; color: #ffd700;">סיכום רמות קושי</h3>
+        <p style="margin: 5px 0; color: #999; font-size: 14px;">
+            Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%
+        </p>
+        <p style="margin: 10px 0 0 0; color: #4caf50; font-size: 12px;">
+            ⚡ מעודכן אוטומטית בכל טעינת דף
+        </p>
     </div>
     
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">

@@ -88,25 +88,6 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        public async Task<IActionResult> OnPostRecalculateDifficulties()
-        {
-            try
-            {
-                if (_difficultyService != null)
-                {
-                    var count = await _difficultyService.RecalculateAllDifficulties();
-                    Console.WriteLine($"[Dashboard] Recalculated {count} difficulties");
-                    TempData["DifficultyMessage"] = $"עודכנו {count} רמות קושי אוטומטית!";
-                }
-                return RedirectToPage();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Dashboard] Error recalculating: {ex}");
-                TempData["DifficultyError"] = $"שגיאה: {ex.Message}";
-                return RedirectToPage();
-            }
-        }
 
         private async Task LoadData()
         {
