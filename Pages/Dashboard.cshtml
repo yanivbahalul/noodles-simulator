@@ -385,7 +385,17 @@ function filterByDifficulty(difficulty) {
                         
                         <tr class="difficulty-row" data-difficulty="@q.Difficulty" style="border-bottom: 1px solid #333;">
                             <td style="text-align: right; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                @q.QuestionFile
+                                <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                    @q.QuestionFile
+                                    <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionFile)" 
+                                       target="_blank"
+                                       title="הצג שאלה"
+                                       style="display: inline-flex; align-items: center; color: #4caf50; text-decoration: none; font-size: 16px; transition: all 0.2s;"
+                                       onmouseover="this.style.color='#81c784'; this.style.transform='scale(1.2)'"
+                                       onmouseout="this.style.color='#4caf50'; this.style.transform='scale(1)'">
+                                        🔍
+                                    </a>
+                                </span>
                             </td>
                             <td>
                                 <span style="background: @diffColor; padding: 5px 12px; border-radius: 15px; font-weight: bold; color: white;">
