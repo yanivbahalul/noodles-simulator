@@ -393,7 +393,7 @@ namespace NoodlesSimulator.Pages
                 
                 // Build answers list text
                 var answersList = new StringBuilder();
-                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745;'>{correctAnswer}</span><br/>");
+                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{correctAnswer}</span><br/>");
                 var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
                 for (int i = 0; i < Math.Min(3, distractors.Count); i++)
                 {
