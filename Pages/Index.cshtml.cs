@@ -358,118 +358,30 @@ namespace NoodlesSimulator.Pages
                 }
                 catch (Exception) { }
 
-                // Find the question group (question + 4 answers) in Supabase storage
-                List<string> imageGroup = null;
-                Dictionary<string, string> imageUrls = new Dictionary<string, string>();
-                
-                if (_storage != null && !string.IsNullOrWhiteSpace(questionImage))
-                {
-                    try
-                    {
-                        var allImages = await _storage.ListFilesAsync("");
-                        var filtered = allImages
-                            .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                            .OrderBy(n => n)
-                            .ToList();
-                        
-                        // Find the group containing the question
-                        for (int i = 0; i + 4 < filtered.Count; i += 5)
-                        {
-                            var group = filtered.GetRange(i, 5);
-                            if (string.Equals(group[0], questionImage, StringComparison.OrdinalIgnoreCase))
-                            {
-                                imageGroup = group;
-                                break;
-                            }
-                        }
-                        
-                        // Get signed URLs for all images
-                        if (imageGroup != null && imageGroup.Count == 5)
-                        {
-                            var signedUrls = await _storage.GetSignedUrlsAsync(imageGroup);
-                            imageUrls["question"] = signedUrls.TryGetValue(imageGroup[0], out var qUrl) ? qUrl : "";
-                            imageUrls["correct"] = signedUrls.TryGetValue(imageGroup[1], out var cUrl) ? cUrl : "";
-                            imageUrls["a"] = imageGroup.Count > 2 && signedUrls.TryGetValue(imageGroup[2], out var aUrl) ? aUrl : "";
-                            imageUrls["b"] = imageGroup.Count > 3 && signedUrls.TryGetValue(imageGroup[3], out var bUrl) ? bUrl : "";
-                            imageUrls["c"] = imageGroup.Count > 4 && signedUrls.TryGetValue(imageGroup[4], out var cUrl2) ? cUrl2 : "";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[Report] Error loading images from Supabase: {ex.Message}");
-                    }
-                }
-                
-                // Build answer display with images
+                // Determine which answer was selected
                 var abcd = new[] { "A", "B", "C", "D" };
-                var answersBlock = new StringBuilder();
-                
-                // Map answers: correct answer is always A (green), others are B, C, D
+                var allAnswers = answersDict.Values.ToList();
+                int correctIdx = allAnswers.IndexOf(correctAnswer);
                 string correctKey = answersDict.ContainsValue(correctAnswer) 
                     ? answersDict.First(kv => kv.Value == correctAnswer).Key 
                     : null;
                 
-                // Get correct answer URL
-                string correctAnswerUrl = imageUrls.ContainsKey("correct") ? imageUrls["correct"] : "";
-                
-                // Always show correct answer as A (highlighted in green)
-                answersBlock.Append($"<div style='margin: 15px 0; padding: 15px; background-color: #d4edda; border-right: 4px solid #28a745; border-radius: 5px;'>");
-                answersBlock.Append($"<div style='font-size: 18px; font-weight: bold; color: #28a745; margin-bottom: 10px;'>✓ A: תשובה נכונה במערכת</div>");
-                if (!string.IsNullOrWhiteSpace(correctAnswerUrl))
-                {
-                    answersBlock.Append($"<img src='{correctAnswerUrl}' alt='תשובה נכונה' style='max-width: 300px; height: auto; border: 2px solid #28a745; border-radius: 5px; display: block; margin: 10px 0;' />");
-                }
-                answersBlock.Append($"<div style='color: #155724; font-size: 14px; margin-top: 5px;'>{questionImage}</div>");
-                answersBlock.Append($"</div>");
-                
-                // Show other answers as B, C, D
-                var allAnswers = answersDict.Values.ToList();
-                int correctIdx = allAnswers.IndexOf(correctAnswer);
-                var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
-                int displayCount = Math.Min(3, distractors.Count);
-                
-                var distractorUrls = new[] { imageUrls.ContainsKey("a") ? imageUrls["a"] : "",
-                                            imageUrls.ContainsKey("b") ? imageUrls["b"] : "",
-                                            imageUrls.ContainsKey("c") ? imageUrls["c"] : "" };
-                
-                for (int i = 0; i < displayCount; i++)
-                {
-                    var letter = abcd[i + 1];
-                    var distractorAnswer = distractors[i];
-                    var distractorUrl = i < distractorUrls.Length ? distractorUrls[i] : "";
-                    var isSelected = selectedAnswer != null && answersDict.ContainsKey(selectedAnswer) && 
-                                    answersDict[selectedAnswer] == distractorAnswer;
-                    
-                    var bgColor = isSelected ? "#fff3cd" : "#f8f9fa";
-                    var borderColor = isSelected ? "#ffc107" : "#dee2e6";
-                    var fontWeight = isSelected ? "bold" : "normal";
-                    var fontSize = isSelected ? "20px" : "16px";
-                    
-                    answersBlock.Append($"<div style='margin: 15px 0; padding: 15px; background-color: {bgColor}; border-right: 4px solid {borderColor}; border-radius: 5px;'>");
-                    answersBlock.Append($"<div style='font-size: {fontSize}; font-weight: {fontWeight}; color: #333; margin-bottom: 10px;'>");
-                    if (isSelected) answersBlock.Append("👉 ");
-                    answersBlock.Append($"{letter}: {(isSelected ? "תשובה שנבחרה על ידי המשתמש" : "")}</div>");
-                    if (!string.IsNullOrWhiteSpace(distractorUrl))
-                    {
-                        answersBlock.Append($"<img src='{distractorUrl}' alt='תשובה {letter}' style='max-width: 300px; height: auto; border: 2px solid {borderColor}; border-radius: 5px; display: block; margin: 10px 0;' />");
-                    }
-                    answersBlock.Append($"<div style='color: #666; font-size: 14px; margin-top: 5px;'>{distractorAnswer}</div>");
-                    answersBlock.Append($"</div>");
-                }
-                
                 string selectedLetter = "לא סומנה תשובה";
+                string selectedAnswerValue = "";
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
-                    // Check if user selected the correct answer
+                    if (answersDict.ContainsKey(selectedAnswer))
+                    {
+                        selectedAnswerValue = answersDict[selectedAnswer];
+                    }
+                    
                     if (correctKey != null && selectedAnswer == correctKey)
                     {
                         selectedLetter = "A (תשובה נכונה)";
                     }
                     else
                     {
-                        // Find which distractor was selected (B, C, or D)
-                        string selectedValue = answersDict.ContainsKey(selectedAnswer) ? answersDict[selectedAnswer] : "";
-                        int idx = allAnswers.IndexOf(selectedValue);
+                        int idx = allAnswers.IndexOf(selectedAnswerValue);
                         if (idx >= 0 && idx != correctIdx)
                         {
                             int distractorIdx = idx < correctIdx ? idx : idx - 1;
@@ -478,17 +390,24 @@ namespace NoodlesSimulator.Pages
                         }
                     }
                 }
-
-                // Build question image HTML
-                string questionImageHtml = "";
-                if (imageUrls.ContainsKey("question") && !string.IsNullOrWhiteSpace(imageUrls["question"]))
+                
+                // Build answers list text
+                var answersList = new StringBuilder();
+                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745;'>{correctAnswer}</span> (תשובה נכונה במערכת)<br/>");
+                var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
+                for (int i = 0; i < Math.Min(3, distractors.Count); i++)
                 {
-                    questionImageHtml = $"<img src='{imageUrls["question"]}' alt='שאלה' style='max-width: 100%; height: auto; border: 2px solid #667eea; border-radius: 8px; display: block; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);' />";
+                    var letter = abcd[i + 1];
+                    var distractor = distractors[i];
+                    var isSelected = selectedAnswerValue == distractor;
+                    var style = isSelected ? "font-weight: bold; font-size: 18px; color: #ffc107;" : "";
+                    answersList.Append($"<span style='{style}'>{letter}: {distractor}{(isSelected ? " 👈 תשובה שנבחרה" : "")}</span><br/>");
                 }
-                else
-                {
-                    questionImageHtml = $"<p style='color: #999; direction: rtl; unicode-bidi: embed;'>{questionImage}</p>";
-                }
+                
+                // Build question view URL - need to get the base URL
+                var request = HttpContext.Request;
+                var baseUrl = $"{request.Scheme}://{request.Host}";
+                var questionViewUrl = $"{baseUrl}/QuestionView?id={Uri.EscapeDataString(questionImage)}";
 
                 var htmlBody = $@"
 <!DOCTYPE html>
@@ -515,25 +434,33 @@ namespace NoodlesSimulator.Pages
             
             <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'/>
             
-            <!-- Question Image -->
-            <div style='margin: 20px 0;'>
-                <strong style='font-size: 18px; color: #333; direction: rtl; unicode-bidi: embed; display: block; margin-bottom: 15px;'>❓ השאלה:</strong>
-                {questionImageHtml}
-                <p style='color: #666; font-size: 14px; margin-top: 10px; direction: rtl; unicode-bidi: embed;'>שם הקובץ: {questionImage}</p>
+            <!-- Question Info -->
+            <div style='margin: 20px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; direction: rtl; text-align: right;'>
+                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
+                    <strong>❓ שם קובץ השאלה:</strong> {questionImage}
+                </p>
+                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
+                    <strong>📝 תשובות אפשריות:</strong><br/>
+                    <span style='font-size: 14px; line-height: 1.8;'>{answersList.ToString()}</span>
+                </p>
+                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
+                    <strong>❌ תשובה שסומנה על ידי המשתמש:</strong> {selectedLetter}
+                </p>
+            </div>
+            
+            <!-- Link to view question -->
+            <div style='margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; text-align: center;'>
+                <a href='{questionViewUrl}' 
+                   target='_blank'
+                   style='display: inline-block; padding: 15px 30px; background-color: white; color: #667eea; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;'>
+                    🔍 להצגת השאלה לחץ כאן
+                </a>
+                <p style='color: white; margin-top: 15px; font-size: 14px; direction: rtl; unicode-bidi: embed;'>
+                    הקישור יפתח את השאלה עם כל התשובות בעמוד נפרד באתר
+                </p>
             </div>
             
             <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
-            
-            <!-- Answers -->
-            <div style='margin-top: 25px;'>
-                <strong style='font-size: 18px; color: #333; direction: rtl; unicode-bidi: embed; display: block; margin-bottom: 20px;'>📝 התשובות:</strong>
-                {answersBlock.ToString()}
-            </div>
-            
-            <!-- Selected answer -->
-            <p style='font-size: 16px; color: #333; margin-top: 15px; direction: rtl; text-align: right; unicode-bidi: embed;'>
-                <strong>❌ תשובה שסומנה על ידי המשתמש:</strong> {selectedLetter}<br/>
-            </p>
             
             <!-- Explanation (optional box) -->
             <div style='background-color: #fff3cd; border-right: 4px solid #ffc107; padding: 15px; margin-top: 20px; border-radius: 5px; direction: rtl; text-align: right;'>
