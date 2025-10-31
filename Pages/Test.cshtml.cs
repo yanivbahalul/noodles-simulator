@@ -465,16 +465,26 @@ namespace NoodlesSimulator.Pages
                     // For each question in the difficulty list, find it in allImages and take it + next 4
                     foreach (var questionFile in allowedQuestions)
                     {
-                        int idx = allImages.IndexOf(questionFile);
+                        // Trim whitespace from question filename
+                        var trimmedQuestion = questionFile?.Trim();
+                        if (string.IsNullOrWhiteSpace(trimmedQuestion))
+                            continue;
+                        
+                        int idx = allImages.FindIndex(img => img.Trim().Equals(trimmedQuestion, StringComparison.OrdinalIgnoreCase));
+                        
                         if (idx >= 0 && idx + 4 < allImages.Count)
                         {
                             // Take the question image + 4 consecutive images (answers)
                             var group = allImages.GetRange(idx, 5);
                             grouped.Add(group);
                         }
+                        else if (idx >= 0)
+                        {
+                            Console.WriteLine($"[Test] Warning: Question '{trimmedQuestion}' found at index {idx}, but not enough images after it (need {idx + 5}, have {allImages.Count})");
+                        }
                         else
                         {
-                            Console.WriteLine($"[Test] Warning: Could not find question '{questionFile}' or not enough images after it (idx={idx}, total={allImages.Count})");
+                            Console.WriteLine($"[Test] Warning: Question '{trimmedQuestion}' not found in Supabase storage (total images: {allImages.Count})");
                         }
                     }
                     
