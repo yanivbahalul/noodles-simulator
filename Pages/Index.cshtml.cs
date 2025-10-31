@@ -464,8 +464,6 @@ namespace NoodlesSimulator.Pages
             
             <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
             
-            <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
-            
             <!-- Footer -->
             <p style='text-align: center; color: #888; font-size: 14px; direction: rtl; unicode-bidi: embed;'>
                 <strong>מערכת: Noodles Simulator</strong><br/>
