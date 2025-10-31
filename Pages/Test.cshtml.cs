@@ -465,12 +465,11 @@ namespace NoodlesSimulator.Pages
                     // For each question in the difficulty list, find it in allImages and take it + next 4
                     foreach (var questionFile in allowedQuestions)
                     {
-                        // Trim whitespace from question filename
-                        var trimmedQuestion = questionFile?.Trim();
-                        if (string.IsNullOrWhiteSpace(trimmedQuestion))
+                        if (string.IsNullOrWhiteSpace(questionFile))
                             continue;
                         
-                        int idx = allImages.FindIndex(img => img.Trim().Equals(trimmedQuestion, StringComparison.OrdinalIgnoreCase));
+                        // Search for exact match (filenames include spaces as-is)
+                        int idx = allImages.IndexOf(questionFile);
                         
                         if (idx >= 0 && idx + 4 < allImages.Count)
                         {
@@ -480,11 +479,12 @@ namespace NoodlesSimulator.Pages
                         }
                         else if (idx >= 0)
                         {
-                            Console.WriteLine($"[Test] Warning: Question '{trimmedQuestion}' found at index {idx}, but not enough images after it (need {idx + 5}, have {allImages.Count})");
+                            Console.WriteLine($"[Test] Warning: Question '{questionFile}' found at index {idx}, but not enough images after it (need {idx + 5}, have {allImages.Count})");
                         }
                         else
                         {
-                            Console.WriteLine($"[Test] Warning: Question '{trimmedQuestion}' not found in Supabase storage (total images: {allImages.Count})");
+                            Console.WriteLine($"[Test] Warning: Question '{questionFile}' not found in Supabase storage (total images: {allImages.Count})");
+                            Console.WriteLine($"[Test] Debug: Looking for exact match. First 5 images in storage: {string.Join(", ", allImages.Take(5))}");
                         }
                     }
                     
