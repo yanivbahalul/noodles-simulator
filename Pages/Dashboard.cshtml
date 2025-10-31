@@ -258,6 +258,122 @@ document.addEventListener('visibilitychange', () => {
 });
 </script>
 
+<!-- Difficulty Management Section -->
+<h2>🎯 ניהול רמות קושי</h2>
+
+@if (TempData["DifficultyMessage"] != null)
+{
+    <div style="background: #d4edda; border: 2px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 8px;">
+        <strong style="color: #155724;">✅ @TempData["DifficultyMessage"]</strong>
+    </div>
+}
+
+@if (TempData["DifficultyError"] != null)
+{
+    <div style="background: #f8d7da; border: 2px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 8px;">
+        <strong style="color: #721c24;">❌ @TempData["DifficultyError"]</strong>
+    </div>
+}
+
+<div style="background: #1e1e1e; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h3 style="margin: 0; color: #ffd700;">סיכום רמות קושי</h3>
+            <p style="margin: 5px 0; color: #999; font-size: 14px;">
+                Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%
+            </p>
+        </div>
+        <form method="post" asp-page-handler="RecalculateDifficulties" style="margin: 0;">
+            <button type="submit" onclick="return confirm('האם לחשב מחדש את כל רמות הקושי לפי סטטיסטיקות?');"
+                    style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                🔄 חשב מחדש אוטומטית
+            </button>
+        </form>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+        <div style="background: #2d5016; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #4caf50;">@Model.EasyCount</div>
+            <div style="color: #81c784; font-size: 18px; margin-top: 5px;">🟢 קלות</div>
+        </div>
+        <div style="background: #4d3800; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #ffa726;">@Model.MediumCount</div>
+            <div style="color: #ffb74d; font-size: 18px; margin-top: 5px;">🟡 בינוניות</div>
+        </div>
+        <div style="background: #4d1616; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #ef5350;">@Model.HardCount</div>
+            <div style="color: #e57373; font-size: 18px; margin-top: 5px;">🔴 קשות</div>
+        </div>
+    </div>
+    
+    @if (Model.DifficultyQuestions.Any())
+    {
+        <h4 style="margin: 20px 0 10px 0;">רשימת שאלות (מעודכן אוטומטית)</h4>
+        <div style="max-height: 400px; overflow-y: auto; background: #111; padding: 15px; border-radius: 8px;">
+            <table style="width: 100%; font-size: 13px;">
+                <thead style="position: sticky; top: 0; background: #222; z-index: 10;">
+                    <tr>
+                        <th style="text-align: right;">שאלה</th>
+                        <th>רמת קושי</th>
+                        <th>אחוז הצלחה</th>
+                        <th>ניסיונות</th>
+                        <th>נכונות</th>
+                        <th>עדכון אחרון</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var q in Model.DifficultyQuestions.Take(100))
+                    {
+                        var diffColor = q.Difficulty switch
+                        {
+                            "easy" => "#4caf50",
+                            "medium" => "#ffa726",
+                            "hard" => "#ef5350",
+                            _ => "#999"
+                        };
+                        var diffText = q.Difficulty switch
+                        {
+                            "easy" => "קל",
+                            "medium" => "בינוני",
+                            "hard" => "קשה",
+                            _ => q.Difficulty
+                        };
+                        
+                        <tr style="border-bottom: 1px solid #333;">
+                            <td style="text-align: right; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                @q.QuestionFile
+                            </td>
+                            <td>
+                                <span style="background: @diffColor; padding: 5px 12px; border-radius: 15px; font-weight: bold; color: white;">
+                                    @diffText
+                                </span>
+                            </td>
+                            <td style="font-weight: bold;">@q.SuccessRate.ToString("F1")%</td>
+                            <td>@q.TotalAttempts</td>
+                            <td>@q.CorrectAttempts</td>
+                            <td style="font-size: 11px; color: #999;">@q.LastUpdated.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if (Model.DifficultyQuestions.Count > 100)
+        {
+            <p style="text-align: center; color: #999; margin-top: 10px;">
+                מציג 100 מתוך @Model.DifficultyQuestions.Count שאלות
+            </p>
+        }
+    }
+    else
+    {
+        <div style="text-align: center; padding: 40px; color: #999;">
+            <p>אין עדיין נתוני רמות קושי במערכת</p>
+            <p style="font-size: 14px;">השאלות יתווספו אוטומטית כשמשתמשים יענו עליהן</p>
+        </div>
+    }
+</div>
+
 @if (Model.AllUsers.Any(u => u.Username == "Admin"))
 {
     // הוסרה הצגת דיווחי טעויות בשאלות לפי בקשת המשתמש

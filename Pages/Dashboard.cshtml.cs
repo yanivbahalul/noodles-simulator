@@ -13,10 +13,12 @@ namespace NoodlesSimulator.Pages
     public class DashboardModel : PageModel
     {
         private readonly AuthService _authService;
+        private readonly QuestionDifficultyService _difficultyService;
 
-        public DashboardModel(AuthService authService)
+        public DashboardModel(AuthService authService, QuestionDifficultyService difficultyService = null)
         {
             _authService = authService;
+            _difficultyService = difficultyService;
         }
 
         public List<User> AllUsers { get; set; } = new();
@@ -38,6 +40,11 @@ namespace NoodlesSimulator.Pages
         }
 
         public List<ErrorReport> ErrorReports { get; set; } = new();
+        
+        public List<QuestionDifficulty> DifficultyQuestions { get; set; } = new();
+        public int EasyCount { get; set; }
+        public int MediumCount { get; set; }
+        public int HardCount { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -45,12 +52,54 @@ namespace NoodlesSimulator.Pages
             {
                 await LoadData();
                 LoadErrorReports();
+                await LoadDifficultyData();
                 return Page();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Dashboard OnGetAsync Error] {ex}");
                 return StatusCode(500, $"Server error: {ex.Message}");
+            }
+        }
+
+        private async Task LoadDifficultyData()
+        {
+            try
+            {
+                if (_difficultyService != null)
+                {
+                    DifficultyQuestions = await _difficultyService.GetAllQuestions(500);
+                    EasyCount = DifficultyQuestions.Count(q => q.Difficulty == "easy");
+                    MediumCount = DifficultyQuestions.Count(q => q.Difficulty == "medium");
+                    HardCount = DifficultyQuestions.Count(q => q.Difficulty == "hard");
+                    
+                    Console.WriteLine($"[Dashboard] Loaded {DifficultyQuestions.Count} questions: Easy={EasyCount}, Medium={MediumCount}, Hard={HardCount}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dashboard] Error loading difficulty data: {ex.Message}");
+                DifficultyQuestions = new List<QuestionDifficulty>();
+            }
+        }
+
+        public async Task<IActionResult> OnPostRecalculateDifficulties()
+        {
+            try
+            {
+                if (_difficultyService != null)
+                {
+                    var count = await _difficultyService.RecalculateAllDifficulties();
+                    Console.WriteLine($"[Dashboard] Recalculated {count} difficulties");
+                    TempData["DifficultyMessage"] = $"עודכנו {count} רמות קושי אוטומטית!";
+                }
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Dashboard] Error recalculating: {ex}");
+                TempData["DifficultyError"] = $"שגיאה: {ex.Message}";
+                return RedirectToPage();
             }
         }
 

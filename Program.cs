@@ -20,6 +20,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<TestSessionService>();
+builder.Services.AddSingleton<QuestionDifficultyService>();
 
 builder.Services.AddSingleton<EmailService>(provider =>
 {

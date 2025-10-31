@@ -22,13 +22,15 @@ namespace NoodlesSimulator.Pages
         private readonly QuestionStatsService _stats;
         private readonly TestSessionService _testSession;
         private readonly EmailService _email;
+        private readonly QuestionDifficultyService _difficultyService;
 
-        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, EmailService email = null)
+        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, EmailService email = null, QuestionDifficultyService difficultyService = null)
         {
             _storage = storage;
             _stats = stats;
             _testSession = testSession;
             _email = email;
+            _difficultyService = difficultyService;
         }
 
         public bool AnswerChecked { get; set; }
@@ -249,7 +251,18 @@ namespace NoodlesSimulator.Pages
             }
 
             // record stats
-            try { var qid = (idx >= 0 && idx < questions.Count) ? questions[idx].Question : null; _stats?.Record(qid, isCorrect); } catch { }
+            try 
+            { 
+                var qid = (idx >= 0 && idx < questions.Count) ? questions[idx].Question : null; 
+                _stats?.Record(qid, isCorrect);
+                
+                // Update difficulty stats
+                if (!string.IsNullOrEmpty(qid) && _difficultyService != null)
+                {
+                    _ = _difficultyService.UpdateQuestionStats(qid, isCorrect); // Fire and forget
+                }
+            } 
+            catch { }
 
             // advance to next question
             session.CurrentIndex = Math.Min(idx + 1, questions.Count);
@@ -504,6 +517,22 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
+                // Try to load from database first
+                if (_difficultyService != null)
+                {
+                    Console.WriteLine($"[Test] Loading difficulty '{difficulty}' from database...");
+                    var questions = await _difficultyService.GetQuestionsByDifficulty(difficulty);
+                    
+                    if (questions != null && questions.Any())
+                    {
+                        Console.WriteLine($"[Test] ✅ Loaded {questions.Count} questions from database for difficulty '{difficulty}'");
+                        return questions;
+                    }
+                    
+                    Console.WriteLine($"[Test] ⚠️ No questions in database for difficulty '{difficulty}', falling back to JSON");
+                }
+                
+                // Fallback to JSON files
                 var difficultyFile = $"wwwroot/difficulty/{difficulty}.json";
                 var fullPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), difficultyFile);
                 
@@ -516,12 +545,12 @@ namespace NoodlesSimulator.Pages
                 var json = await System.IO.File.ReadAllTextAsync(fullPath);
                 var difficultyData = JsonConvert.DeserializeObject<DifficultyConfig>(json);
                 
-                Console.WriteLine($"[Test] Loaded {difficultyData?.Questions?.Count ?? 0} questions for difficulty '{difficulty}'");
+                Console.WriteLine($"[Test] Loaded {difficultyData?.Questions?.Count ?? 0} questions from JSON for difficulty '{difficulty}'");
                 return difficultyData?.Questions ?? new List<string>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Test] Error loading difficulty file: {ex.Message}");
+                Console.WriteLine($"[Test] Error loading difficulty: {ex.Message}");
                 return null;
             }
         }
