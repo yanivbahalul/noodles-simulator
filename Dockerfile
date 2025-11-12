@@ -1,16 +1,23 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-RUN apt-get update && apt-get install -y python && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y python3 python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-EXPOSE 80
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-RUN apt-get update && apt-get install -y python && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y python3 python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
+COPY HelloWorldWeb.csproj ./
+RUN dotnet restore "HelloWorldWeb.csproj"
 COPY . .
-RUN dotnet restore "./HelloWorldWeb.csproj"
-RUN dotnet publish "./HelloWorldWeb.csproj" -c Release -o /app/publish
+RUN dotnet publish "HelloWorldWeb.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "NoodlesSimulator.dll"]
+ENTRYPOINT ["sh", "-c", "dotnet NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
