@@ -8,9 +8,9 @@ services:
 
     # Build & start
     buildCommand: |
-      dotnet publish -c Release -o out
+      dotnet publish -c Release -o out && cp render_monitor.py out/
     startCommand: |
-      bash -c "dotnet out/NoodlesSimulator.dll & python3 render_monitor.py"
+      bash -c "python3 ./render_monitor.py & dotnet ./out/NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"
 
     healthCheckPath: /health
     healthCheckTimeoutSeconds: 10
