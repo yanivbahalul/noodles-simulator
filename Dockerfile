@@ -21,4 +21,5 @@ FROM base AS final
 WORKDIR /app
 COPY --from=build /app/out ./out
 COPY render_monitor.py .
-ENTRYPOINT ["sh", "-c", "dotnet out/NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
+WORKDIR /app/out
+ENTRYPOINT ["sh", "-c", "dotnet NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
