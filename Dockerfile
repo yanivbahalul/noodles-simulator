@@ -15,9 +15,10 @@ WORKDIR /src
 COPY HelloWorldWeb.csproj ./
 RUN dotnet restore "HelloWorldWeb.csproj"
 COPY . .
-RUN dotnet publish "HelloWorldWeb.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "HelloWorldWeb.csproj" -c Release -o /app/out /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
-COPY --from=build /app/publish .
-ENTRYPOINT ["sh", "-c", "dotnet NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
+COPY --from=build /app/out ./out
+COPY render_monitor.py .
+ENTRYPOINT ["sh", "-c", "dotnet out/NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
