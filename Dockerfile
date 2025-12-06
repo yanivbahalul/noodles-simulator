@@ -12,10 +12,10 @@ RUN apt-get update \
     && apt-get install -y python3 python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
-COPY HelloWorldWeb.csproj ./
-RUN dotnet restore "HelloWorldWeb.csproj"
+COPY NoodlesSimulator.csproj ./
+RUN dotnet restore "NoodlesSimulator.csproj"
 COPY . .
-RUN dotnet publish "HelloWorldWeb.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "NoodlesSimulator.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
