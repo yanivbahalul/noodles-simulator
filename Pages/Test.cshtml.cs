@@ -202,7 +202,6 @@ namespace NoodlesSimulator.Pages
             
             if (_testSession == null || string.IsNullOrEmpty(token))
             {
-                // Fallback to legacy system
                 return OnPostLegacy();
             }
 
@@ -218,7 +217,6 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
 
-            // Load current state
             var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
             var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
 
@@ -230,7 +228,6 @@ namespace NoodlesSimulator.Pages
 
             var isCorrect = selected == "correct";
 
-            // record answer only once
             if (answers.Count <= idx)
             {
                 while (answers.Count < idx)
@@ -238,27 +235,23 @@ namespace NoodlesSimulator.Pages
                 answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
             }
 
-            // record stats
             try 
             { 
                 var qid = (idx >= 0 && idx < questions.Count) ? questions[idx].Question : null; 
                 _stats?.Record(qid, isCorrect);
                 
-                // Update difficulty stats
                 if (!string.IsNullOrEmpty(qid) && _difficultyService != null)
                 {
-                    _ = _difficultyService.UpdateQuestionStats(qid, isCorrect); // Fire and forget
+                    _ = _difficultyService.UpdateQuestionStats(qid, isCorrect);
                 }
             } 
             catch { }
 
-            // advance to next question
             session.CurrentIndex = Math.Min(idx + 1, questions.Count);
             session.AnswersJson = JsonConvert.SerializeObject(answers);
             session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
             session.MaxScore = questions.Count * 6;
 
-            // Update session in database
             await _testSession.UpdateSession(session);
 
             if (_testSession.IsExpired(session) || session.CurrentIndex >= questions.Count)
@@ -294,7 +287,6 @@ namespace NoodlesSimulator.Pages
                 {
                     Console.WriteLine($"[Test OnPostEndTest] Session found. Current status: {session.Status}");
                     
-                    // Calculate final score
                     var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
                     var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
                     
@@ -320,7 +312,6 @@ namespace NoodlesSimulator.Pages
                 Console.WriteLine($"[Test OnPostEndTest] TestSessionService null or token empty");
             }
             
-            // Fallback to legacy
             return RedirectToPage("/TestResults");
         }
 
@@ -342,7 +333,6 @@ namespace NoodlesSimulator.Pages
             var q = state.Questions[idx];
             var isCorrect = selected == "correct";
 
-            // record answer only once
             if (state.Answers.Count <= idx)
             {
                 while (state.Answers.Count < idx)
@@ -350,10 +340,8 @@ namespace NoodlesSimulator.Pages
                 state.Answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
             }
 
-            // record stats
             try { var qid = (idx >= 0 && idx < state.Questions.Count) ? state.Questions[idx].Question : null; _stats?.Record(qid, isCorrect); } catch { }
 
-            // advance to next question without revealing correctness
             state.CurrentIndex = Math.Min(idx + 1, state.Questions.Count);
             SaveState(state);
 
@@ -402,7 +390,6 @@ namespace NoodlesSimulator.Pages
                 CurrentIndex = 0
             };
 
-            // Build the source question list similarly to IndexModel
             var all = await LoadAllQuestionGroupsAsync(difficulty);
             FisherYatesShuffle(all);
             foreach (var g in all.Take(TotalQuestions))
@@ -430,7 +417,6 @@ namespace NoodlesSimulator.Pages
 
         private async Task<List<List<string>>> LoadAllQuestionGroupsAsync(string difficulty = null)
         {
-            // Load ALL images from Supabase/local (sorted)
             List<string> allImages;
             if (_storage != null)
             {
@@ -455,7 +441,6 @@ namespace NoodlesSimulator.Pages
 
             var grouped = new List<List<string>>();
 
-            // If difficulty specified, only use questions from that difficulty list
             if (!string.IsNullOrEmpty(difficulty))
             {
                 var allowedQuestions = await LoadDifficultyQuestionsAsync(difficulty);
@@ -463,23 +448,19 @@ namespace NoodlesSimulator.Pages
                 {
                     Console.WriteLine($"[Test] Filtering by difficulty '{difficulty}': {allowedQuestions.Count} questions available");
                     
-                    // For each question in the difficulty list, find it in allImages and take it + next 4
                     foreach (var questionFile in allowedQuestions)
                     {
                         if (string.IsNullOrWhiteSpace(questionFile))
                             continue;
                         
-                        // Try exact match first (most reliable)
                         int idx = allImages.IndexOf(questionFile);
                         
-                        // If not found, try case-insensitive search
                         if (idx < 0)
                         {
                             idx = allImages.FindIndex(img => 
                                 string.Equals(img, questionFile, StringComparison.OrdinalIgnoreCase));
                         }
                         
-                        // If still not found, try trimming whitespace
                         if (idx < 0)
                         {
                             var trimmed = questionFile.Trim();
@@ -489,7 +470,6 @@ namespace NoodlesSimulator.Pages
                         
                         if (idx >= 0 && idx + 4 < allImages.Count)
                         {
-                            // Take the question image + 4 consecutive images (answers)
                             var group = allImages.GetRange(idx, 5);
                             grouped.Add(group);
                         }
@@ -500,7 +480,6 @@ namespace NoodlesSimulator.Pages
                         else
                         {
                             Console.WriteLine($"[Test] Warning: Question '{questionFile}' not found in Supabase storage (total images: {allImages.Count})");
-                            // Only show debug info for first few misses to avoid log spam
                             if (grouped.Count == 0)
                             {
                                 Console.WriteLine($"[Test] Debug: First 10 images in storage: {string.Join(", ", allImages.Take(10))}");
@@ -513,7 +492,6 @@ namespace NoodlesSimulator.Pages
                 }
             }
 
-            // No difficulty filter - take all questions in groups of 5
             for (int i = 0; i + 4 < allImages.Count; i += 5)
                 grouped.Add(allImages.GetRange(i, 5));
             
@@ -524,7 +502,6 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
-                // Try to load from database first
                 if (_difficultyService != null)
                 {
                     Console.WriteLine($"[Test] Loading difficulty '{difficulty}' from database...");
@@ -539,7 +516,6 @@ namespace NoodlesSimulator.Pages
                     Console.WriteLine($"[Test] No questions in database for difficulty '{difficulty}', falling back to JSON");
                 }
                 
-                // Fallback to JSON files
                 var difficultyFile = $"wwwroot/difficulty/{difficulty}.json";
                 var fullPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), difficultyFile);
                 
@@ -580,7 +556,6 @@ namespace NoodlesSimulator.Pages
 
             if (_storage != null)
             {
-                // Signed URLs
                 var paths = new List<string> { q.Question };
                 paths.AddRange(answers.Values.Where(v => !string.IsNullOrWhiteSpace(v)));
                 var signed = await _storage.GetSignedUrlsAsync(paths);

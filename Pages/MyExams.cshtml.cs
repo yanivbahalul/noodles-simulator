@@ -34,18 +34,14 @@ namespace NoodlesSimulator.Pages
 
             if (_testSession == null)
             {
-                // Service not available
                 Sessions = new List<TestSession>();
                 return Page();
             }
 
-            // Get all user sessions
             Sessions = await _testSession.GetUserSessions(username, 50);
             
-            // Find active session
             ActiveSession = Sessions.FirstOrDefault(s => s.Status == "active");
             
-            // Check if any active sessions are expired
             foreach (var session in Sessions.Where(s => s.Status == "active"))
             {
                 if (_testSession.IsExpired(session))
@@ -76,7 +72,6 @@ namespace NoodlesSimulator.Pages
                 
                 if (session != null && session.Username == username && session.Status == "active")
                 {
-                    // Calculate final score using proper deserialization
                     var questions = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.QuestionsJson);
                     var answers = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.AnswersJson);
                     

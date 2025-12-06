@@ -312,7 +312,6 @@ namespace NoodlesSimulator.Pages
                 var username = HttpContext.Session.GetString("Username") ?? "Unknown";
                 var timestamp = DateTime.UtcNow;
 
-                // If questionImage looks like a signed URL, try to extract the original filename
                 if (!string.IsNullOrWhiteSpace(questionImage) && questionImage.Contains("token="))
                 {
                     var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(questionImage);
@@ -320,7 +319,6 @@ namespace NoodlesSimulator.Pages
                         questionImage = extractedName;
                 }
 
-                // If correctAnswer looks like a signed URL, try to extract the original filename
                 if (!string.IsNullOrWhiteSpace(correctAnswer) && correctAnswer.Contains("token="))
                 {
                     var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(correctAnswer);
@@ -338,7 +336,6 @@ namespace NoodlesSimulator.Pages
                     if (!string.IsNullOrWhiteSpace(answers))
                         answersDict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(answers);
                     
-                    // If any answers look like signed URLs, try to extract original filenames
                     if (answersDict != null)
                     {
                         var cleanedAnswers = new Dictionary<string, string>();
@@ -358,7 +355,6 @@ namespace NoodlesSimulator.Pages
                 }
                 catch (Exception) { }
 
-                // Determine which answer was selected
                 var abcd = new[] { "A", "B", "C", "D" };
                 var allAnswers = answersDict.Values.ToList();
                 int correctIdx = allAnswers.IndexOf(correctAnswer);
@@ -391,7 +387,6 @@ namespace NoodlesSimulator.Pages
                     }
                 }
                 
-                // Build answers list text
                 var answersList = new StringBuilder();
                 answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{correctAnswer}</span><br/>");
                 var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
@@ -404,16 +399,13 @@ namespace NoodlesSimulator.Pages
                     answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
                 }
                 
-                // Build question view URL - need to get the base URL
                 var request = HttpContext.Request;
                 var baseUrl = $"{request.Scheme}://{request.Host}";
                 
-                // Build URL with selected answer and correct answer parameters
                 var queryParams = new System.Collections.Specialized.NameValueCollection();
                 queryParams.Add("id", questionImage);
                 if (!string.IsNullOrWhiteSpace(selectedAnswer))
                 {
-                    // Map selectedAnswer key to the actual answer key (correct, a, b, c)
                     if (answersDict.ContainsKey(selectedAnswer))
                     {
                         queryParams.Add("selected", selectedAnswer);
@@ -493,7 +485,6 @@ namespace NoodlesSimulator.Pages
                 bodyBuilder.HtmlBody = htmlBody;
                 bodyBuilder.TextBody = null;
 
-                // Fire-and-forget via EmailService to avoid blocking the user response
                 try
                 {
                     if (_emailService != null && _emailService.IsConfigured)
@@ -592,7 +583,6 @@ namespace NoodlesSimulator.Pages
                     var needRebuild = _bagOrder == null || _bagSourceCount != grouped.Count || _bagIndex >= _bagOrder.Count || (now - _bagBuiltAt) > _bagTtl;
                     if (needRebuild)
                     {
-                        // Build indices and prefer least-shown groups; shuffle within equal-count buckets
                         var withCounts = new List<(int idx, int count, string key)>();
                         for (int i = 0; i < grouped.Count; i++)
                         {
@@ -616,7 +606,6 @@ namespace NoodlesSimulator.Pages
                         _bagBuiltAt = now;
                     }
 
-                    // Advance until we find a non-throttled group, or give up after one full pass
                     int attempts = 0;
                     while (attempts < _bagOrder.Count)
                     {
@@ -631,7 +620,6 @@ namespace NoodlesSimulator.Pages
                         }
                     }
 
-                    // If all candidates are throttled, just take the next in bag anyway
                     chosenIdx = _bagOrder[_bagIndex % _bagOrder.Count];
                     _bagIndex++;
                 }
@@ -783,7 +771,6 @@ CHOSEN_FOUND:
         {
             try
             {
-                // Store original file names for reporting
                 QuestionImageOriginalName = QuestionImage;
                 AnswerImageOriginalNames = new Dictionary<string, string>();
                 foreach (var kv in ShuffledAnswers ?? new Dictionary<string, string>())
