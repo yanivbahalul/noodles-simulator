@@ -498,7 +498,7 @@ namespace NoodlesSimulator.Pages
                         }
                         else
                         {
-                            Console.WriteLine($"[Report] ❌ Failed to send error report email");
+                            Console.WriteLine($"[Report] Failed to send error report email");
                         }
                     }
                     else

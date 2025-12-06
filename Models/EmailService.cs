@@ -125,7 +125,7 @@ namespace NoodlesSimulator.Models
                 var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
                 if (isProd && string.IsNullOrWhiteSpace(_sendGridKey))
                 {
-                    Console.WriteLine("[EmailService] ❌ Cannot use SMTP in Production without SendGrid! Please set SENDGRID_API_KEY");
+                    Console.WriteLine("[EmailService] Cannot use SMTP in Production without SendGrid! Please set SENDGRID_API_KEY");
                     return false;
                 }
 

@@ -619,7 +619,7 @@ namespace NoodlesSimulator.Pages
                                     <li style='unicode-bidi: embed;'>👤 משתמש: <strong>{username}</strong></li>
                                     <li style='unicode-bidi: embed;'>🕐 התחיל: <strong>{DateTime.Now:dd/MM/yyyy HH:mm}</strong></li>
                                     <li style='unicode-bidi: embed;'>🔑 טוקן: <code style='background: #eee; padding: 2px 6px; border-radius: 3px;'>{token.Substring(0, Math.Min(16, token.Length))}...</code></li>
-                                    <li style='unicode-bidi: embed;'>⏱️ זמן זמין: <strong>2 שעות</strong></li>
+                                    <li style='unicode-bidi: embed;'>זמן זמין: <strong>2 שעות</strong></li>
                                     <li style='unicode-bidi: embed;'>📝 מספר שאלות: <strong>{TotalQuestions}</strong></li>
                                 </ul>
                             </div>
@@ -645,12 +645,12 @@ namespace NoodlesSimulator.Pages
                 }
                 else
                 {
-                    Console.WriteLine($"[Test] ❌ Failed to send test started email for user {username}");
+                    Console.WriteLine($"[Test] Failed to send test started email for user {username}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Test] ❌ Error sending test started email: {ex.Message}");
+                Console.WriteLine($"[Test] Error sending test started email: {ex.Message}");
             }
         }
 
@@ -719,12 +719,12 @@ namespace NoodlesSimulator.Pages
                 }
                 else
                 {
-                    Console.WriteLine($"[Test] ❌ Failed to send test completed email for user {username}");
+                    Console.WriteLine($"[Test] Failed to send test completed email for user {username}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Test] ❌ Error sending test completed email: {ex.Message}");
+                Console.WriteLine($"[Test] Error sending test completed email: {ex.Message}");
             }
         }
     }
