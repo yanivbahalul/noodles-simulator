@@ -71,12 +71,12 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"  - UseSsl: {_useSsl}");
             Console.WriteLine($"  - EmailTo: {(_emailTo ?? "NULL")}");
             Console.WriteLine($"  - EmailFrom: {(_emailFrom ?? "NULL")}");
-            Console.WriteLine($"  - SendGridKey: {(string.IsNullOrWhiteSpace(_sendGridKey) ? "⚠️ NOT SET - Email will fail on Render!" : "✅ SET (length: " + _sendGridKey.Length + ")")}");
+            Console.WriteLine($"  - SendGridKey: {(string.IsNullOrWhiteSpace(_sendGridKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _sendGridKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
             
             if (!IsConfigured)
             {
-                Console.WriteLine("[EmailService] ❌ WARNING: EmailService is NOT properly configured!");
+                Console.WriteLine("[EmailService] WARNING: EmailService is NOT properly configured!");
                 Console.WriteLine("[EmailService] Missing configuration:");
                 if (string.IsNullOrWhiteSpace(_smtpHost)) Console.WriteLine("  - SmtpHost is missing");
                 if (string.IsNullOrWhiteSpace(_smtpUser)) Console.WriteLine("  - SmtpUser is missing");
@@ -85,7 +85,7 @@ namespace NoodlesSimulator.Models
             }
             else
             {
-                Console.WriteLine("[EmailService] ✅ EmailService is properly configured");
+                Console.WriteLine("[EmailService] EmailService is properly configured");
             }
         }
 
@@ -98,7 +98,7 @@ namespace NoodlesSimulator.Models
             
             if (!IsConfigured)
             {
-                Console.WriteLine("[EmailService] ❌ Cannot send - EmailService is NOT configured");
+                Console.WriteLine("[EmailService] Cannot send - EmailService is NOT configured");
                 return false;
             }
             
@@ -107,18 +107,18 @@ namespace NoodlesSimulator.Models
                 // Prefer SendGrid API (works on Render/PaaS that block SMTP)
                 if (!string.IsNullOrWhiteSpace(_sendGridKey))
                 {
-                    Console.WriteLine("[EmailService] ✅ SendGrid API key found, using SendGrid...");
+                    Console.WriteLine("[EmailService] SendGrid API key found, using SendGrid...");
                     var ok = SendViaSendGrid(_emailFrom, _emailTo, subject, htmlBody, _sendGridKey);
                     if (ok)
                     {
-                        Console.WriteLine("[EmailService] ✅ Email sent successfully via SendGrid!");
+                        Console.WriteLine("[EmailService] Email sent successfully via SendGrid!");
                         return true;
                     }
-                    Console.WriteLine("[EmailService] ⚠️ SendGrid failed, trying SMTP fallback...");
+                    Console.WriteLine("[EmailService] SendGrid failed, trying SMTP fallback...");
                 }
                 else
                 {
-                    Console.WriteLine("[EmailService] ⚠️ SendGrid API key NOT found, falling back to SMTP");
+                    Console.WriteLine("[EmailService] SendGrid API key NOT found, falling back to SMTP");
                 }
 
                 // Check if we're in production (Render blocks SMTP)
@@ -157,12 +157,12 @@ namespace NoodlesSimulator.Models
 
                 Console.WriteLine($"[EmailService] SMTP client configured (Timeout: {client.Timeout}ms). Sending email...");
                 client.Send(message);
-                Console.WriteLine($"[EmailService] ✅ Email sent successfully via Gmail SMTP!");
+                Console.WriteLine($"[EmailService] Email sent successfully via Gmail SMTP!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] ❌ Send failed!");
+                Console.WriteLine($"[EmailService] Send failed!");
                 Console.WriteLine($"  - Exception type: {ex.GetType().Name}");
                 Console.WriteLine($"  - Message: {ex.Message}");
                 Console.WriteLine($"  - StackTrace: {ex.StackTrace}");

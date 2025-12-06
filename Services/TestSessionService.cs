@@ -106,17 +106,17 @@ namespace NoodlesSimulator.Services
                 if (!res.IsSuccessStatusCode)
                 {
                     var error = await res.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[TestSessionService] ❌ CreateSession Error - Status: {res.StatusCode}");
+                    Console.WriteLine($"[TestSessionService] CreateSession Error - Status: {res.StatusCode}");
                     Console.WriteLine($"[TestSessionService] Error details: {error}");
                     return null;
                 }
 
-                Console.WriteLine($"[TestSessionService] ✅ Session created in database successfully!");
+                Console.WriteLine($"[TestSessionService] Session created in database successfully!");
                 return session;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TestSessionService] ❌ CreateSession Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService] CreateSession Exception: {ex.Message}");
                 Console.WriteLine($"[TestSessionService] Stack trace: {ex.StackTrace}");
                 return null;
             }
@@ -222,17 +222,17 @@ namespace NoodlesSimulator.Services
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[TestSessionService UpdateSession] ❌ Error - Status: {response.StatusCode}");
+                    Console.WriteLine($"[TestSessionService UpdateSession] Error - Status: {response.StatusCode}");
                     Console.WriteLine($"[TestSessionService UpdateSession] Error details: {error}");
                     return false;
                 }
                 
-                Console.WriteLine($"[TestSessionService UpdateSession] ✅ Session updated successfully!");
+                Console.WriteLine($"[TestSessionService UpdateSession] Session updated successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TestSessionService UpdateSession] ❌ Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService UpdateSession] Exception: {ex.Message}");
                 Console.WriteLine($"[TestSessionService UpdateSession] Stack trace: {ex.StackTrace}");
                 return false;
             }

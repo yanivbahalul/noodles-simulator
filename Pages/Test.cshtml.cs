@@ -65,7 +65,6 @@ namespace NoodlesSimulator.Pages
 
         public async Task<IActionResult> OnGet()
         {
-            // Check if user is logged in
             var username = HttpContext.Session.GetString("Username");
             if (string.IsNullOrEmpty(username))
             {
@@ -76,8 +75,7 @@ namespace NoodlesSimulator.Pages
 
             if (_testSession == null)
             {
-                Console.WriteLine($"[Test OnGet] ⚠️ TestSessionService is NULL - using legacy session-based system");
-                // Fallback to old session-based system if service not available
+                Console.WriteLine($"[Test OnGet] TestSessionService is NULL - using legacy session-based system");
                 return await OnGetLegacy();
             }
 
@@ -86,32 +84,27 @@ namespace NoodlesSimulator.Pages
 
             TestSession session = null;
 
-            // Try to get session by token from URL
             if (!string.IsNullOrEmpty(token))
             {
                 session = await _testSession.GetSession(token);
                 
-                // Verify session belongs to current user
                 if (session != null && session.Username != username)
                 {
                     return RedirectToPage("/MyExams");
                 }
             }
 
-            // If no token or session not found, check for active session
             if (session == null)
             {
                 session = await _testSession.GetActiveSession(username);
             }
 
-            // If user wants to start new test but has active session, redirect to it with alert
             if (!string.IsNullOrEmpty(start) && session != null && session.Status == "active")
             {
                 TempData["ActiveTestAlert"] = "קיים מבחן פעיל! עליך לסיים אותו על מנת להתחיל מבחן חדש.";
                 return RedirectToPage("/Test", new { token = session.Token });
             }
 
-            // Create new session if explicitly starting or no active session exists
             if (!string.IsNullOrEmpty(start) || session == null)
             {
                 var difficulty = Request.Query["difficulty"].ToString();
@@ -127,12 +120,11 @@ namespace NoodlesSimulator.Pages
                 
                 if (session == null)
                 {
-                    Console.WriteLine($"[Test OnGet] ⚠️ CreateSession returned NULL - falling back to legacy session-based system");
-                    // Fallback to session-based if database fails
+                    Console.WriteLine($"[Test OnGet] CreateSession returned NULL - falling back to legacy session-based system");
                     return await OnGetLegacy();
                 }
 
-                Console.WriteLine($"[Test OnGet] ✅ Session created successfully! Token: {session.Token}");
+                Console.WriteLine($"[Test OnGet] Session created successfully! Token: {session.Token}");
                 Console.WriteLine($"[Test OnGet] Redirecting to /Test?token={session.Token}");
 
                 // Email notification disabled per user request
@@ -141,7 +133,6 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/Test", new { token = session.Token });
             }
 
-            // Check if session is expired or completed
             if (_testSession.IsExpired(session) || session.Status != "active")
             {
                 if (session.Status == "active")
@@ -151,7 +142,6 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
 
-            // Load state from session
             var testState = new TestState
             {
                 StartedUtc = session.StartedUtc,
@@ -160,7 +150,6 @@ namespace NoodlesSimulator.Pages
                 CurrentIndex = session.CurrentIndex
             };
 
-            // Check if all questions answered
             if (testState.CurrentIndex >= testState.Questions.Count)
             {
                 await _testSession.UpdateSessionStatus(session.Token, "completed");
@@ -187,7 +176,6 @@ namespace NoodlesSimulator.Pages
             }
             else if (!string.IsNullOrEmpty(advance))
             {
-                // move forward only if the current was checked or answered
                 if (state.CurrentIndex < state.Answers.Count && state.Answers[state.CurrentIndex] != null)
                 {
                     state.CurrentIndex = Math.Min(state.CurrentIndex + 1, state.Questions.Count);
@@ -318,18 +306,18 @@ namespace NoodlesSimulator.Pages
                     Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
                     
-                    Console.WriteLine($"[Test OnPostEndTest] ✅ Test ended successfully. Redirecting to results...");
+                    Console.WriteLine($"[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
                     
                     return RedirectToPage("/TestResults", new { token = token });
                 }
                 else
                 {
-                    Console.WriteLine($"[Test OnPostEndTest] ⚠️ Session not found or username mismatch");
+                    Console.WriteLine($"[Test OnPostEndTest] Session not found or username mismatch");
                 }
             }
             else
             {
-                Console.WriteLine($"[Test OnPostEndTest] ⚠️ TestSessionService null or token empty");
+                Console.WriteLine($"[Test OnPostEndTest] TestSessionService null or token empty");
             }
             
             // Fallback to legacy
@@ -544,11 +532,11 @@ namespace NoodlesSimulator.Pages
                     
                     if (questions != null && questions.Any())
                     {
-                        Console.WriteLine($"[Test] ✅ Loaded {questions.Count} questions from database for difficulty '{difficulty}'");
+                        Console.WriteLine($"[Test] Loaded {questions.Count} questions from database for difficulty '{difficulty}'");
                         return questions;
                     }
                     
-                    Console.WriteLine($"[Test] ⚠️ No questions in database for difficulty '{difficulty}', falling back to JSON");
+                    Console.WriteLine($"[Test] No questions in database for difficulty '{difficulty}', falling back to JSON");
                 }
                 
                 // Fallback to JSON files
@@ -678,7 +666,7 @@ namespace NoodlesSimulator.Pages
                 var sent = _email.Send(subject, body);
                 if (sent)
                 {
-                    Console.WriteLine($"[Test] ✅ Test started email sent for user {username}");
+                    Console.WriteLine($"[Test] Test started email sent for user {username}");
                 }
                 else
                 {
@@ -752,7 +740,7 @@ namespace NoodlesSimulator.Pages
                 var sent = _email.Send(subject, body);
                 if (sent)
                 {
-                    Console.WriteLine($"[Test] ✅ Test completed email sent for user {username} (Score: {score}/{maxScore})");
+                    Console.WriteLine($"[Test] Test completed email sent for user {username} (Score: {score}/{maxScore})");
                 }
                 else
                 {

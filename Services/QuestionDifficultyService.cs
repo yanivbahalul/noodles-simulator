@@ -282,7 +282,7 @@ namespace NoodlesSimulator.Services
                 if (response.IsSuccessStatusCode)
                 {
                     _difficultyCache = null; // Invalidate cache
-                    Console.WriteLine($"[QuestionDifficultyService] ✅ Manually set '{questionFile}' to '{difficulty}'");
+                    Console.WriteLine($"[QuestionDifficultyService] Manually set '{questionFile}' to '{difficulty}'");
                 }
                 
                 return response.IsSuccessStatusCode;

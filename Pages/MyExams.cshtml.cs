@@ -100,17 +100,17 @@ namespace NoodlesSimulator.Pages
                     Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
                     
-                    Console.WriteLine($"[MyExams OnPost] ✅ Test ended successfully");
+                    Console.WriteLine($"[MyExams OnPost] Test ended successfully");
                     TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";
                 }
                 else
                 {
-                    Console.WriteLine($"[MyExams OnPost] ⚠️ Cannot end test - session not found, wrong user, or already completed");
+                    Console.WriteLine($"[MyExams OnPost] Cannot end test - session not found, wrong user, or already completed");
                 }
             }
             else
             {
-                Console.WriteLine($"[MyExams OnPost] ⚠️ TestSessionService null or token empty");
+                Console.WriteLine($"[MyExams OnPost] TestSessionService null or token empty");
             }
             
             return RedirectToPage("/MyExams");

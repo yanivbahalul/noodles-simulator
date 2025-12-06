@@ -114,7 +114,7 @@ namespace NoodlesSimulator.Pages
                 var isUp = false;
                 try { isUp = await _authService.CheckConnection(); }
                 catch (Exception) { }
-                ConnectionStatus = isUp ? "✅ Supabase connection OK" : "❌ Supabase connection FAILED";
+                ConnectionStatus = isUp ? "Supabase connection OK" : "Supabase connection FAILED";
 
                 if (HttpContext.Session.GetString("SessionStart") == null)
                 {
@@ -503,7 +503,7 @@ namespace NoodlesSimulator.Pages
                         var result = _emailService.Send(message.Subject, html);
                         if (result)
                         {
-                            Console.WriteLine($"[Report] ✅ Error report email sent successfully");
+                            Console.WriteLine($"[Report] Error report email sent successfully");
                         }
                         else
                         {

@@ -15,7 +15,6 @@ using NoodlesSimulator.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure services
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
@@ -31,13 +30,11 @@ builder.Services.AddSingleton<EmailService>(provider =>
 // Data protection - disabled to prevent key ring issues
 // builder.Services.AddDataProtection();
 
-// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-// Session configuration - simplified
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session.v2";
@@ -51,14 +48,12 @@ builder.Services.AddSession(options =>
 
 builder.Services.AddHttpClient();
 
-// Question difficulty stats - use persistent storage in production
 var isProd = builder.Environment.IsProduction();
 var statsPath = isProd 
     ? Path.Combine("/data-keys", "question_stats.json")
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
-// Cookie policy
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
@@ -69,7 +64,6 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 // Antiforgery - disabled to prevent key ring issues
 // builder.Services.AddAntiforgery();
 
-// Environment variables
 var sbUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
 var sbAnon = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
             ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
@@ -80,42 +74,38 @@ var sbBucket = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles
 var sbTtlStr = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
 var sbTtl = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
 
-// Supabase storage service
 if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 {
     builder.Services.AddSingleton(new SupabaseStorageService(sbUrl!, sbService!, sbBucket, sbTtl));
 }
 else
 {
-    Console.WriteLine("⚠️  Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
+    Console.WriteLine("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
 }
 
-// Email configuration debug
 var emailTo = Environment.GetEnvironmentVariable("EMAIL_TO");
 var emailUser = Environment.GetEnvironmentVariable("Email__SmtpUser");
 var emailPass = Environment.GetEnvironmentVariable("Email__SmtpPass");
 
-Console.WriteLine($"📧 Email configuration:");
+Console.WriteLine($"Email configuration:");
 Console.WriteLine($"   EMAIL_TO: {emailTo}");
 Console.WriteLine($"   SmtpUser: {emailUser}");
 Console.WriteLine($"   SmtpPass: {(string.IsNullOrEmpty(emailPass) ? "NOT SET" : "SET")}");
 
 if (string.IsNullOrEmpty(emailTo) || string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass))
 {
-    Console.WriteLine("⚠️  Email notifications will not work - missing configuration");
+    Console.WriteLine("Email notifications will not work - missing configuration");
 }
 else
 {
-    Console.WriteLine("✅ Email configuration looks good");
+    Console.WriteLine("Email configuration looks good");
 }
 
 var app = builder.Build();
 
-// Middleware pipeline
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-// Drop legacy cookies so the server won't try to decrypt them
 app.Use(async (context, next) =>
 {
     var reqCookies = context.Request.Cookies;
@@ -220,7 +210,6 @@ app.MapGet("/debug-random", async context =>
         foreach (var kv in hist.OrderBy(k => k.Key))
             sb.AppendLine($"  {kv.Key}: {kv.Value}");
 
-        // Session recent list
         var session = context.Session;
         var recentJson = session.GetString("RecentQuestions") ?? "[]";
         sb.AppendLine($"recentSessionQuestions: {recentJson}");
@@ -235,7 +224,6 @@ app.MapGet("/debug-random", async context =>
     }
 });
 
-// API endpoints
 app.MapGet("/api/dashboard-data", async context =>
 {
     try
@@ -303,12 +291,10 @@ app.MapGet("/api/leaderboard-data", async context =>
             return;
         }
 
-        // Get current username from session
         var currentUsername = context.Session.GetString("Username") ?? "";
 
         var topUsers = await authService.GetTopUsers(50);
         
-        // Ensure we have valid data
         if (topUsers == null)
         {
             topUsers = new List<User>();
@@ -369,7 +355,6 @@ app.MapGet("/api/online-count", async context =>
     }
 });
 
-// Difficulty API
 app.MapGet("/api/question-difficulty", (HttpContext context) =>
 {
     try
@@ -385,14 +370,13 @@ app.MapGet("/api/question-difficulty", (HttpContext context) =>
     }
 });
 
-// Application startup
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     try
     {
         var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
-        Console.WriteLine("🍜 Noodles Simulator is running!");
-        Console.WriteLine($"🔗 Listening on: {url}");
+        Console.WriteLine("Noodles Simulator is running!");
+        Console.WriteLine($"Listening on: {url}");
     }
     catch (Exception ex)
     {
@@ -400,7 +384,6 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
 });
 
-// Initialize directories - use persistent storage in production
 var isProdStart = app.Environment.IsProduction();
 var reportsDir = isProdStart ? "/data-keys/reports" : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
 if (!Directory.Exists(reportsDir))
@@ -414,7 +397,6 @@ var progressDir = isProdStart ? "/data-keys/progress" : Path.Combine(Directory.G
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);
 
-// Cleanup old progress files
 if (Directory.Exists(progressDir))
 {
     var files = Directory.GetFiles(progressDir, "*.json");
@@ -437,7 +419,6 @@ if (Directory.Exists(progressDir))
     }
 }
 
-// Start application
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 app.Urls.Add($"http://*:{port}");
 
