@@ -487,3 +487,43 @@ button.answer-btn:hover {
     overflow: hidden;
     filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
 }
+
+/* Footer Styles */
+.site-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 12px 20px;
+    text-align: center;
+    z-index: 999;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    direction: rtl;
+}
+
+.site-footer p {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.site-footer a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.3s ease;
+}
+
+.site-footer a:hover {
+    color: #fff;
+}
+
+.site-footer svg {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
