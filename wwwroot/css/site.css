@@ -184,14 +184,14 @@ button.answer-btn:hover {
 
 #stats-panel {
     position: fixed;
-    bottom: 80px;
+    bottom: 60px;
     right: 20px;
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
     padding: 16px 24px;
     border-radius: 16px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    z-index: 1000;
+    z-index: 1001;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     max-width: 280px;
     opacity: 1;
@@ -512,17 +512,59 @@ body > *:not(.site-footer):not(.background-gif) {
     flex-shrink: 0;
 }
 
-.site-footer p {
-    margin: 0 auto;
+.footer-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.footer-text {
+    margin: 0;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.7);
     line-height: 1.5;
     text-align: center;
     display: inline-block;
-    width: auto;
 }
 
-.site-footer a {
+.footer-icons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-icon {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.footer-icon:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.footer-icon svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+.footer-text a {
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     display: inline-flex;
@@ -531,11 +573,11 @@ body > *:not(.site-footer):not(.background-gif) {
     transition: color 0.3s ease;
 }
 
-.site-footer a:hover {
+.footer-text a:hover {
     color: #fff;
 }
 
-.site-footer svg {
+.footer-text svg {
     width: 16px;
     height: 16px;
     vertical-align: middle;

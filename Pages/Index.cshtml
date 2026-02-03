@@ -43,15 +43,6 @@ function logout() {
     }
 </div>
 
-<div style="position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
-    <a href="https://github.com/yanivbahalul/noodles-simulator" target="_blank"
-       title="דרג את הפרויקט שלי"
-       style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
-              width: 50px; height: 50px; border-radius: 50%; background-color: #ffc107;
-              color: black; font-size: 28px; font-weight: bold; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
-        ⭐
-    </a>
-</div>
 
 <p style="color: black; text-align: center; margin-top: 60px; font-size: 18px;">
     👤 Logged in as <strong>@Model.Username</strong>
@@ -337,8 +328,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<div id="stats-toggle" onclick="toggleStats()">⬆️</div>
-
 <div id="stats-panel" class="hidden">
     <h3>📊 סטטיסטיקה אישית</h3>
     <ul>
@@ -400,10 +389,12 @@ async function fetchOnlineCount() {
 
 function toggleStats() {
     const panel = document.getElementById('stats-panel');
-    const toggle = document.getElementById('stats-toggle');
+    const toggle = document.getElementById('footer-stats-toggle');
     const isOpen = !panel.classList.contains('hidden');
     panel.classList.toggle('hidden');
-    toggle.innerText = isOpen ? '⬆️' : '⬇️';
+    if (toggle) {
+        toggle.style.opacity = isOpen ? '0.7' : '1';
+    }
     if (!isOpen) {
         fetchStats();
         fetchOnlineCount();
@@ -446,14 +437,30 @@ document.addEventListener('visibilitychange', () => {
 <!-- removed devtools cheat warning script for code cleanup -->
 
 <footer class="site-footer">
-    <p>
-        פותח ע״י <a href="https://www.linkedin.com/in/yaniv-bahalul/" target="_blank" rel="noopener noreferrer">
-            יניב בהלול
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                <rect width="4" height="12" x="2" y="9"></rect>
-                <circle cx="4" cy="4" r="2"></circle>
-            </svg>
-        </a> • כל הזכויות שמורות ©
-    </p>
+    <div class="footer-content">
+        <p class="footer-text">
+            פותח ע״י <a href="https://www.linkedin.com/in/yaniv-bahalul/" target="_blank" rel="noopener noreferrer">
+                יניב בהלול
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                    <rect width="4" height="12" x="2" y="9"></rect>
+                    <circle cx="4" cy="4" r="2"></circle>
+                </svg>
+            </a> • כל הזכויות שמורות ©
+        </p>
+        <div class="footer-icons">
+            <a href="https://github.com/yanivbahalul/noodles-simulator" target="_blank" rel="noopener noreferrer" class="footer-icon" title="דרג את הפרויקט שלי">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+            </a>
+            <button class="footer-icon" onclick="toggleStats()" title="סטטיסטיקה אישית" id="footer-stats-toggle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"></line>
+                    <line x1="18" y1="20" x2="18" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="16"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
 </footer>
