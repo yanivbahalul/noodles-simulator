@@ -5,7 +5,6 @@ img {
 body {
     margin: 0;
     padding: 0;
-    padding-bottom: 70px; /* Space for fixed footer */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: transparent;
     color: #fff;
@@ -491,15 +490,12 @@ button.answer-btn:hover {
 
 /* Footer Styles */
 .site-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     width: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
-    z-index: 999;
+    margin-top: 40px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     direction: rtl;
     text-align: center;
