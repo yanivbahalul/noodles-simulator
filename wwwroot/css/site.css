@@ -9,6 +9,9 @@ body {
     background: transparent;
     color: #fff;
     overflow: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .background-gif {
@@ -488,6 +491,12 @@ button.answer-btn:hover {
     filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
 }
 
+/* Containers - ensure they expand to push footer down */
+.exams-container,
+.login-container {
+    flex: 1;
+}
+
 /* Footer Styles */
 .site-footer {
     position: relative;
@@ -495,11 +504,12 @@ button.answer-btn:hover {
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
-    margin-top: 40px;
+    margin-top: auto;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     direction: rtl;
     text-align: center;
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .site-footer p {
