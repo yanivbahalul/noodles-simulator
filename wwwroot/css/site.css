@@ -5,6 +5,7 @@ img {
 body {
     margin: 0;
     padding: 0;
+    padding-bottom: 70px; /* Space for fixed footer */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: transparent;
     color: #fff;
