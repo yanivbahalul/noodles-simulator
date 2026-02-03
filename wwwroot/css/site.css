@@ -493,7 +493,8 @@ button.answer-btn:hover {
 
 /* Containers - ensure they expand to push footer down */
 .exams-container,
-.login-container {
+.login-container,
+.cheater-container {
     flex: 1;
 }
 
