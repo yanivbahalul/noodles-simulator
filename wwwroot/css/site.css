@@ -12,6 +12,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .background-gif {
@@ -491,11 +492,9 @@ button.answer-btn:hover {
     filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
 }
 
-/* Containers - ensure they expand to push footer down */
-.exams-container,
-.login-container,
-.cheater-container {
-    flex: 1;
+/* Main content area - don't stretch, just take natural height */
+body > *:not(.site-footer):not(.background-gif) {
+    flex: 0 0 auto;
 }
 
 /* Footer Styles */
