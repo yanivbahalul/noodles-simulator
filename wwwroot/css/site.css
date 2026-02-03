@@ -543,6 +543,27 @@ body > *:not(.site-footer):not(.background-gif) {
     width: auto;
 }
 
+/* Links in footer - ensure they're white, not purple */
+.site-footer a,
+.site-footer > p a {
+    color: rgba(255, 255, 255, 0.9) !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.3s ease;
+}
+
+.site-footer a:hover,
+.site-footer > p a:hover {
+    color: #fff !important;
+}
+
+.site-footer a:visited,
+.site-footer > p a:visited {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
 .footer-icons {
     display: flex;
     align-items: center;
@@ -578,20 +599,9 @@ body > *:not(.site-footer):not(.background-gif) {
     display: inline-block;
 }
 
-.footer-text a {
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: color 0.3s ease;
-}
-
-.footer-text a:hover {
-    color: #fff;
-}
-
-.footer-text svg {
+/* SVG icons in footer */
+.footer-text svg,
+.site-footer > p svg {
     width: 16px;
     height: 16px;
     vertical-align: middle;
