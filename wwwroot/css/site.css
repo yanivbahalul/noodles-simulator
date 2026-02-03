@@ -501,6 +501,7 @@ body > *:not(.site-footer):not(.background-gif) {
 .site-footer {
     position: relative;
     width: 100%;
+    max-width: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
@@ -510,6 +511,7 @@ body > *:not(.site-footer):not(.background-gif) {
     text-align: center;
     box-sizing: border-box;
     flex-shrink: 0;
+    overflow: hidden;
 }
 
 .footer-content {
@@ -518,6 +520,7 @@ body > *:not(.site-footer):not(.background-gif) {
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
+    max-width: 100%;
 }
 
 .footer-text {
@@ -527,6 +530,17 @@ body > *:not(.site-footer):not(.background-gif) {
     line-height: 1.5;
     text-align: center;
     display: inline-block;
+}
+
+/* Support for old footer format (just <p>) */
+.site-footer > p {
+    margin: 0 auto;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+    text-align: center;
+    display: inline-block;
+    width: auto;
 }
 
 .footer-icons {
