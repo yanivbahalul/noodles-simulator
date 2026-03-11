@@ -19,6 +19,7 @@ namespace NoodlesSimulator.Models
         private readonly bool _useSsl;
         private readonly string _emailTo;
         private readonly string _emailFrom;
+        private readonly string _emailFromName;
         private readonly string _brevoApiKey;
 
         public bool IsConfigured { get; }
@@ -43,6 +44,7 @@ namespace NoodlesSimulator.Models
             _useSsl = (Get("Email__UseSsl", "EmailUseSsl").ToLowerInvariant() == "true") || true;
             _emailTo = Get("EMAIL_TO");
             _emailFrom = Get("EMAIL_FROM");
+            _emailFromName = Get("EMAIL_FROM_NAME");
 
             if (string.IsNullOrWhiteSpace(_emailFrom)) _emailFrom = _smtpUser;
             if (string.IsNullOrWhiteSpace(_smtpHost)) _smtpHost = "smtp.gmail.com";
@@ -71,6 +73,7 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"  - UseSsl: {_useSsl}");
             Console.WriteLine($"  - EmailTo: {(_emailTo ?? "NULL")}");
             Console.WriteLine($"  - EmailFrom: {(_emailFrom ?? "NULL")}");
+            Console.WriteLine($"  - EmailFromName: {(_emailFromName ?? "NULL")}");
             Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _brevoApiKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
             
@@ -189,7 +192,7 @@ namespace NoodlesSimulator.Models
                 // Brevo v3 SMTP API payload
                 var payload = new
                 {
-                    sender = new { email = fromEmail },
+                    sender = new { email = fromEmail, name = string.IsNullOrWhiteSpace(_emailFromName) ? "NoodlesSimulator" : _emailFromName },
                     to = new[] { new { email = toEmail } },
                     subject = subject,
                     htmlContent = htmlBody
