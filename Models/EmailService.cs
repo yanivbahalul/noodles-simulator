@@ -19,7 +19,7 @@ namespace NoodlesSimulator.Models
         private readonly bool _useSsl;
         private readonly string _emailTo;
         private readonly string _emailFrom;
-        private readonly string _sendGridKey;
+        private readonly string _brevoApiKey;
 
         public bool IsConfigured { get; }
 
@@ -47,8 +47,8 @@ namespace NoodlesSimulator.Models
             if (string.IsNullOrWhiteSpace(_emailFrom)) _emailFrom = _smtpUser;
             if (string.IsNullOrWhiteSpace(_smtpHost)) _smtpHost = "smtp.gmail.com";
 
-            // SendGrid API key (preferred for cloud)
-            _sendGridKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY");
+            // Brevo (Sendinblue) API key (preferred for cloud)
+            _brevoApiKey = Environment.GetEnvironmentVariable("BREVO_API_KEY");
 
             var smtpConfigured = !string.IsNullOrWhiteSpace(_smtpHost)
                            && !string.IsNullOrWhiteSpace(_smtpUser)
@@ -56,11 +56,11 @@ namespace NoodlesSimulator.Models
                            && !string.IsNullOrWhiteSpace(_emailTo)
                            && !string.IsNullOrWhiteSpace(_emailFrom);
 
-            var sendGridConfigured = !string.IsNullOrWhiteSpace(_sendGridKey)
+            var brevoConfigured = !string.IsNullOrWhiteSpace(_brevoApiKey)
                            && !string.IsNullOrWhiteSpace(_emailFrom)
                            && !string.IsNullOrWhiteSpace(_emailTo);
 
-            IsConfigured = sendGridConfigured || smtpConfigured;
+            IsConfigured = brevoConfigured || smtpConfigured;
 
             // DEBUG: Print configuration status
             Console.WriteLine($"[EmailService] Configuration loaded:");
@@ -71,7 +71,7 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"  - UseSsl: {_useSsl}");
             Console.WriteLine($"  - EmailTo: {(_emailTo ?? "NULL")}");
             Console.WriteLine($"  - EmailFrom: {(_emailFrom ?? "NULL")}");
-            Console.WriteLine($"  - SendGridKey: {(string.IsNullOrWhiteSpace(_sendGridKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _sendGridKey.Length + ")")}");
+            Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _brevoApiKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
             
             if (!IsConfigured)
@@ -104,28 +104,28 @@ namespace NoodlesSimulator.Models
             
             try
             {
-                // Prefer SendGrid API (works on Render/PaaS that block SMTP)
-                if (!string.IsNullOrWhiteSpace(_sendGridKey))
+                // Prefer Brevo API (works on Render/PaaS that block SMTP)
+                if (!string.IsNullOrWhiteSpace(_brevoApiKey))
                 {
-                    Console.WriteLine("[EmailService] SendGrid API key found, using SendGrid...");
-                    var ok = SendViaSendGrid(_emailFrom, _emailTo, subject, htmlBody, _sendGridKey);
+                    Console.WriteLine("[EmailService] Brevo API key found, using Brevo...");
+                    var ok = SendViaBrevo(_emailFrom, _emailTo, subject, htmlBody, _brevoApiKey);
                     if (ok)
                     {
-                        Console.WriteLine("[EmailService] Email sent successfully via SendGrid!");
+                        Console.WriteLine("[EmailService] Email sent successfully via Brevo!");
                         return true;
                     }
-                    Console.WriteLine("[EmailService] SendGrid failed, trying SMTP fallback...");
+                    Console.WriteLine("[EmailService] Brevo failed, trying SMTP fallback...");
                 }
                 else
                 {
-                    Console.WriteLine("[EmailService] SendGrid API key NOT found, falling back to SMTP");
+                    Console.WriteLine("[EmailService] Brevo API key NOT found, falling back to SMTP");
                 }
 
                 // Check if we're in production (Render blocks SMTP)
                 var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
-                if (isProd && string.IsNullOrWhiteSpace(_sendGridKey))
+                if (isProd && string.IsNullOrWhiteSpace(_brevoApiKey))
                 {
-                    Console.WriteLine("[EmailService] Cannot use SMTP in Production without SendGrid! Please set SENDGRID_API_KEY");
+                    Console.WriteLine("[EmailService] Cannot use SMTP in Production without Brevo! Please set BREVO_API_KEY");
                     return false;
                 }
 
@@ -174,7 +174,7 @@ namespace NoodlesSimulator.Models
             }
         }
 
-        private bool SendViaSendGrid(string fromEmail, string toEmail, string subject, string htmlBody, string apiKey)
+        private bool SendViaBrevo(string fromEmail, string toEmail, string subject, string htmlBody, string apiKey)
         {
             try
             {
@@ -182,46 +182,43 @@ namespace NoodlesSimulator.Models
                 {
                     Timeout = TimeSpan.FromSeconds(15)
                 };
-                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                // Brevo uses "api-key" header instead of Bearer auth
+                http.DefaultRequestHeaders.Add("api-key", apiKey);
                 http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+                // Brevo v3 SMTP API payload
                 var payload = new
                 {
-                    personalizations = new[] {
-                        new {
-                            to = new[] { new { email = toEmail } }
-                        }
-                    },
-                    from = new { email = fromEmail },
+                    sender = new { email = fromEmail },
+                    to = new[] { new { email = toEmail } },
                     subject = subject,
-                    content = new[] {
-                        new { type = "text/html", value = htmlBody }
-                    }
+                    htmlContent = htmlBody
                 };
 
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var url = "https://api.sendgrid.com/v3/mail/send";
+                var url = "https://api.brevo.com/v3/smtp/email";
 
                 Console.WriteLine($"[EmailService] POST {url}");
                 var resp = http.PostAsync(url, content).GetAwaiter().GetResult();
                 var respBody = resp.Content != null ? resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() : string.Empty;
-                Console.WriteLine($"[EmailService] SendGrid response: {(int)resp.StatusCode} {resp.ReasonPhrase}");
-                
-                if ((int)resp.StatusCode == 202)
+                Console.WriteLine($"[EmailService] Brevo response: {(int)resp.StatusCode} {resp.ReasonPhrase}");
+
+                // Brevo returns 201 on success for /v3/smtp/email
+                if ((int)resp.StatusCode == 201)
                 {
                     return true;
                 }
-                
+
                 if (!string.IsNullOrWhiteSpace(respBody))
                 {
-                    Console.WriteLine($"[EmailService] SendGrid error body: {respBody}");
+                    Console.WriteLine($"[EmailService] Brevo error body: {respBody}");
                 }
                 return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] SendGrid error: {ex.Message}");
+                Console.WriteLine($"[EmailService] Brevo error: {ex.Message}");
                 return false;
             }
         }
