@@ -17,6 +17,21 @@
 </head>
 <img src="/assets/background.gif" class="background-gif" />
 
+<div class="top-bar">
+    <div class="top-bar-inner">
+        <div class="top-bar-left">
+            <button onclick="logout()" class="logout-btn">🚪 התנתקות</button>
+        </div>
+        <div class="top-bar-right">
+            <a href="/Index" class="next-question-btn" style="text-decoration: none;">🏠 דף הבית</a>
+            <a href="/MyExams" class="next-question-btn" style="text-decoration: none;">📋 המבחנים שלי</a>
+            <a href="/Leaderboard" class="next-question-btn" style="text-decoration: none;">🏆 מובילים</a>
+        </div>
+    </div>
+</div>
+
+<div class="top-bar-spacer"></div>
+
 <div class="quiz-container" style="text-align:center;">
     <h2>📊 סטטיסטיקה אישית</h2>
 
@@ -41,6 +56,14 @@
         <a href="/Index" class="next-question-btn">⬅ חזרה לחידון</a>
     </div>
 </div>
+
+<script>
+function logout() {
+    document.cookie = "Username=; Max-Age=0; path=/;";
+    fetch('/clear-session', { method: 'POST' })
+        .then(() => location.href = '/Login');
+}
+</script>
 
 <footer class="site-footer">
     <p>

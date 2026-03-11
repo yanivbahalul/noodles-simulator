@@ -19,6 +19,31 @@
 
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
 
+<div class="top-bar">
+    <div class="top-bar-inner">
+        <div class="top-bar-left">
+            @if (ViewData["Token"] != null)
+            {
+                <form method="post" action="/Test?handler=EndTest" style="margin: 0;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="token" value="@ViewData["Token"]" />
+                    <button type="submit" class="logout-btn" style="background-color:#d32f2f;"
+                            onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');">
+                        🧾 סיים מבחן
+                    </button>
+                </form>
+            }
+        </div>
+        <div class="top-bar-right">
+            <a href="/Index" class="next-question-btn" style="text-decoration: none;">🏠 דף הבית</a>
+            <a href="/MyExams" class="next-question-btn" style="text-decoration: none;">📋 המבחנים שלי</a>
+            <a href="/Leaderboard" class="next-question-btn" style="text-decoration: none;">🏆 מובילים</a>
+        </div>
+    </div>
+</div>
+
+<div class="top-bar-spacer"></div>
+
 <div class="logo-header">
     <a href="/Index" style="display:inline-block;">
         <img src="/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" />
@@ -27,18 +52,6 @@
 </div>
 
 <div class="quiz-container" style="position: relative;">
-    <!-- End Test Button -->
-    @if (ViewData["Token"] != null)
-    {
-        <form method="post" action="/Test?handler=EndTest" style="position: absolute; top: 10px; left: 10px; margin: 0;">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="token" value="@ViewData["Token"]" />
-            <button type="submit" onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');" 
-                    style="padding: 8px 16px; font-size: 14px; background-color: #d32f2f; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.3s;">
-                סיים מבחן
-            </button>
-        </form>
-    }
 
     <h2 style="margin: 0 0 10px 0;">מצב מבחן</h2>
     
