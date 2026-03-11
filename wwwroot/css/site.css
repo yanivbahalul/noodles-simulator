@@ -15,6 +15,34 @@ body {
     position: relative;
 }
 
+.top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    z-index: 1100;
+    pointer-events: none;
+}
+
+.top-bar-left,
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.top-bar-spacer {
+    height: 64px;
+    flex-shrink: 0;
+}
+
 .background-gif {
     position: fixed;
     top: 0;

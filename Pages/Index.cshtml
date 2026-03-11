@@ -18,13 +18,25 @@
 
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
 
-<div class="logo-header">
+<div class="top-bar">
+    <div class="top-bar-left">
+        <button onclick="logout()" class="logout-btn">🚪 התנתקות</button>
+    </div>
+    <div class="top-bar-right">
+        <a href="/MyExams" class="next-question-btn" style="text-decoration: none;">📋 המבחנים שלי</a>
+        <a href="/Leaderboard" class="next-question-btn" style="text-decoration: none;">🏆 מובילים</a>
+        @if (Model.Username == "Admin")
+        {
+            <a href="/Dashboard" class="next-question-btn" style="text-decoration: none;">🛠️ ניהול</a>
+        }
+    </div>
+</div>
+
+<div class="logo-header" style="margin-top: 80px;">
     <a href="/Index" style="display:inline-block;">
         <img src="/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" />
     </a>
 </div>
-
-<button onclick="logout()" class="logout-btn" style="position: fixed; top: 20px; left: 20px;">🚪 התנתקות</button>
 
 <script>
 function logout() {
@@ -33,15 +45,6 @@ function logout() {
         .then(() => location.reload());
 }
 </script>
-
-<div style="position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 10px;">
-    <a href="/MyExams" class="next-question-btn" style="text-decoration: none;">📋 המבחנים שלי</a>
-    <a href="/Leaderboard" class="next-question-btn" style="text-decoration: none;">🏆 מובילים</a>
-    @if (Model.Username == "Admin")
-    {
-        <a href="/Dashboard" class="next-question-btn" style="text-decoration: none;">🛠️ ניהול</a>
-    }
-</div>
 
 
 <p style="color: black; text-align: center; margin-top: 60px; font-size: 18px;">
