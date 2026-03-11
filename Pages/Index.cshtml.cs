@@ -327,7 +327,7 @@ namespace NoodlesSimulator.Pages
                 }
 
                 var message = new MimeMessage();
-                message.Subject = $"[Noodles Simulator] דיווח טעות חדשה מהמשתמש {username}";
+                message.Subject = $"דיווח טעות חדשה מהמשתמש {username}";
 
                 var bodyBuilder = new BodyBuilder();
                 var answersDict = new Dictionary<string, string>();
