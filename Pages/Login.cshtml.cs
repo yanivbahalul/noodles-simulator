@@ -133,7 +133,7 @@ namespace NoodlesSimulator.Pages
                 {
                     if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
                     {
-                        ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳•׳”׳¡׳™׳¡׳׳” ׳׳ ׳™׳›׳•׳׳™׳ ׳׳”׳™׳•׳× ׳¨׳™׳§׳™׳.";
+                        ErrorMessage = "שם המשתמש והסיסמה לא יכולים להיות ריקים.";
                         return Page();
                     }
 
@@ -145,7 +145,7 @@ namespace NoodlesSimulator.Pages
                     catch (Exception ex) 
                     { 
                         _logger.LogError($"Authentication error: {ex}");
-                        ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳”׳×׳—׳‘׳¨׳•׳×. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        ErrorMessage = "שגיאה בהתחברות. נסה שוב מאוחר יותר.";
                         RecordFailure(attemptKey);
                         return Page();
                     }
@@ -155,7 +155,7 @@ namespace NoodlesSimulator.Pages
                         if (user.IsBanned)
                         {
                             _logger.LogWarning($"Banned user attempted login: {Username}");
-                            ErrorMessage = "נ« ׳”׳׳©׳×׳׳© ׳”׳–׳” ׳ ׳—׳¡׳ ׳׳”׳׳¢׳¨׳›׳×.";
+                            ErrorMessage = "המשתמש הזה נחסם מהמערכת.";
                             return Page();
                         }
 
@@ -178,7 +178,7 @@ namespace NoodlesSimulator.Pages
                         catch (Exception ex)
                         {
                             _logger.LogError($"Session/Cookie error: {ex}");
-                            ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳©׳׳™׳¨׳× ׳”׳₪׳¨׳˜׳™׳. ׳ ׳¡׳” ׳©׳•׳‘.";
+                            ErrorMessage = "שגיאה בשמירת הפרטים. נסה שוב.";
                             return Page();
                         }
 
@@ -187,7 +187,7 @@ namespace NoodlesSimulator.Pages
                     }
 
                     RecordFailure(attemptKey);
-                    ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳׳• ׳”׳¡׳™׳¡׳׳” ׳©׳’׳•׳™׳™׳.";
+                    ErrorMessage = "שם המשתמש או הסיסמה שגויים.";
                     return Page();
                 }
 
@@ -195,18 +195,18 @@ namespace NoodlesSimulator.Pages
                 {
                     if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
                     {
-                        ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳•׳”׳¡׳™׳¡׳׳” ׳׳ ׳™׳›׳•׳׳™׳ ׳׳”׳™׳•׳× ׳¨׳™׳§׳™׳.";
+                        ErrorMessage = "שם המשתמש והסיסמה לא יכולים להיות ריקים.";
                         return Page();
                     }
                     if (Username.Length < 5 || Password.Length < 5)
                     {
-                        ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳•׳”׳¡׳™׳¡׳׳” ׳—׳™׳™׳‘׳™׳ ׳׳”׳™׳•׳× ׳׳₪׳—׳•׳× ׳‘׳׳•׳¨׳ ׳©׳ 5 ׳×׳•׳•׳™׳.";
+                        ErrorMessage = "שם המשתמש והסיסמה חייבים להיות באורך של לפחות 5 תווים.";
                         return Page();
                     }
 
                     if (!Regex.IsMatch(Username, @"^[a-zA-Z0-9׳-׳×]+$"))
                     {
-                        ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳™׳›׳•׳ ׳׳”׳›׳™׳ ׳¨׳§ ׳׳•׳×׳™׳•׳× (׳¢׳‘׳¨׳™׳×/׳׳ ׳’׳׳™׳×) ׳•׳׳¡׳₪׳¨׳™׳.";
+                        ErrorMessage = "שם המשתמש יכול להכיל רק אותיות (עברית/אנגלית) ומספרים.";
                         return Page();
                     }
 
@@ -218,14 +218,14 @@ namespace NoodlesSimulator.Pages
                     catch (Exception ex) 
                     { 
                         _logger.LogError($"GetUser error during registration: {ex}");
-                        ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳‘׳“׳™׳§׳× ׳”׳׳©׳×׳׳©. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        ErrorMessage = "שגיאה בבדיקת המשתמש. נסה שוב מאוחר יותר.";
                         RecordFailure(attemptKey);
                         return Page();
                     }
 
                     if (existingUser != null)
                     {
-                        ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳›׳‘׳¨ ׳§׳™׳™׳ ׳‘׳׳¢׳¨׳›׳×.";
+                        ErrorMessage = "שם המשתמש כבר קיים במערכת.";
                         RecordFailure(attemptKey);
                         return Page();
                     }
@@ -238,7 +238,7 @@ namespace NoodlesSimulator.Pages
                     catch (Exception ex) 
                     { 
                         _logger.LogError($"Registration error: {ex}");
-                        ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳”׳¨׳©׳׳”. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        ErrorMessage = "שגיאה בהרשמה. נסה שוב מאוחר יותר.";
                         RecordFailure(attemptKey);
                         return Page();
                     }
@@ -261,7 +261,7 @@ namespace NoodlesSimulator.Pages
                         catch (Exception ex)
                         {
                             _logger.LogError($"Session/Cookie error after registration: {ex}");
-                            ErrorMessage = "׳”׳”׳¨׳©׳׳” ׳”׳¦׳׳™׳—׳” ׳׳ ׳™׳© ׳©׳’׳™׳׳” ׳‘׳©׳׳™׳¨׳× ׳”׳₪׳¨׳˜׳™׳. ׳ ׳¡׳” ׳׳”׳×׳—׳‘׳¨ ׳©׳•׳‘.";
+                            ErrorMessage = "ההרשמה הצליחה אך יש שגיאה בשמירת הפרטים. נסה להתחבר שוב.";
                             return Page();
                         }
 
@@ -270,17 +270,17 @@ namespace NoodlesSimulator.Pages
                     }
 
                     RecordFailure(attemptKey);
-                    ErrorMessage = "׳׳™׳¨׳¢׳” ׳©׳’׳™׳׳” ׳‘׳׳”׳׳ ׳”׳”׳¨׳©׳׳”.";
+                    ErrorMessage = "אירעה שגיאה במהלך ההרשמה.";
                     return Page();
                 }
 
-                ErrorMessage = "׳‘׳§׳©׳” ׳׳ ׳×׳§׳™׳ ׳”.";
+                ErrorMessage = "בקשה לא תקינה.";
                 return Page();
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Unhandled error in login: {ex}");
-                ErrorMessage = "׳©׳’׳™׳׳× ׳׳¢׳¨׳›׳×. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                ErrorMessage = "שגיאת מערכת. נסה שוב מאוחר יותר.";
                 return Page();
             }
         }
