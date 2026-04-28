@@ -36,19 +36,19 @@ namespace NoodlesSimulator.Services
 
         public QuestionDifficultyService(IConfiguration config)
         {
-            _url = config["SUPABASE_URL"]
-                   ?? Environment.GetEnvironmentVariable("SUPABASE_URL")
+            _url = NormalizeSecret(config["SUPABASE_URL"])
+                   ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_URL"))
                    ?? string.Empty;
-            _apiKey = config["SUPABASE_SERVICE_ROLE_KEY"]
-                      ?? config["SERVICE_ROLE_SECRET"]
-                      ?? config["SUPABASE_KEY"]
-                      ?? config["SUPABASE_ANON_KEY"]
-                      ?? config["ANON_PUBLIC"]
-                      ?? Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
-                      ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET")
-                      ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
-                      ?? Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
-                      ?? Environment.GetEnvironmentVariable("ANON_PUBLIC")
+            _apiKey = NormalizeSecret(config["SUPABASE_SERVICE_ROLE_KEY"])
+                      ?? NormalizeSecret(config["SERVICE_ROLE_SECRET"])
+                      ?? NormalizeSecret(config["SUPABASE_KEY"])
+                      ?? NormalizeSecret(config["SUPABASE_ANON_KEY"])
+                      ?? NormalizeSecret(config["ANON_PUBLIC"])
+                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
+                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"))
+                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
+                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
+                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("ANON_PUBLIC"))
                       ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
@@ -60,6 +60,20 @@ namespace NoodlesSimulator.Services
             };
             _client.DefaultRequestHeaders.Add("apikey", _apiKey);
             _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        }
+
+        private static string? NormalizeSecret(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            var trimmed = value.Trim();
+            if (trimmed.Length >= 2 && trimmed.StartsWith("\"", StringComparison.Ordinal) && trimmed.EndsWith("\"", StringComparison.Ordinal))
+            {
+                trimmed = trimmed[1..^1].Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
 
         public async Task<List<string>> GetQuestionsByDifficulty(string difficulty)

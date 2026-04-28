@@ -73,6 +73,20 @@ var statsPath = isProd
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
+static string NormalizeEnv(string value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return null;
+
+    var trimmed = value.Trim();
+    if (trimmed.Length >= 2 && trimmed.StartsWith("\"", StringComparison.Ordinal) && trimmed.EndsWith("\"", StringComparison.Ordinal))
+    {
+        trimmed = trimmed[1..^1].Trim();
+    }
+
+    return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+}
+
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
@@ -83,14 +97,14 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 // Antiforgery - disabled to prevent key ring issues
 // builder.Services.AddAntiforgery();
 
-var sbUrl = Environment.GetEnvironmentVariable("SUPABASE_URL");
-var sbAnon = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
-            ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
-            ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
-var sbService = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
-               ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
-var sbBucket = Environment.GetEnvironmentVariable("SUPABASE_BUCKET") ?? "noodles-images";
-var sbTtlStr = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL") ?? "3600";
+var sbUrl = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_URL"));
+var sbAnon = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
+            ?? NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
+            ?? NormalizeEnv(Environment.GetEnvironmentVariable("ANON_PUBLIC"));
+var sbService = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
+               ?? NormalizeEnv(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"));
+var sbBucket = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_BUCKET")) ?? "noodles-images";
+var sbTtlStr = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL")) ?? "3600";
 var sbTtl = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
 
 if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
