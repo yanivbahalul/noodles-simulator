@@ -138,7 +138,6 @@ namespace NoodlesSimulator.Models
             {
                 var patch = new Dictionary<string, object>
                 {
-                    ["IsAdmin"] = updatedUser.IsAdmin,
                     ["CorrectAnswers"] = updatedUser.CorrectAnswers,
                     ["TotalAnswered"] = updatedUser.TotalAnswered,
                     ["IsCheater"] = updatedUser.IsCheater,
@@ -179,16 +178,69 @@ namespace NoodlesSimulator.Models
             try
             {
                 var threshold = DateTime.UtcNow.AddMinutes(-5).ToString("o");
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?select=LastSeen&LastSeen=gt.{Uri.EscapeDataString(threshold)}");
-                var json = await res.Content.ReadAsStringAsync();
-                var users = JsonSerializer.Deserialize<List<User>>(json);
-                return users?.Count ?? 0;
+                var candidateColumns = new[] { "LastSeen", "last_seen" };
+
+                foreach (var col in candidateColumns)
+                {
+                    var res = await _client.GetAsync($"{_url}/rest/v1/users?select={Uri.EscapeDataString(col)}&{Uri.EscapeDataString(col)}=gt.{Uri.EscapeDataString(threshold)}");
+                    var json = await res.Content.ReadAsStringAsync();
+                    if (!res.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[GetOnlineUserCount] query with '{col}' failed: {res.StatusCode} | {json}");
+                        continue;
+                    }
+
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        return doc.RootElement.GetArrayLength();
+                    }
+                }
+
+                return 0;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[GetOnlineUserCount Exception] {ex}");
                 return 0;
             }
+        }
+
+        public async Task<bool> TouchLastSeen(string username, DateTime? at = null)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return false;
+
+            var when = (at ?? DateTime.UtcNow).ToString("o");
+            var safeUsername = Uri.EscapeDataString(username);
+            var candidateColumns = new[] { "LastSeen", "last_seen" };
+
+            foreach (var col in candidateColumns)
+            {
+                try
+                {
+                    var patch = new Dictionary<string, string> { [col] = when };
+                    var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{safeUsername}")
+                    {
+                        Content = content
+                    };
+                    request.Headers.Add("Prefer", "return=minimal");
+
+                    var response = await _client.SendAsync(request);
+                    if (response.IsSuccessStatusCode)
+                        return true;
+
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[TouchLastSeen] PATCH with '{col}' failed for {username}: {response.StatusCode} | {errorBody}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[TouchLastSeen] Exception with '{col}' for {username}: {ex.Message}");
+                }
+            }
+
+            return false;
         }
 
         public async Task<List<User>> GetCheaters()

@@ -113,6 +113,7 @@ namespace NoodlesSimulator.Pages
         {
             HttpContext.Session.Clear();
             Response.Cookies.Delete(".Noodles.Session.v2");
+            Response.Cookies.Delete(".Noodles.Session.v3");
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -160,8 +161,7 @@ namespace NoodlesSimulator.Pages
 
                         try
                         {
-                            user.LastSeen = DateTime.UtcNow;
-                            _ = _authService.UpdateUser(user);
+                            _ = _authService.TouchLastSeen(user.Username, DateTime.UtcNow);
 
                             RotateSessionForLogin();
                             var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);

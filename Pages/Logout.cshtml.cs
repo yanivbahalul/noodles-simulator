@@ -19,6 +19,7 @@ namespace NoodlesSimulator.Pages
                 HttpContext.Session.Clear();
                 Response.Cookies.Delete("Username");
                 Response.Cookies.Delete(".Noodles.Session.v2");
+                Response.Cookies.Delete(".Noodles.Session.v3");
                 return RedirectToPage("/Login");
             }
             catch (Exception ex)

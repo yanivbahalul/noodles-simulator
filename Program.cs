@@ -42,7 +42,7 @@ var isProd = builder.Environment.IsProduction();
 
 builder.Services.AddSession(options =>
 {
-    options.Cookie.Name = ".Noodles.Session.v2";
+    options.Cookie.Name = ".Noodles.Session.v3";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -241,6 +241,7 @@ app.MapPost("/clear-session", async context =>
         context.Session.Clear();
         context.Response.Cookies.Delete("Username");
         context.Response.Cookies.Delete(".Noodles.Session.v2");
+        context.Response.Cookies.Delete(".Noodles.Session.v3");
         context.Response.StatusCode = 200;
         await context.Response.CompleteAsync();
     }

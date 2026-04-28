@@ -134,8 +134,7 @@ namespace NoodlesSimulator.Pages
                         Response.Cookies.Delete("Username");
                         return RedirectToPage("/Login");
                     }
-                    user.LastSeen = DateTime.UtcNow;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync UpdateLastSeen Error] {ex.Message}"); }
+                    try { await _authService.TouchLastSeen(user.Username, DateTime.UtcNow); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync UpdateLastSeen Error] {ex.Message}"); }
                 }
 
                 try
