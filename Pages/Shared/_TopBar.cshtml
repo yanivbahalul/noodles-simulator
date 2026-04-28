@@ -44,6 +44,20 @@
                 </svg>
             </button>
         </form>
+        @if (ViewData["ShowEndTestButton"] as bool? == true && ViewData["Token"] != null)
+        {
+            <form method="post" action="/Test?handler=EndTest" class="test-end-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="token" value="@ViewData["Token"]" />
+                <button type="submit" class="footer-icon confirm-end-test-btn" title="סיים מבחן">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <path d="M9 12h6" />
+                        <path d="M12 9v6" />
+                    </svg>
+                </button>
+            </form>
+        }
     </div>
 </div>
 <div class="top-bar-spacer"></div>
