@@ -23,16 +23,16 @@
 <partial name="Shared/_LogoHeader" />
 
 
-<p style="color: black; text-align: center; margin-top: 60px; font-size: 18px;">
+<p class="quiz-meta quiz-meta-user">
     👤 Logged in as <strong>@Model.Username</strong>
 </p>
 
-<p style="color: black; text-align: center; margin-bottom: 10px; font-size: 16px;">
+<p class="quiz-meta quiz-meta-online">
     🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
 </p>
 
 <div class="quiz-container">
-    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
 
     <form method="post">
         @Html.AntiForgeryToken()
@@ -62,15 +62,15 @@
 
     @if (Model.AnswerChecked)
     {
-        <p style="margin-top:15px; font-size:18px; color:@(Model.IsCorrect ? "#32cd32" : "#ff4c4c"); font-weight: bold;">
+        <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")">
             @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
         </p>
     }
 
     <!-- test-mode button (single) - updated -->
     <div class="button-row">
-        <form style="margin: 0;">
-            <button type="button" class="next-question-btn" onclick="openDifficultyModal()">מצב מבחן</button>
+        <form class="inline-form-reset">
+            <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
         </form>
         <form method="get">
             <button class="next-question-btn">שאלה הבאה</button>
@@ -79,16 +79,16 @@
         <form method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="reset" value="1" />
-            <button class="next-question-btn" style="background-color: #aa3333;">איפוס שאלות</button>
+            <button class="next-question-btn next-question-btn-danger">איפוס שאלות</button>
         </form>
     </div>
 </div>
 
 <!-- Difficulty Selection Modal -->
-<div id="difficulty-modal" class="difficulty-modal" style="display:none;">
+<div id="difficulty-modal" class="difficulty-modal">
     <div class="difficulty-modal-content">
-        <span class="close-difficulty-modal" onclick="closeDifficultyModal()">&times;</span>
-        <h2 style="text-align: center; color: white; margin-bottom: 30px; font-size: 28px;">בחר רמת קושי</h2>
+        <span class="close-difficulty-modal" id="close-difficulty-modal-btn">&times;</span>
+        <h2 class="difficulty-modal-title">בחר רמת קושי</h2>
         <div class="difficulty-buttons">
             <a href="/Test?start=1&difficulty=easy" class="difficulty-btn difficulty-easy">
                 <span class="difficulty-emoji">🟢</span>
@@ -107,8 +107,8 @@
 </div>
 
 <!-- Image Modal -->
-<div id="image-modal" class="image-modal" style="display:none;">
-    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+<div id="image-modal" class="image-modal">
+    <span class="close-modal" id="close-image-modal-btn">&times;</span>
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
 
@@ -206,12 +206,12 @@
     transform: scale(1.2);
 }
 
-@@keyframes fadeIn {
+@keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
-@@keyframes slideDown {
+@keyframes slideDown {
     from {
         transform: translateY(-50px);
         opacity: 0;
@@ -244,6 +244,26 @@ function closeDifficultyModal() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+    var mainQuestionImage = document.getElementById('main-question-image');
+    if (mainQuestionImage) {
+        mainQuestionImage.addEventListener('click', openImageModal);
+    }
+
+    var openDifficultyBtn = document.getElementById('open-difficulty-modal-btn');
+    if (openDifficultyBtn) {
+        openDifficultyBtn.addEventListener('click', openDifficultyModal);
+    }
+
+    var closeDifficultyBtn = document.getElementById('close-difficulty-modal-btn');
+    if (closeDifficultyBtn) {
+        closeDifficultyBtn.addEventListener('click', closeDifficultyModal);
+    }
+
+    var closeImageBtn = document.getElementById('close-image-modal-btn');
+    if (closeImageBtn) {
+        closeImageBtn.addEventListener('click', closeImageModal);
+    }
+
     // Image modal click outside to close
     var modal = document.getElementById('image-modal');
     modal.addEventListener('click', function (e) {
@@ -255,19 +275,24 @@ document.addEventListener('DOMContentLoaded', function () {
     diffModal.addEventListener('click', function (e) {
         if (e.target === diffModal) closeDifficultyModal();
     });
+
+    var footerStatsToggle = document.getElementById('footer-stats-toggle');
+    if (footerStatsToggle) {
+        footerStatsToggle.addEventListener('click', toggleStats);
+    }
 });
 </script>
 
-<div style="display: flex; flex-direction: column; align-items: center; margin-top: 32px;">
-    <form id="report-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 400px; width: 100%;">
+<div class="report-container">
+    <form id="report-form" class="report-form">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
         <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers)' />
         <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
-        <label for="explanation" style="font-weight: bold;">יש טעות בשאלה? דווח לנו</label>
-        <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." style="width: 100%; min-height: 60px; border-radius: 8px; border: 1px solid #ccc; padding: 8px; font-size: 16px;"></textarea>
-        <button type="submit" class="next-question-btn" style="background-color: #ff9800; color: #222; font-size: 20px; padding: 12px 32px;">דווח על טעות בשאלה</button>
+        <label for="explanation" class="report-label">יש טעות בשאלה? דווח לנו</label>
+        <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>
+        <button type="submit" class="next-question-btn report-submit-btn">דווח על טעות בשאלה</button>
     </form>
 </div>
 
@@ -441,7 +466,7 @@ document.addEventListener('visibilitychange', () => {
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
             </a>
-            <button class="footer-icon" onclick="toggleStats()" title="סטטיסטיקה אישית" id="footer-stats-toggle">
+            <button class="footer-icon" title="סטטיסטיקה אישית" id="footer-stats-toggle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="20" x2="12" y2="10"></line>
                     <line x1="18" y1="20" x2="18" y2="4"></line>

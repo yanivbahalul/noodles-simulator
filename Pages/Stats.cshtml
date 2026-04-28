@@ -15,32 +15,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
 </head>
-<img src="/assets/background.gif" class="background-gif" />
+<img src="/assets/background.gif" class="background-gif" alt="" aria-hidden="true" />
 
 <partial name="Shared/_TopBar" />
 <partial name="Shared/_LogoHeader" />
 
-<div class="quiz-container" style="text-align:center;">
-    <h2>📊 סטטיסטיקה אישית</h2>
+<div class="quiz-container stats-page">
+    <h2 class="stats-title">📊 סטטיסטיקה אישית</h2>
 
     <!-- הצגת הנתונים -->
-    <ul style="list-style:none; font-size:18px; margin-top:20px; color: white;">
-        <li>👤 Logged in as: <strong>@Model.Username</strong></li>
+    <ul class="stats-list">
+        <li>👤 Logged in as: <strong class="stats-breakable">@Model.Username</strong></li>
         <li>✅ תשובות נכונות: <strong>@Model.CorrectAnswers</strong></li>
         <li>📋 שאלות שנענו: <strong>@Model.TotalAnswered</strong></li>
         <li>📈 אחוז הצלחה: <strong>@Model.SuccessRate</strong>%</li>
     </ul>
 
     <!-- תצוגת DEBUG -->
-    <div style="margin-top:30px; font-family: monospace; color: lightgray;">
+    <div class="stats-debug">
         <p><strong>Debug:</strong></p>
-        <p>Username: @Model.Username</p>
+        <p>Username: <span class="stats-breakable">@Model.Username</span></p>
         <p>Correct: @Model.CorrectAnswers</p>
         <p>Total: @Model.TotalAnswered</p>
         <p>Success: @Model.SuccessRate%</p>
     </div>
 
-    <div style="margin-top:30px;">
+    <div class="stats-actions">
         <a href="/Index" class="next-question-btn">⬅ חזרה לחידון</a>
     </div>
 </div>
