@@ -161,8 +161,9 @@ namespace NoodlesSimulator.Pages
                         try
                         {
                             RotateSessionForLogin();
+                            var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);
                             HttpContext.Session.SetString("Username", user.Username);
-                            HttpContext.Session.SetString("IsAdmin", user.IsAdmin ? "1" : "0");
+                            HttpContext.Session.SetString("IsAdmin", isAdminUser ? "1" : "0");
                             Response.Cookies.Append("Username", user.Username, new CookieOptions
                             {
                                 HttpOnly = true,
