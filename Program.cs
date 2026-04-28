@@ -269,41 +269,36 @@ app.MapPost("/clear-session", async context =>
 
 app.MapGet("/health", async context =>
 {
-    if (!IsAdminSession(context))
-    {
-        await WritePlainError(context, 401, "Unauthorized");
-        return;
-    }
-
-    var url      = Environment.GetEnvironmentVariable("SUPABASE_URL");
-    var anon     = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
-                   ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
-                   ?? Environment.GetEnvironmentVariable("ANON_PUBLIC");
-    var service  = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
-                   ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET");
-    var bucket   = Environment.GetEnvironmentVariable("SUPABASE_BUCKET");
-    var ttl      = Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL");
+    var url      = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_URL"));
+    var anon     = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
+                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
+                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("ANON_PUBLIC"));
+    var service  = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
+                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"));
+    var bucket   = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_BUCKET"));
+    var ttl      = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL"));
 
     var isProdEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
     var imagesDir   = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
     var reportsDir  = isProdEnv ? "/data-keys/reports" : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports");
     var progressDir = isProdEnv ? "/data-keys/progress" : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 
-    var sb = new System.Text.StringBuilder();
-    sb.AppendLine($"SUPABASE_URL: {(string.IsNullOrEmpty(url) ? "MISSING" : "OK")}");
-    sb.AppendLine($"SUPABASE_ANON_KEY/ANON_PUBLIC: {(string.IsNullOrEmpty(anon) ? "MISSING" : "OK")}");
-    sb.AppendLine($"SUPABASE_SERVICE_ROLE_KEY/SERVICE_ROLE_SECRET: {(string.IsNullOrEmpty(service) ? "MISSING" : "OK")}");
-    sb.AppendLine($"SUPABASE_BUCKET: {(string.IsNullOrEmpty(bucket) ? "MISSING" : bucket)}");
-    sb.AppendLine($"SUPABASE_SIGNED_URL_TTL: {(string.IsNullOrEmpty(ttl) ? "MISSING" : ttl)}");
-    sb.AppendLine($"wwwroot/images: {(Directory.Exists(imagesDir) ? "OK" : "MISSING")}");
-    sb.AppendLine($"wwwroot/reports: {(Directory.Exists(reportsDir) ? "OK" : "MISSING")}");
-    sb.AppendLine($"progress: {(Directory.Exists(progressDir) ? "OK" : "MISSING")}");
-    if (Directory.Exists(imagesDir))   sb.AppendLine($"images count: {Directory.GetFiles(imagesDir).Length}");
-    if (Directory.Exists(reportsDir))  sb.AppendLine($"reports count: {Directory.GetFiles(reportsDir).Length}");
-    if (Directory.Exists(progressDir)) sb.AppendLine($"progress count: {Directory.GetFiles(progressDir).Length}");
+    var payload = new
+    {
+        ok = true,
+        env = app.Environment.EnvironmentName,
+        supabaseUrl = string.IsNullOrWhiteSpace(url) ? "missing" : "ok",
+        supabaseAnon = string.IsNullOrWhiteSpace(anon) ? "missing" : "ok",
+        supabaseService = string.IsNullOrWhiteSpace(service) ? "missing" : "ok",
+        supabaseBucket = string.IsNullOrWhiteSpace(bucket) ? "missing" : "ok",
+        supabaseTtl = string.IsNullOrWhiteSpace(ttl) ? "missing" : "ok",
+        imagesDir = Directory.Exists(imagesDir),
+        reportsDir = Directory.Exists(reportsDir),
+        progressDir = Directory.Exists(progressDir)
+    };
 
-    context.Response.ContentType = "text/plain";
-    await context.Response.WriteAsync(sb.ToString());
+    context.Response.StatusCode = StatusCodes.Status200OK;
+    await WriteJson(context, payload);
 });
 
 app.MapGet("/signed", async (HttpContext ctx) =>
