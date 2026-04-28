@@ -160,26 +160,6 @@ static bool IsAuthenticated(HttpContext context)
     return !string.IsNullOrWhiteSpace(username);
 }
 
-static bool IsSameOriginRequest(HttpContext context)
-{
-    var expectedOrigin = $"{context.Request.Scheme}://{context.Request.Host}";
-    var origin = context.Request.Headers.Origin.ToString();
-    if (!string.IsNullOrWhiteSpace(origin))
-    {
-        return string.Equals(origin, expectedOrigin, StringComparison.OrdinalIgnoreCase);
-    }
-
-    var referer = context.Request.Headers.Referer.ToString();
-    if (!string.IsNullOrWhiteSpace(referer) &&
-        Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
-    {
-        var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
-        return string.Equals(refererOrigin, expectedOrigin, StringComparison.OrdinalIgnoreCase);
-    }
-
-    return false;
-}
-
 static Task WritePlainError(HttpContext context, int statusCode, string message)
 {
     context.Response.StatusCode = statusCode;
@@ -248,14 +228,10 @@ app.MapPost("/clear-session", async context =>
             await WritePlainError(context, 401, "Unauthorized");
             return;
         }
-        if (!IsSameOriginRequest(context))
-        {
-            await WritePlainError(context, 403, "Forbidden");
-            return;
-        }
 
         context.Session.Clear();
         context.Response.Cookies.Delete("Username");
+        context.Response.Cookies.Delete(".Noodles.Session.v2");
         context.Response.StatusCode = 200;
         await context.Response.CompleteAsync();
     }
