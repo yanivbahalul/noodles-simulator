@@ -136,16 +136,19 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var patch = new {
-                    Username = updatedUser.Username,
-                    Password = updatedUser.Password,
-                    IsAdmin = updatedUser.IsAdmin,
-                    CorrectAnswers = updatedUser.CorrectAnswers,
-                    TotalAnswered = updatedUser.TotalAnswered,
-                    IsCheater = updatedUser.IsCheater,
-                    IsBanned = updatedUser.IsBanned,
-                    LastSeen = updatedUser.LastSeen ?? DateTime.UtcNow
+                var patch = new Dictionary<string, object>
+                {
+                    ["IsAdmin"] = updatedUser.IsAdmin,
+                    ["CorrectAnswers"] = updatedUser.CorrectAnswers,
+                    ["TotalAnswered"] = updatedUser.TotalAnswered,
+                    ["IsCheater"] = updatedUser.IsCheater,
+                    ["IsBanned"] = updatedUser.IsBanned,
+                    ["LastSeen"] = (updatedUser.LastSeen ?? DateTime.UtcNow).ToString("o")
                 };
+                if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+                {
+                    patch["Password"] = updatedUser.Password;
+                }
 
                 var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
                 var safeUsername = Uri.EscapeDataString(updatedUser.Username);
@@ -158,7 +161,8 @@ namespace NoodlesSimulator.Models
                 var response = await _client.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[UpdateUser Error] PATCH failed for {updatedUser.Username}: {response.StatusCode}");
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[UpdateUser Error] PATCH failed for {updatedUser.Username}: {response.StatusCode} | {errorBody}");
                     return false;
                 }
                 return true;

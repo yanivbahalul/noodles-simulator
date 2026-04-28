@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
@@ -49,6 +50,14 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromHours(1);
     options.Cookie.MaxAge = TimeSpan.FromHours(1);
 });
+
+var dataProtectionPath = isProd
+    ? "/data-keys/dataprotection"
+    : Path.Combine(Directory.GetCurrentDirectory(), "data-keys", "dataprotection");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("NoodlesSimulator");
 
 builder.Services.AddHttpClient();
 builder.Services.AddRateLimiter(options =>

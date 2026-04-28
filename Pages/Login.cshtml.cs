@@ -160,6 +160,9 @@ namespace NoodlesSimulator.Pages
 
                         try
                         {
+                            user.LastSeen = DateTime.UtcNow;
+                            _ = _authService.UpdateUser(user);
+
                             RotateSessionForLogin();
                             var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);
                             HttpContext.Session.SetString("Username", user.Username);
