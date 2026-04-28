@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using NoodlesSimulator.Services;
@@ -12,7 +13,6 @@ namespace NoodlesSimulator.Pages
 {
     public class TestResultsModel : PageModel
     {
-        private const string SessionKey = "TestStateV1";
         private readonly SupabaseStorageService _storage;
         private readonly TestSessionService _testSession;
 
@@ -27,6 +27,7 @@ namespace NoodlesSimulator.Pages
         public int CorrectCount { get; set; }
         public int Total { get; set; }
         public string ElapsedText { get; set; }
+        public string ReviewToken { get; set; } = string.Empty;
 
         public class ResultItem
         {
@@ -38,49 +39,33 @@ namespace NoodlesSimulator.Pages
 
         public List<ResultItem> Items { get; set; } = new List<ResultItem>();
 
-        public class TestQuestion { public string Question { get; set; } public Dictionary<string, string> Answers { get; set; } }
-        public class TestAnswer { public string SelectedKey { get; set; } public bool IsCorrect { get; set; } }
-        public class TestState { public DateTime StartedUtc { get; set; } public List<TestQuestion> Questions { get; set; } public List<TestAnswer> Answers { get; set; } public int CurrentIndex { get; set; } }
-
-        public async Task OnGet()
+        public async Task<IActionResult> OnGet()
         {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToPage("/Login");
+            }
+
             var token = Request.Query["token"].ToString();
-
-            // Try token-based system first
-            if (_testSession != null && !string.IsNullOrEmpty(token))
+            if (_testSession == null)
             {
-                var session = await _testSession.GetSession(token);
-                if (session != null)
-                {
-                    // Verify user owns this test
-                    var username = HttpContext.Session.GetString("Username");
-                    if (!string.IsNullOrEmpty(username) && session.Username == username)
-                    {
-                        await LoadFromTestSession(session);
-                        return;
-                    }
-                }
+                return StatusCode(503, "Test session service is not available.");
+            }
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return RedirectToPage("/MyExams");
             }
 
-            // Fallback to legacy session-based system
-            var state = GetState();
-            if (state == null)
+            var session = await _testSession.GetSession(token);
+            if (session == null || session.Username != username)
             {
-                Total = 0; MaxScore = 0; Score = 0; CorrectCount = 0; ElapsedText = "-";
-                return;
+                return RedirectToPage("/MyExams");
             }
 
-            Total = state.Questions?.Count ?? 0;
-            CorrectCount = state.Answers?.Count(a => a != null && a.IsCorrect) ?? 0;
-            MaxScore = Total * 6;
-            Score = CorrectCount * 6;
-            var elapsed = DateTime.UtcNow - state.StartedUtc;
-            if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
-            ElapsedText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)elapsed.TotalHours, elapsed.Minutes, elapsed.Seconds);
-
-            await BuildItemsAsync(state);
-            // Optionally clear state to prevent revisiting
-            // HttpContext.Session.Remove(SessionKey);
+            ReviewToken = token;
+            await LoadFromTestSession(session);
+            return Page();
         }
 
         private async Task LoadFromTestSession(TestSession session)
@@ -119,31 +104,9 @@ namespace NoodlesSimulator.Pages
                 var a = i < aList.Count ? aList[i] : null;
                 var correctKey = "correct";
 
-                string qUrl;
-                var answerUrls = new Dictionary<string, string>();
-
-                if (_storage != null)
-                {
-                    var paths = new List<string> { q.Question };
-                    var answerVals = (q.Answers != null) ? new List<string>(q.Answers.Values) : new List<string>();
-                    paths.AddRange(answerVals);
-                    var signed = await _storage.GetSignedUrlsAsync(paths);
-                    qUrl = signed.TryGetValue(q.Question, out var qu) ? qu : string.Empty;
-                    foreach (var kv in q.Answers ?? new Dictionary<string, string>())
-                    {
-                        if (string.IsNullOrWhiteSpace(kv.Value)) continue;
-                        answerUrls[kv.Key] = signed.TryGetValue(kv.Value, out var au) ? au : string.Empty;
-                    }
-                }
-                else
-                {
-                    qUrl = string.IsNullOrWhiteSpace(q.Question) ? string.Empty : ($"/images/{q.Question}");
-                    foreach (var kv in q.Answers ?? new Dictionary<string, string>())
-                    {
-                        if (!string.IsNullOrWhiteSpace(kv.Value))
-                            answerUrls[kv.Key] = $"/images/{kv.Value}";
-                    }
-                }
+                var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
+                var qUrl = resolved.QuestionUrl;
+                var answerUrls = resolved.AnswerUrls;
 
                 Items.Add(new ResultItem
                 {
@@ -155,16 +118,6 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        private TestState GetState()
-        {
-            try
-            {
-                var json = HttpContext.Session.GetString(SessionKey);
-                if (string.IsNullOrWhiteSpace(json)) return null;
-                return JsonConvert.DeserializeObject<TestState>(json);
-            }
-            catch { return null; }
-        }
     }
 }
 

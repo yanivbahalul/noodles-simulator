@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
@@ -17,6 +18,7 @@ namespace NoodlesSimulator.Models
         private readonly HttpClient _client;
         private readonly string _url;
         private readonly string _apiKey;
+        private const string PasswordHashPrefix = "pbkdf2$";
 
         public AuthService(IConfiguration config)
         {
@@ -42,10 +44,31 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&Password=eq.{password}&select=*");
-                var json = await res.Content.ReadAsStringAsync();
-                var users = JsonSerializer.Deserialize<List<User>>(json);
-                return users?.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+                {
+                    return null;
+                }
+
+                var user = await GetUser(username);
+                if (user == null || string.IsNullOrWhiteSpace(user.Password))
+                {
+                    return null;
+                }
+
+                var stored = user.Password;
+                var isValid = VerifyPassword(stored, password);
+                if (!isValid)
+                {
+                    return null;
+                }
+
+                if (!IsHashedPassword(stored))
+                {
+                    user.Password = HashPassword(password);
+                    _ = UpdateUser(user);
+                }
+
+                return user;
             }
             catch (Exception ex)
             {
@@ -74,7 +97,7 @@ namespace NoodlesSimulator.Models
                 new User
                 {
                     Username = username,
-                    Password = password,
+                    Password = HashPassword(password),
                     CorrectAnswers = 0,
                     TotalAnswered = 0,
                     IsCheater = false,
@@ -92,7 +115,8 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{username}&select=*");
+                var safeUsername = Uri.EscapeDataString(username);
+                var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{safeUsername}&select=*");
                 var json = await res.Content.ReadAsStringAsync();
                 var users = JsonSerializer.Deserialize<List<User>>(json);
                 return users?.FirstOrDefault();
@@ -110,7 +134,7 @@ namespace NoodlesSimulator.Models
             {
                 var patch = new {
                     Username = updatedUser.Username,
-                    Password = updatedUser.Password, // הוסף אם צריך לעדכן סיסמה
+                    Password = updatedUser.Password,
                     CorrectAnswers = updatedUser.CorrectAnswers,
                     TotalAnswered = updatedUser.TotalAnswered,
                     IsCheater = updatedUser.IsCheater,
@@ -119,7 +143,8 @@ namespace NoodlesSimulator.Models
                 };
 
                 var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{updatedUser.Username}")
+                var safeUsername = Uri.EscapeDataString(updatedUser.Username);
+                var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{safeUsername}")
                 {
                     Content = content
                 };
@@ -206,7 +231,8 @@ namespace NoodlesSimulator.Models
         {
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_url}/rest/v1/users?Username=eq.{username}");
+                var safeUsername = Uri.EscapeDataString(username);
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"{_url}/rest/v1/users?Username=eq.{safeUsername}");
                 request.Headers.Add("Prefer", "return=representation");
                 var response = await _client.SendAsync(request);
                 return response.IsSuccessStatusCode;
@@ -244,6 +270,49 @@ namespace NoodlesSimulator.Models
             {
                 Console.WriteLine($"[GetAllUsersLight Exception] {ex}");
                 return new List<User>();
+            }
+        }
+
+        private static bool IsHashedPassword(string storedPassword)
+        {
+            return !string.IsNullOrWhiteSpace(storedPassword) && storedPassword.StartsWith(PasswordHashPrefix, StringComparison.Ordinal);
+        }
+
+        private static string HashPassword(string password)
+        {
+            var salt = RandomNumberGenerator.GetBytes(16);
+            var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100000, HashAlgorithmName.SHA256, 32);
+            return $"{PasswordHashPrefix}{Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
+        }
+
+        private static bool VerifyPassword(string storedPassword, string providedPassword)
+        {
+            if (string.IsNullOrWhiteSpace(storedPassword) || string.IsNullOrWhiteSpace(providedPassword))
+            {
+                return false;
+            }
+
+            if (!IsHashedPassword(storedPassword))
+            {
+                return string.Equals(storedPassword, providedPassword, StringComparison.Ordinal);
+            }
+
+            var parts = storedPassword.Split('$');
+            if (parts.Length != 3)
+            {
+                return false;
+            }
+
+            try
+            {
+                var salt = Convert.FromBase64String(parts[1]);
+                var expectedHash = Convert.FromBase64String(parts[2]);
+                var actualHash = Rfc2898DeriveBytes.Pbkdf2(providedPassword, salt, 100000, HashAlgorithmName.SHA256, expectedHash.Length);
+                return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+            }
+            catch
+            {
+                return false;
             }
         }
     }

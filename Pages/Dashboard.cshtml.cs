@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Http;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.IO;
-using Newtonsoft.Json;
 
 namespace NoodlesSimulator.Pages
 {
@@ -29,19 +28,6 @@ namespace NoodlesSimulator.Pages
         public List<User> TopUsers { get; set; } = new();
         public double AverageSuccessRate { get; set; }
 
-        public class ErrorReport
-        {
-            public string questionImage { get; set; }
-            public string answers { get; set; }
-            public string correctAnswer { get; set; }
-            public string explanation { get; set; }
-            public string selectedAnswer { get; set; }
-            public string username { get; set; }
-            public DateTime timestamp { get; set; }
-        }
-
-        public List<ErrorReport> ErrorReports { get; set; } = new();
-        
         public List<QuestionDifficulty> DifficultyQuestions { get; set; } = new();
         public int EasyCount { get; set; }
         public int MediumCount { get; set; }
@@ -49,10 +35,15 @@ namespace NoodlesSimulator.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
+            var username = HttpContext.Session.GetString("Username");
+            if (!string.Equals(username, "Admin", StringComparison.Ordinal))
+            {
+                return RedirectToPage("/Login");
+            }
+
             try
             {
                 await LoadData();
-                LoadErrorReports();
                 await LoadDifficultyData();
                 return Page();
             }
@@ -114,32 +105,5 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        private void LoadErrorReports()
-        {
-            try
-            {
-                var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
-                var reportsPath = isProd 
-                    ? "/data-keys/reports/reports.json"
-                    : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "reports.json");
-                if (System.IO.File.Exists(reportsPath))
-                {
-                    var json = System.IO.File.ReadAllText(reportsPath);
-                    if (!string.IsNullOrWhiteSpace(json))
-                        ErrorReports = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ErrorReport>>(json);
-                    else
-                        ErrorReports = new List<ErrorReport>();
-                }
-                else
-                {
-                    ErrorReports = new List<ErrorReport>();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Dashboard LoadErrorReports Error] {ex}");
-                ErrorReports = new List<ErrorReport>();
-            }
-        }
     }
 }

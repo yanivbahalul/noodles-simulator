@@ -1,77 +1,82 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using NoodlesSimulator.Services;
+using NoodlesSimulator.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace NoodlesSimulator.Pages
 {
     public class TestReviewModel : PageModel
     {
-        private const string SessionKey = "TestStateV1";
         private readonly SupabaseStorageService _storage;
+        private readonly TestSessionService _testSession;
 
-        public TestReviewModel(SupabaseStorageService storage = null)
+        public TestReviewModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
         {
             _storage = storage;
+            _testSession = testSession;
         }
 
         public string QuestionImageUrl { get; set; }
         public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
         public string SelectedKey { get; set; }
+        public string ReviewToken { get; set; } = string.Empty;
 
-        public class TestQuestion { public string Question { get; set; } public Dictionary<string, string> Answers { get; set; } }
-        public class TestAnswer { public string SelectedKey { get; set; } public bool IsCorrect { get; set; } }
-        public class TestState { public List<TestQuestion> Questions { get; set; } public List<TestAnswer> Answers { get; set; } }
-
-        public async Task OnGet()
+        public async Task<IActionResult> OnGet()
         {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+            {
+                return RedirectToPage("/Login");
+            }
+
             int i = 0;
             int.TryParse(Request.Query["i"], out i);
-            var state = GetState();
+            ReviewToken = Request.Query["token"].ToString();
+            var state = await GetStateAsync(username);
             if (state == null || state.Questions == null || i < 0 || i >= state.Questions.Count)
-                return;
+            {
+                return RedirectToPage("/MyExams");
+            }
 
             var q = state.Questions[i];
             var a = (state.Answers != null && i < state.Answers.Count) ? state.Answers[i] : null;
             SelectedKey = a?.SelectedKey;
 
-            if (_storage != null)
-            {
-                var paths = new List<string> { q.Question };
-                var answerVals = (q.Answers != null) ? new List<string>(q.Answers.Values) : new List<string>();
-                paths.AddRange(answerVals);
-                var signed = await _storage.GetSignedUrlsAsync(paths);
-                QuestionImageUrl = signed.TryGetValue(q.Question, out var qu) ? qu : string.Empty;
-                foreach (var kv in q.Answers ?? new Dictionary<string, string>())
-                {
-                    if (string.IsNullOrWhiteSpace(kv.Value)) continue;
-                    AnswerImageUrls[kv.Key] = signed.TryGetValue(kv.Value, out var au) ? au : string.Empty;
-                }
-            }
-            else
-            {
-                QuestionImageUrl = string.IsNullOrWhiteSpace(q.Question) ? string.Empty : ($"/images/{q.Question}");
-                foreach (var kv in q.Answers ?? new Dictionary<string, string>())
-                {
-                    if (!string.IsNullOrWhiteSpace(kv.Value))
-                        AnswerImageUrls[kv.Key] = $"/images/{kv.Value}";
-                }
-            }
+            var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
+            QuestionImageUrl = resolved.QuestionUrl;
+            AnswerImageUrls = resolved.AnswerUrls;
+            return Page();
         }
 
-        private TestState GetState()
+        private async Task<TestState> GetStateAsync(string username)
         {
-            try
+            if (_testSession == null)
             {
-                var json = HttpContext.Session.GetString(SessionKey);
-                if (string.IsNullOrWhiteSpace(json)) return null;
-                return JsonConvert.DeserializeObject<TestState>(json);
+                return null;
             }
-            catch { return null; }
+
+            var token = Request.Query["token"].ToString();
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                var session = await _testSession.GetSession(token);
+                if (session != null && session.Username == username)
+                {
+                    return new TestState
+                    {
+                        StartedUtc = session.StartedUtc,
+                        CurrentIndex = session.CurrentIndex,
+                        Questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>(),
+                        Answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>()
+                    };
+                }
+            }
+
+            return null;
         }
     }
 }

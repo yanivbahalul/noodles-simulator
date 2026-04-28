@@ -16,7 +16,6 @@ using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Pages
 {
-    [IgnoreAntiforgeryToken]
     public class IndexModel : PageModel
     {
         private readonly AuthService _authService;
@@ -113,7 +112,7 @@ namespace NoodlesSimulator.Pages
 
                 var isUp = false;
                 try { isUp = await _authService.CheckConnection(); }
-                catch (Exception) { }
+                catch (Exception ex) { Console.WriteLine($"[OnGetAsync CheckConnection Error] {ex.Message}"); }
                 ConnectionStatus = isUp ? "Supabase connection OK" : "Supabase connection FAILED";
 
                 if (HttpContext.Session.GetString("SessionStart") == null)
@@ -125,7 +124,7 @@ namespace NoodlesSimulator.Pages
 
                 User user = null;
                 try { user = await _authService.GetUser(Username); }
-                catch (Exception) { }
+                catch (Exception ex) { Console.WriteLine($"[OnGetAsync GetUser Error] {ex.Message}"); }
                 if (user != null)
                 {
                     if (user.IsBanned)
@@ -135,7 +134,7 @@ namespace NoodlesSimulator.Pages
                         return RedirectToPage("/Login");
                     }
                     user.LastSeen = DateTime.UtcNow;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { }
+                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync UpdateLastSeen Error] {ex.Message}"); }
                 }
 
                 try
@@ -145,7 +144,7 @@ namespace NoodlesSimulator.Pages
                 catch (Exception) { OnlineCount = 0; }
 
                 // Preload next question faster
-                try { await LoadRandomQuestionAsync(); } catch (Exception) { }
+                try { await LoadRandomQuestionAsync(); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync PreloadQuestion Error] {ex.Message}"); }
                 return Page();
             }
             catch (Exception ex)
@@ -174,7 +173,7 @@ namespace NoodlesSimulator.Pages
                     return RedirectToPage("/Login");
 
                 User user = null;
-                try { user = await _authService.GetUser(Username); } catch (Exception) { }
+                try { user = await _authService.GetUser(Username); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync GetUser Error] {ex.Message}"); }
                 if (user == null)
                     return RedirectToPage("/Login");
 
@@ -190,7 +189,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = false;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { }
+                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UpdateUser Error] {ex.Message}"); }
                     return RedirectToPage("/Index");
                 }
 
@@ -200,7 +199,7 @@ namespace NoodlesSimulator.Pages
 
                 if (string.IsNullOrEmpty(answersJson))
                 {
-                    try { await LoadRandomQuestionAsync(); } catch (Exception) { }
+                    try { await LoadRandomQuestionAsync(); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
                     return Page();
                 }
 
@@ -221,9 +220,9 @@ namespace NoodlesSimulator.Pages
                     }
                 }
 
-                try { _stats?.Record(QuestionImage, IsCorrect); } catch { }
+                try { _stats?.Record(QuestionImage, IsCorrect); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync RecordStats Error] {ex.Message}"); }
 
-                try { await _authService.UpdateUser(user); } catch (Exception) { }
+                try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUser Error] {ex.Message}"); }
 
                 var sessionStartStr = HttpContext.Session.GetString("SessionStart");
                 DateTime.TryParse(sessionStartStr, out var sessionStart);
@@ -257,7 +256,7 @@ namespace NoodlesSimulator.Pages
                     user.CorrectAnswers = 0;
                     user.TotalAnswered = 0;
                     user.IsCheater = true;
-                    try { await _authService.UpdateUser(user); } catch (Exception) { }
+                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync CheaterMark UpdateUser Error] {ex.Message}"); }
 
                     cheaterCount++;
                     HttpContext.Session.SetInt32("CheaterCount", cheaterCount);
@@ -265,7 +264,7 @@ namespace NoodlesSimulator.Pages
                     if (cheaterCount >= 3)
                     {
                         user.IsBanned = true;
-                        try { await _authService.UpdateUser(user); } catch (Exception) { }
+                        try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync Ban UpdateUser Error] {ex.Message}"); }
                         HttpContext.Session.Clear();
                         Response.Cookies.Delete("Username");
                         return RedirectToPage("/Login");
@@ -353,7 +352,7 @@ namespace NoodlesSimulator.Pages
                         answersDict = cleanedAnswers;
                     }
                 }
-                catch (Exception) { }
+                catch (Exception ex) { Console.WriteLine($"[OnPostReportErrorAsync ParseAnswers Error] {ex.Message}"); }
 
                 var abcd = new[] { "A", "B", "C", "D" };
                 var allAnswers = answersDict.Values.ToList();
@@ -728,7 +727,7 @@ CHOSEN_FOUND:
                     list = list.TakeLast(20).ToList();
                 HttpContext.Session.SetString("RecentQuestions", JsonConvert.SerializeObject(list));
             }
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[AddRecentQuestionToSession Error] {ex.Message}"); }
         }
 
         private async Task PopulateUrlsAsync()

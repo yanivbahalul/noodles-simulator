@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 
 namespace NoodlesSimulator.Pages
 {
-    [IgnoreAntiforgeryToken]
     public class TestModel : PageModel
     {
         private const int TotalQuestions = 17;
@@ -21,15 +20,13 @@ namespace NoodlesSimulator.Pages
         private readonly SupabaseStorageService _storage;
         private readonly QuestionStatsService _stats;
         private readonly TestSessionService _testSession;
-        private readonly EmailService _email;
         private readonly QuestionDifficultyService _difficultyService;
 
-        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, EmailService email = null, QuestionDifficultyService difficultyService = null)
+        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, QuestionDifficultyService difficultyService = null)
         {
             _storage = storage;
             _stats = stats;
             _testSession = testSession;
-            _email = email;
             _difficultyService = difficultyService;
         }
 
@@ -43,26 +40,6 @@ namespace NoodlesSimulator.Pages
         public int DisplayQuestionNumber => CurrentIndex + 1;
         public string TestEndUtcString { get; set; }
 
-        public class TestQuestion
-        {
-            public string Question { get; set; }
-            public Dictionary<string, string> Answers { get; set; }
-        }
-
-        public class TestAnswer
-        {
-            public string SelectedKey { get; set; }
-            public bool IsCorrect { get; set; }
-        }
-
-        public class TestState
-        {
-            public DateTime StartedUtc { get; set; }
-            public List<TestQuestion> Questions { get; set; } = new List<TestQuestion>();
-            public List<TestAnswer> Answers { get; set; } = new List<TestAnswer>();
-            public int CurrentIndex { get; set; }
-        }
-
         public async Task<IActionResult> OnGet()
         {
             var username = HttpContext.Session.GetString("Username");
@@ -75,8 +52,7 @@ namespace NoodlesSimulator.Pages
 
             if (_testSession == null)
             {
-                Console.WriteLine($"[Test OnGet] TestSessionService is NULL - using legacy session-based system");
-                return await OnGetLegacy();
+                return StatusCode(503, "Test session service is not available.");
             }
 
             var token = Request.Query["token"].ToString();
@@ -120,15 +96,11 @@ namespace NoodlesSimulator.Pages
                 
                 if (session == null)
                 {
-                    Console.WriteLine($"[Test OnGet] CreateSession returned NULL - falling back to legacy session-based system");
-                    return await OnGetLegacy();
+                    return StatusCode(500, "Failed to create test session.");
                 }
 
                 Console.WriteLine($"[Test OnGet] Session created successfully! Token: {session.Token}");
                 Console.WriteLine($"[Test OnGet] Redirecting to /Test?token={session.Token}");
-
-                // Email notification disabled per user request
-                // SendTestStartedEmail(username, session.Token);
 
                 return RedirectToPage("/Test", new { token = session.Token });
             }
@@ -161,35 +133,6 @@ namespace NoodlesSimulator.Pages
             return Page();
         }
 
-        private async Task<IActionResult> OnGetLegacy()
-        {
-            var start = Request.Query["start"].ToString();
-            var advance = Request.Query["advance"].ToString();
-            var difficulty = Request.Query["difficulty"].ToString();
-
-            var state = GetState();
-
-            if (!string.IsNullOrEmpty(start) || state == null)
-            {
-                state = await BuildNewStateAsync(difficulty);
-                SaveState(state);
-            }
-            else if (!string.IsNullOrEmpty(advance))
-            {
-                if (state.CurrentIndex < state.Answers.Count && state.Answers[state.CurrentIndex] != null)
-                {
-                    state.CurrentIndex = Math.Min(state.CurrentIndex + 1, state.Questions.Count);
-                    SaveState(state);
-                }
-            }
-
-            if (IsExpired(state) || state.CurrentIndex >= state.Questions.Count)
-                return RedirectToPage("/TestResults");
-
-            await BindCurrentAsync(state);
-            return Page();
-        }
-
         public async Task<IActionResult> OnPost()
         {
             var username = HttpContext.Session.GetString("Username");
@@ -200,9 +143,13 @@ namespace NoodlesSimulator.Pages
 
             var token = Request.Form["token"].ToString();
             
-            if (_testSession == null || string.IsNullOrEmpty(token))
+            if (_testSession == null)
             {
-                return OnPostLegacy();
+                return StatusCode(503, "Test session service is not available.");
+            }
+            if (string.IsNullOrEmpty(token))
+            {
+                return BadRequest("Missing test token.");
             }
 
             var session = await _testSession.GetSession(token);
@@ -245,7 +192,7 @@ namespace NoodlesSimulator.Pages
                     _ = _difficultyService.UpdateQuestionStats(qid, isCorrect);
                 }
             } 
-            catch { }
+            catch (Exception ex) { Console.WriteLine($"[Test OnPost Stats Update Error] {ex.Message}"); }
 
             session.CurrentIndex = Math.Min(idx + 1, questions.Count);
             session.AnswersJson = JsonConvert.SerializeObject(answers);
@@ -259,9 +206,6 @@ namespace NoodlesSimulator.Pages
                 if (session.Status == "active")
                 {
                     await _testSession.UpdateSessionStatus(session.Token, "completed");
-                    
-                    // Email notification disabled per user request
-                    // SendTestCompletedEmail(username, session.Token, session.Score, session.MaxScore);
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
@@ -313,71 +257,6 @@ namespace NoodlesSimulator.Pages
             }
             
             return RedirectToPage("/TestResults");
-        }
-
-        private IActionResult OnPostLegacy()
-        {
-            var state = GetState();
-            if (state == null)
-                return RedirectToPage("/Test", new { start = 1 });
-
-            if (IsExpired(state) || state.CurrentIndex >= state.Questions.Count)
-                return RedirectToPage("/TestResults");
-
-            var selected = Request.Form["answer"].ToString();
-            var idxStr = Request.Form["questionIndex"].ToString();
-            int idx = state.CurrentIndex;
-            int.TryParse(idxStr, out idx);
-            idx = Math.Clamp(idx, 0, state.Questions.Count - 1);
-
-            var q = state.Questions[idx];
-            var isCorrect = selected == "correct";
-
-            if (state.Answers.Count <= idx)
-            {
-                while (state.Answers.Count < idx)
-                    state.Answers.Add(new TestAnswer());
-                state.Answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
-            }
-
-            try { var qid = (idx >= 0 && idx < state.Questions.Count) ? state.Questions[idx].Question : null; _stats?.Record(qid, isCorrect); } catch { }
-
-            state.CurrentIndex = Math.Min(idx + 1, state.Questions.Count);
-            SaveState(state);
-
-            if (IsExpired(state) || state.CurrentIndex >= state.Questions.Count)
-                return RedirectToPage("/TestResults");
-
-            return RedirectToPage("/Test");
-        }
-
-        private bool IsExpired(TestState state)
-        {
-            if (state == null) return true;
-            var end = state.StartedUtc.Add(TestDuration);
-            return DateTime.UtcNow >= end;
-        }
-
-        private const string SessionKey = "TestStateV1";
-
-        private TestState GetState()
-        {
-            try
-            {
-                var json = HttpContext.Session.GetString(SessionKey);
-                if (string.IsNullOrWhiteSpace(json)) return null;
-                return JsonConvert.DeserializeObject<TestState>(json);
-            }
-            catch { return null; }
-        }
-
-        private void SaveState(TestState state)
-        {
-            try
-            {
-                HttpContext.Session.SetString(SessionKey, JsonConvert.SerializeObject(state));
-            }
-            catch { }
         }
 
         private async Task<TestState> BuildNewStateAsync(string difficulty = null)
@@ -538,14 +417,6 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        public class DifficultyConfig
-        {
-            public string Difficulty { get; set; }
-            public string DisplayName { get; set; }
-            public string Description { get; set; }
-            public List<string> Questions { get; set; }
-        }
-
         private async Task BindCurrentAsync(TestState state)
         {
             CurrentIndex = Math.Clamp(state.CurrentIndex, 0, Math.Max(0, state.Questions.Count - 1));
@@ -553,30 +424,9 @@ namespace NoodlesSimulator.Pages
 
             ShuffledAnswers = q.Answers;
             var answers = q.Answers ?? new Dictionary<string, string>();
-
-            if (_storage != null)
-            {
-                var paths = new List<string> { q.Question };
-                paths.AddRange(answers.Values.Where(v => !string.IsNullOrWhiteSpace(v)));
-                var signed = await _storage.GetSignedUrlsAsync(paths);
-                QuestionImageUrl = signed.TryGetValue(q.Question, out var qu) ? qu : string.Empty;
-                AnswerImageUrls = new Dictionary<string, string>();
-                foreach (var kv in answers)
-                {
-                    if (string.IsNullOrWhiteSpace(kv.Value)) continue;
-                    AnswerImageUrls[kv.Key] = signed.TryGetValue(kv.Value, out var au) ? au : string.Empty;
-                }
-            }
-            else
-            {
-                QuestionImageUrl = string.IsNullOrWhiteSpace(q.Question) ? string.Empty : ($"/images/{q.Question}");
-                AnswerImageUrls = new Dictionary<string, string>();
-                foreach (var kv in answers)
-                {
-                    if (!string.IsNullOrWhiteSpace(kv.Value))
-                        AnswerImageUrls[kv.Key] = $"/images/{kv.Value}";
-                }
-            }
+            var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, answers);
+            QuestionImageUrl = resolved.QuestionUrl;
+            AnswerImageUrls = resolved.AnswerUrls;
 
             var end = state.StartedUtc.Add(TestDuration);
             TestEndUtcString = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -591,142 +441,6 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-        private void SendTestStartedEmail(string username, string token)
-        {
-            if (_email == null || !_email.IsConfigured)
-            {
-                Console.WriteLine("[Test] Email service not configured, skipping test started notification");
-                return;
-            }
-
-            try
-            {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                var testUrl = $"{baseUrl}/Test?token={token}";
-                
-                var subject = $"🎓 מבחן חדש התחיל - {username}";
-                var body = $@"
-                    <html dir='rtl'>
-                    <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; direction: rtl;'>
-                        <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); direction: rtl;'>
-                            <h1 style='color: #4caf50; text-align: center; direction: rtl; unicode-bidi: embed;'>🎓 מבחן חדש התחיל!</h1>
-                            <p style='font-size: 16px; line-height: 1.6; direction: rtl; text-align: right; unicode-bidi: embed;'>
-                                המשתמש <strong>{username}</strong> התחיל מבחן חדש במערכת Noodles Simulator.
-                            </p>
-                            <div style='background: #f9f9f9; padding: 15px; border-right: 4px solid #4caf50; margin: 20px 0; direction: rtl; text-align: right;'>
-                                <p style='direction: rtl; unicode-bidi: embed;'><strong>פרטי המבחן:</strong></p>
-                                <ul style='list-style: none; padding: 0; direction: rtl; text-align: right;'>
-                                    <li style='unicode-bidi: embed;'>👤 משתמש: <strong>{username}</strong></li>
-                                    <li style='unicode-bidi: embed;'>🕐 התחיל: <strong>{DateTime.Now:dd/MM/yyyy HH:mm}</strong></li>
-                                    <li style='unicode-bidi: embed;'>🔑 טוקן: <code style='background: #eee; padding: 2px 6px; border-radius: 3px;'>{token.Substring(0, Math.Min(16, token.Length))}...</code></li>
-                                    <li style='unicode-bidi: embed;'>זמן זמין: <strong>2 שעות</strong></li>
-                                    <li style='unicode-bidi: embed;'>📝 מספר שאלות: <strong>{TotalQuestions}</strong></li>
-                                </ul>
-                            </div>
-                            <p style='text-align: center; margin-top: 30px;'>
-                                <a href='{testUrl}' style='display: inline-block; padding: 12px 30px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; unicode-bidi: embed;'>
-                                    צפה במבחן
-                                </a>
-                            </p>
-                            <hr style='margin: 30px 0; border: none; border-top: 1px solid #eee;'>
-                            <p style='font-size: 12px; color: #999; text-align: center; direction: rtl; unicode-bidi: embed;'>
-                                זוהי התראה אוטומטית ממערכת Noodles Simulator<br>
-                                ניתן להמשיך את המבחן מכל מכשיר באמצעות הקישור לעיל
-                            </p>
-                        </div>
-                    </body>
-                    </html>
-                ";
-
-                var sent = _email.Send(subject, body);
-                if (sent)
-                {
-                    Console.WriteLine($"[Test] Test started email sent for user {username}");
-                }
-                else
-                {
-                    Console.WriteLine($"[Test] Failed to send test started email for user {username}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Test] Error sending test started email: {ex.Message}");
-            }
-        }
-
-        private void SendTestCompletedEmail(string username, string token, int score, int maxScore)
-        {
-            if (_email == null || !_email.IsConfigured)
-            {
-                Console.WriteLine("[Test] Email service not configured, skipping test completed notification");
-                return;
-            }
-
-            try
-            {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                var resultsUrl = $"{baseUrl}/TestResults?token={token}";
-                var percentage = maxScore > 0 ? Math.Round((double)score / maxScore * 100, 1) : 0;
-                var gradeEmoji = percentage >= 90 ? "🌟" : percentage >= 80 ? "✨" : percentage >= 70 ? "👍" : percentage >= 60 ? "📚" : "💪";
-                
-                var subject = $"{gradeEmoji} מבחן הושלם - {username} - ציון: {score}/{maxScore}";
-                var body = $@"
-                    <html dir='rtl'>
-                    <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; direction: rtl;'>
-                        <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); direction: rtl;'>
-                            <h1 style='color: #2196f3; text-align: center; direction: rtl; unicode-bidi: embed;'>{gradeEmoji} מבחן הושלם!</h1>
-                            <p style='font-size: 16px; line-height: 1.6; direction: rtl; text-align: right; unicode-bidi: embed;'>
-                                המשתמש <strong>{username}</strong> סיים מבחן במערכת Noodles Simulator.
-                            </p>
-                            <div style='background: #f0f8ff; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; direction: rtl;'>
-                                <h2 style='color: #2196f3; margin: 0 0 15px 0; unicode-bidi: embed;'>תוצאות המבחן</h2>
-                                <div style='font-size: 48px; font-weight: bold; color: #4caf50; margin: 15px 0;'>
-                                    {score}/{maxScore}
-                                </div>
-                                <div style='font-size: 24px; color: #666; unicode-bidi: embed;'>
-                                    אחוז הצלחה: <strong style='color: #2196f3;'>{percentage}%</strong>
-                                </div>
-                            </div>
-                            <div style='background: #f9f9f9; padding: 15px; border-right: 4px solid #2196f3; margin: 20px 0; direction: rtl; text-align: right;'>
-                                <p style='direction: rtl; unicode-bidi: embed;'><strong>פרטי המבחן:</strong></p>
-                                <ul style='list-style: none; padding: 0; direction: rtl; text-align: right;'>
-                                    <li style='unicode-bidi: embed;'>👤 משתמש: <strong>{username}</strong></li>
-                                    <li style='unicode-bidi: embed;'>🕐 הושלם: <strong>{DateTime.Now:dd/MM/yyyy HH:mm}</strong></li>
-                                    <li style='unicode-bidi: embed;'>📊 ציון: <strong>{score} מתוך {maxScore}</strong></li>
-                                    <li style='unicode-bidi: embed;'>📈 אחוז: <strong>{percentage}%</strong></li>
-                                    <li style='unicode-bidi: embed;'>🔑 טוקן: <code style='background: #eee; padding: 2px 6px; border-radius: 3px;'>{token.Substring(0, Math.Min(16, token.Length))}...</code></li>
-                                </ul>
-                            </div>
-                            <p style='text-align: center; margin-top: 30px;'>
-                                <a href='{resultsUrl}' style='display: inline-block; padding: 12px 30px; background: #2196f3; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; unicode-bidi: embed;'>
-                                    צפה בתוצאות המלאות
-                                </a>
-                            </p>
-                            <hr style='margin: 30px 0; border: none; border-top: 1px solid #eee;'>
-                            <p style='font-size: 12px; color: #999; text-align: center; direction: rtl; unicode-bidi: embed;'>
-                                זוהי התראה אוטומטית ממערכת Noodles Simulator<br>
-                                ניתן לצפות בתוצאות המלאות באמצעות הקישור לעיל
-                            </p>
-                        </div>
-                    </body>
-                    </html>
-                ";
-
-                var sent = _email.Send(subject, body);
-                if (sent)
-                {
-                    Console.WriteLine($"[Test] Test completed email sent for user {username} (Score: {score}/{maxScore})");
-                }
-                else
-                {
-                    Console.WriteLine($"[Test] Failed to send test completed email for user {username}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Test] Error sending test completed email: {ex.Message}");
-            }
-        }
     }
 }
 

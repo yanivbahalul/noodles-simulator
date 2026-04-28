@@ -3,13 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.DataProtection;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 
@@ -102,6 +102,36 @@ else
 }
 
 var app = builder.Build();
+
+static bool IsAdminSession(HttpContext context)
+{
+    var username = context.Session.GetString("Username");
+    return string.Equals(username, "Admin", StringComparison.Ordinal);
+}
+
+static Task WritePlainError(HttpContext context, int statusCode, string message)
+{
+    context.Response.StatusCode = statusCode;
+    return context.Response.WriteAsync(message);
+}
+
+static Task WriteJson(HttpContext context, object payload)
+{
+    context.Response.ContentType = "application/json";
+    return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(payload));
+}
+
+static Task WriteServerError(HttpContext context, string prefix, Exception ex)
+{
+    Console.WriteLine($"[{prefix}] {ex}");
+    return WritePlainError(context, 500, $"Server error: {ex.Message}");
+}
+
+static bool TryResolveAuthService(HttpContext context, out AuthService authService)
+{
+    authService = context.RequestServices.GetService<AuthService>();
+    return authService != null;
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -224,15 +254,21 @@ app.MapGet("/debug-random", async context =>
     }
 });
 
-app.MapGet("/api/dashboard-data", async context =>
+var api = app.MapGroup("/api");
+
+api.MapGet("/dashboard-data", async context =>
 {
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
     try
     {
-        var authService = context.RequestServices.GetService<AuthService>();
-        if (authService == null)
+        if (!TryResolveAuthService(context, out var authService))
         {
-            context.Response.StatusCode = 503;
-            await context.Response.WriteAsync("AuthService not available");
+            await WritePlainError(context, 503, "AuthService not available");
             return;
         }
 
@@ -268,26 +304,21 @@ app.MapGet("/api/dashboard-data", async context =>
             }).ToList()
         };
 
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+        await WriteJson(context, data);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Dashboard API Error] {ex}");
-        context.Response.StatusCode = 500;
-        await context.Response.WriteAsync($"Server error: {ex.Message}");
+        await WriteServerError(context, "Dashboard API Error", ex);
     }
 });
 
-app.MapGet("/api/leaderboard-data", async context =>
+api.MapGet("/leaderboard-data", async context =>
 {
     try
     {
-        var authService = context.RequestServices.GetService<AuthService>();
-        if (authService == null)
+        if (!TryResolveAuthService(context, out var authService))
         {
-            context.Response.StatusCode = 503;
-            await context.Response.WriteAsync("AuthService not available");
+            await WritePlainError(context, 503, "AuthService not available");
             return;
         }
 
@@ -318,44 +349,36 @@ app.MapGet("/api/leaderboard-data", async context =>
             timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };
 
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
+        await WriteJson(context, response);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Leaderboard API Error] {ex}");
-        context.Response.StatusCode = 500;
-        await context.Response.WriteAsync($"Server error: {ex.Message}");
+        await WriteServerError(context, "Leaderboard API Error", ex);
     }
 });
 
-app.MapGet("/api/online-count", async context =>
+api.MapGet("/online-count", async context =>
 {
     try
     {
-        var authService = context.RequestServices.GetService<AuthService>();
-        if (authService == null)
+        if (!TryResolveAuthService(context, out var authService))
         {
-            context.Response.StatusCode = 503;
-            await context.Response.WriteAsync("AuthService not available");
+            await WritePlainError(context, 503, "AuthService not available");
             return;
         }
 
         var onlineCount = await authService.GetOnlineUserCount();
         var data = new { online = onlineCount };
 
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(data));
+        await WriteJson(context, data);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Online Count API Error] {ex}");
-        context.Response.StatusCode = 500;
-        await context.Response.WriteAsync($"Server error: {ex.Message}");
+        await WriteServerError(context, "Online Count API Error", ex);
     }
 });
 
-app.MapGet("/api/question-difficulty", (HttpContext context) =>
+api.MapGet("/question-difficulty", (HttpContext context) =>
 {
     try
     {
