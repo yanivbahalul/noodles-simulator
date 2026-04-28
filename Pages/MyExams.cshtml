@@ -15,128 +15,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
     <meta name="robots" content="noindex">
-    <style>
-        .exams-container {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 8px;
-            direction: rtl;
-        }
-        
-        .exam-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-        
-        .exam-card:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-        }
-        
-        .exam-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .exam-status {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        .status-active {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .status-completed {
-            background: #2196f3;
-            color: white;
-        }
-        
-        .status-expired {
-            background: #ff9800;
-            color: white;
-        }
-        
-        .exam-details {
-            color: #ccc;
-            font-size: 14px;
-            line-height: 1.8;
-        }
-        
-        .exam-actions {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-primary {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #45a049;
-        }
-        
-        .btn-secondary {
-            background: #2196f3;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #0b7dda;
-        }
-        
-        .btn-danger {
-            background: #d32f2f;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #b71c1c;
-        }
-        
-        .no-exams {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        .token-display {
-            font-family: monospace;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 5px;
-            display: inline-block;
-        }
-    </style>
 </head>
 
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
@@ -145,12 +23,12 @@
 <partial name="Shared/_LogoHeader" />
 
 <div class="exams-container">
-    <h1 style="text-align: center; margin-bottom: 30px;">המבחנים שלי</h1>
+    <h1 class="exams-title">המבחנים שלי</h1>
     
     @if (TempData["TestEndedMessage"] != null)
     {
-        <div style="background: #d4edda; border: 2px solid #28a745; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center;">
-            <strong style="color: #155724;">✅ @TempData["TestEndedMessage"]</strong>
+        <div class="dashboard-alert dashboard-alert-inline dashboard-alert-soft-success exams-alert">
+            <strong class="dashboard-alert-text-success">✅ @TempData["TestEndedMessage"]</strong>
         </div>
     }
     
@@ -159,7 +37,7 @@
         <div class="no-exams">
             <h3>עדיין לא ביצעת מבחנים</h3>
             <p>כשתתחיל מבחן, הוא יופיע כאן</p>
-            <a href="/Index" class="btn btn-primary" style="margin-top: 20px;">התחל לתרגל</a>
+            <a href="/Index" class="btn main-btn exams-start-link">התחל לתרגל</a>
         </div>
     }
     else
@@ -221,11 +99,11 @@
                 <div class="exam-actions">
                     @if (session.Status == "active")
                     {
-                        <a href="/Test?token=@session.Token" class="btn btn-primary">המשך מבחן</a>
-                        <form method="post" style="margin: 0; display: inline-block;">
+                        <a href="/Test?token=@session.Token" class="btn main-btn">המשך מבחן</a>
+                        <form method="post" class="inline-form-reset">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="token" value="@session.Token" />
-                            <button type="submit" class="btn btn-danger" 
+                            <button type="submit" class="btn next-question-btn-danger" 
                                     onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');">
                                 סיים מבחן
                             </button>
@@ -233,10 +111,10 @@
                     }
                     else
                     {
-                        <a href="/TestResults?token=@session.Token" class="btn btn-secondary">צפה בתוצאות</a>
+                        <a href="/TestResults?token=@session.Token" class="btn secondary-btn">צפה בתוצאות</a>
                         @if (Model.CanReviewTest)
                         {
-                            <a href="/TestReview?token=@session.Token" class="btn btn-secondary">סקור מבחן</a>
+                            <a href="/TestReview?token=@session.Token" class="btn secondary-btn">סקור מבחן</a>
                         }
                     }
                 </div>
@@ -244,11 +122,11 @@
         }
     }
     
-    <div style="text-align: center; margin-top: 30px;">
-        <a href="/Index" class="btn btn-primary">חזרה לדף הבית</a>
+    <div class="exams-footer-actions">
+        <a href="/Index" class="btn main-btn">חזרה לדף הבית</a>
         @if (Model.ActiveSession == null)
         {
-            <a href="/Test?start=1" class="btn btn-primary">התחל מבחן חדש</a>
+            <a href="/Test?start=1" class="btn main-btn">התחל מבחן חדש</a>
         }
     </div>
 </div>

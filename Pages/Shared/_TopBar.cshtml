@@ -1,6 +1,19 @@
 <script src="/js/app.js"></script>
 <div class="top-bar">
     <div class="top-bar-inner">
+        <div class="top-bar-left">
+            <a href="/Index" class="top-bar-brand" title="Noodles Simulator">
+                <img src="/logo/noodles-logo-transparent.png" alt="Noodles Simulator Logo" class="top-bar-logo" />
+            </a>
+            @if (ViewData["ShowAdminLink"] as bool? == true)
+            {
+                <div class="top-bar-admin-links">
+                    <a href="/Dashboard" class="top-bar-admin-link" title="ניהול מערכת">ניהול</a>
+                    <a href="/Stats" class="top-bar-admin-link" title="סטטיסטיקות">סטטיסטיקות</a>
+                    <a href="/Test?start=1" class="top-bar-admin-link" title="בדיקות במצב מבחן">Test</a>
+                </div>
+            }
+        </div>
         <div class="footer-icons">
             <a href="/Index" class="footer-icon" title="דף הבית">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -24,15 +37,6 @@
                     <path d="M17 4h2" />
                 </svg>
             </a>
-            @if (ViewData["ShowAdminLink"] as bool? == true)
-            {
-                <a href="/Dashboard" class="footer-icon" title="ניהול">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 0-.33 1.4V22a2 2 0 0 1-4 0v-.08a1.65 1.65 0 0 0-.33-1.4 1.65 1.65 0 0 0-1-.6 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 0-1.4-.33H2a2 2 0 0 1 0-4h.08a1.65 1.65 0 0 0 1.4-.33 1.65 1.65 0 0 0 .6-1A1.65 1.65 0 0 0 4.6 4.6l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 0 .33-1.4V2a2 2 0 0 1 4 0v.08a1.65 1.65 0 0 0 .33 1.4 1.65 1.65 0 0 0 1 .6 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.26.31.46.67.6 1.05.08.25.12.52.12.79s-.04.54-.12.79A1.65 1.65 0 0 0 19.4 15z" />
-                    </svg>
-                </a>
-            }
         </div>
         <button onclick="appLogout()" class="footer-icon" title="התנתקות">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

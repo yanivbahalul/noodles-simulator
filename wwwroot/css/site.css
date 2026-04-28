@@ -14,10 +14,13 @@ body {
     flex-direction: column;
     position: relative;
     overscroll-behavior: none;
+    --site-footer-height: 68px;
+    padding-bottom: var(--site-footer-height);
 }
 
 .top-bar {
-    position: relative;
+    position: sticky;
+    top: 0;
     z-index: 1100;
     display: flex;
     justify-content: center;
@@ -43,11 +46,54 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
 }
 
 .top-bar-spacer {
     height: 0;
     flex-shrink: 0;
+}
+
+.top-bar-brand {
+    display: inline-flex;
+    align-items: center;
+}
+
+.top-bar-logo {
+    width: 120px;
+    max-width: 28vw;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.top-bar-admin-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.top-bar-admin-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #f0f0f0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 13px;
+    line-height: 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+
+.top-bar-admin-link:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
 }
 
 .background-gif {
@@ -65,9 +111,13 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 20px;
+    margin-top: 16px;
     z-index: 0;
     position: relative;
+}
+
+.logo-header-link {
+    display: inline-block;
 }
 
 .logo-header img {
@@ -534,19 +584,23 @@ body > *:not(.site-footer):not(.background-gif) {
 
 /* Footer Styles */
 .site-footer {
-    position: relative;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     max-width: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
-    margin-top: auto;
+    margin-top: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     direction: rtl;
     text-align: center;
     box-sizing: border-box;
     flex-shrink: 0;
     overflow: hidden;
+    z-index: 1200;
 }
 
 .footer-content {
@@ -634,6 +688,11 @@ body > *:not(.site-footer):not(.background-gif) {
     display: inline-block;
 }
 
+.top-bar .footer-icons {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 /* SVG icons in footer */
 .footer-text svg,
 .site-footer > p svg {
@@ -650,6 +709,13 @@ body > *:not(.site-footer):not(.background-gif) {
     padding: 0 24px;
     box-sizing: border-box;
     direction: rtl;
+    color: #f1f1f1;
+    background: rgba(10, 10, 10, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding-top: 20px;
+    padding-bottom: 24px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
 }
 
 .dashboard-title {
@@ -667,7 +733,7 @@ body > *:not(.site-footer):not(.background-gif) {
 
 .dashboard-last-update {
     font-size: 14px;
-    color: #888;
+    color: #c9c9c9;
 }
 
 .dashboard-alert {
@@ -711,7 +777,7 @@ body > *:not(.site-footer):not(.background-gif) {
 }
 
 .dashboard-stat-list strong {
-    color: #1e90ff;
+    color: #7ec8ff;
 }
 
 .dashboard-table-shell {
@@ -1010,6 +1076,105 @@ body > *:not(.site-footer):not(.background-gif) {
     word-break: break-word;
 }
 
+/* My Exams page */
+.exams-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    direction: rtl;
+    box-sizing: border-box;
+}
+
+.exams-title {
+    text-align: center;
+    margin: 0 0 30px;
+}
+
+.exams-alert {
+    margin-bottom: 20px;
+}
+
+.exam-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.exam-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.exam-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.exam-status {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.status-active { background: #4caf50; color: #fff; }
+.status-completed { background: #2196f3; color: #fff; }
+.status-expired { background: #ff9800; color: #fff; }
+
+.exam-details {
+    color: #ccc;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.exam-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.no-exams {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+}
+
+.exams-start-link {
+    margin-top: 20px;
+}
+
+.token-display {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 5px;
+    display: inline-block;
+}
+
+.exams-footer-actions {
+    text-align: center;
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 /* Quiz page (Index) */
 .quiz-meta {
     color: #111;
@@ -1111,9 +1276,51 @@ body > *:not(.site-footer):not(.background-gif) {
     .dashboard-table {
         min-width: 540px;
     }
+
+    .top-bar-inner {
+        gap: 10px;
+    }
+
+    .top-bar-logo {
+        width: 96px;
+    }
+
+    .top-bar-admin-link {
+        font-size: 12px;
+        padding: 5px 8px;
+    }
 }
 
 @media (max-width: 768px) {
+    .top-bar {
+        padding: 8px 12px;
+    }
+
+    .top-bar-inner {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .top-bar-left {
+        width: 100%;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .top-bar-admin-links {
+        justify-content: center;
+    }
+
+    .top-bar .footer-icons {
+        justify-content: center;
+        width: auto;
+    }
+
+    .logo-header img {
+        max-height: 22vh;
+    }
+
     .difficulty-card {
         padding: 16px;
     }
@@ -1136,6 +1343,16 @@ body > *:not(.site-footer):not(.background-gif) {
         font-size: 16px;
     }
 
+    .exams-container {
+        margin: 24px auto;
+        padding: 16px;
+        width: min(900px, calc(100% - 24px));
+    }
+
+    .exam-card {
+        padding: 14px;
+    }
+
     .quiz-meta-user {
         margin-top: 34px;
     }
@@ -1147,6 +1364,24 @@ body > *:not(.site-footer):not(.background-gif) {
 }
 
 @media (max-width: 480px) {
+    body {
+        --site-footer-height: 74px;
+    }
+
+    .top-bar-logo {
+        width: 80px;
+    }
+
+    .top-bar-admin-link {
+        font-size: 11px;
+        padding: 5px 7px;
+    }
+
+    .top-bar .footer-icon {
+        width: 30px;
+        height: 30px;
+    }
+
     .dashboard-page {
         padding: 0 12px;
     }
@@ -1171,6 +1406,10 @@ body > *:not(.site-footer):not(.background-gif) {
     }
 
     .stats-debug {
+        font-size: 13px;
+    }
+
+    .exam-details {
         font-size: 13px;
     }
 
