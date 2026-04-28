@@ -23,163 +23,44 @@
 <partial name="Shared/_LogoHeader" />
 
 <!-- leaderoard -->
-<div class="quiz-container" style="text-align:center;">
-    <h2 style="margin-bottom: 5px;">🏆 טבלת המובילים</h2>
-    <div id="last-update" style="font-size: 12px; color: #888; margin-bottom: 20px;">(מתעדכן...)</div>
+<div class="quiz-container leaderboard-container">
+    <h2 class="leaderboard-title">🏆 טבלת המובילים</h2>
+    <div id="last-update" class="leaderboard-last-update">(מתעדכן...)</div>
 
-    <table id="leaderboard-table" style="width: 100%; border-collapse: collapse; margin-top: 10px; color: white; direction: ltr; text-align: left; margin-left: 0; margin-right: auto;">
+    <table id="leaderboard-table" class="leaderboard-table">
         <thead>
-            <tr style="background-color: #333;">
-                <th style="padding: 12px; text-align: left; direction: ltr;">#</th>
-                <th style="padding: 12px; text-align: left; direction: ltr;">שם משתמש</th>
-                <th style="padding: 12px; text-align: left; direction: ltr;">תשובות נכונות</th>
+            <tr class="leaderboard-header-row">
+                <th class="leaderboard-cell-header">#</th>
+                <th class="leaderboard-cell-header">שם משתמש</th>
+                <th class="leaderboard-cell-header">תשובות נכונות</th>
             </tr>
         </thead>
         <tbody>
         @for (int i = 0; i < Model.SortedUsers.Count; i++)
         {
             var user = Model.SortedUsers[i];
-            var isCurrentUser = user.Username == Model.CurrentUsername;
-            <tr style="background-color:@(i % 2 == 0 ? "#222" : "#111");">
-                <td style="padding: 10px; text-align: left; direction: ltr;">@(@i + 1)</td>
-                <td style="padding: 10px; text-align: left; direction: ltr;">
+            <tr class="leaderboard-data-row @(i % 2 == 0 ? "leaderboard-row-even" : "leaderboard-row-odd")">
+                <td class="leaderboard-cell">@(@i + 1)</td>
+                <td class="leaderboard-cell">
                     @{
                         var isOnline = user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5);
                     }
                     @if (isOnline)
                     {
-                        <strong style="color: #00ff00;">@user.Username</strong>
+                        <strong class="leaderboard-online-user">@user.Username</strong>
                     }
                     else
                     {
                         @user.Username
                     }
                 </td>
-                <td style="padding: 10px; text-align: left; direction: ltr;">@user.CorrectAnswers</td>
+                <td class="leaderboard-cell">@user.CorrectAnswers</td>
             </tr>
         }
         </tbody>
     </table>
 </div>
 
-<script>
-let updateInterval;
-let clockInterval;
-
-async function fetchLeaderboardData() {
-    try {
-        const response = await fetch('/api/leaderboard-data?_=' + new Date().getTime());
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Only update if we have valid data
-        if (data && data.users && Array.isArray(data.users)) {
-            updateLeaderboardTable(data.users, data.currentUsername);
-            
-            // Update last update time baseline (smooth clock will refresh separately)
-            window.__lastUpdateAt = Date.now();
-        } else {
-            console.warn('Invalid data received from server');
-        }
-        
-    } catch (error) {
-        console.warn('Failed to fetch leaderboard data:', error);
-        // Don't clear the table on error, just show error message
-        document.getElementById('last-update').textContent = '(שגיאה בעדכון - מחכה...)';
-    }
-}
-
-function updateLeaderboardTable(data, currentUsername) {
-    const table = document.getElementById('leaderboard-table');
-    if (!table) return;
-    
-    // Keep header row, remove data rows
-    const headerRow = table.querySelector('thead tr');
-    const tbody = table.querySelector('tbody');
-    tbody.innerHTML = '';
-    
-    // Add new data rows
-    data.forEach((user, index) => {
-        const row = tbody.insertRow();
-        row.style.backgroundColor = index % 2 === 0 ? '#222' : '#111';
-        
-        // Rank
-        const rankCell = row.insertCell();
-        rankCell.style.padding = '10px';
-        rankCell.style.textAlign = 'left';
-        rankCell.style.direction = 'ltr';
-        rankCell.textContent = user.rank;
-        
-        // Username
-        const usernameCell = row.insertCell();
-        usernameCell.style.padding = '10px';
-        usernameCell.style.textAlign = 'left';
-        usernameCell.style.direction = 'ltr';
-        
-        if (user.isOnline) {
-            const strongElement = document.createElement('strong');
-            strongElement.style.color = '#00ff00';
-            strongElement.textContent = user.username;
-            usernameCell.appendChild(strongElement);
-        } else {
-            usernameCell.textContent = user.username;
-        }
-        
-        // Correct answers
-        const correctCell = row.insertCell();
-        correctCell.style.padding = '10px';
-        correctCell.style.textAlign = 'left';
-        correctCell.style.direction = 'ltr';
-        correctCell.textContent = user.correctAnswers;
-    });
-}
-
-// Start auto-update every 3 seconds
-function startAutoUpdate() {
-    updateInterval = setInterval(fetchLeaderboardData, 3000);
-    // Smooth clock every 1 second
-    if (!clockInterval) {
-        clockInterval = setInterval(() => {
-            const el = document.getElementById('last-update');
-            if (!el) return;
-            const t = window.__lastUpdateAt || Date.now();
-            const now = new Date();
-            // Show current time ticking regardless of fetch cadence
-            el.textContent = `(עודכן ב-${now.toLocaleTimeString('he-IL')})`;
-        }, 1000);
-    }
-}
-
-// Stop auto-update
-function stopAutoUpdate() {
-    if (updateInterval) {
-        clearInterval(updateInterval);
-        updateInterval = null;
-    }
-    if (clockInterval) {
-        clearInterval(clockInterval);
-        clockInterval = null;
-    }
-}
-
-// Start updates when page loads
-window.addEventListener('load', () => {
-    fetchLeaderboardData(); // Initial load
-    startAutoUpdate();
-});
-
-// Stop updates when page is hidden (to save resources)
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        stopAutoUpdate();
-    } else {
-        startAutoUpdate();
-    }
-});
-</script>
+<script src="/js/leaderboard-page.js"></script>
 
 <partial name="Shared/_SiteFooter" />

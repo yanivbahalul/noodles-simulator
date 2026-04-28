@@ -36,8 +36,20 @@ namespace NoodlesSimulator.Services
 
         public QuestionDifficultyService(IConfiguration config)
         {
-            _url = config["SUPABASE_URL"]!;
-            _apiKey = config["SUPABASE_KEY"]!;
+            _url = config["SUPABASE_URL"]
+                   ?? Environment.GetEnvironmentVariable("SUPABASE_URL")
+                   ?? string.Empty;
+            _apiKey = config["SUPABASE_SERVICE_ROLE_KEY"]
+                      ?? config["SERVICE_ROLE_SECRET"]
+                      ?? config["SUPABASE_KEY"]
+                      ?? config["SUPABASE_ANON_KEY"]
+                      ?? config["ANON_PUBLIC"]
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+                      ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET")
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
+                      ?? Environment.GetEnvironmentVariable("ANON_PUBLIC")
+                      ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
                 throw new Exception("Missing Supabase ENV vars for QuestionDifficultyService.");

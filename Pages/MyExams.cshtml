@@ -103,8 +103,7 @@
                         <form method="post" class="inline-form-reset">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="token" value="@session.Token" />
-                            <button type="submit" class="btn next-question-btn-danger" 
-                                    onclick="return confirm('האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.');">
+                            <button type="submit" class="btn next-question-btn-danger confirm-end-test-btn">
                                 סיים מבחן
                             </button>
                         </form>
@@ -131,4 +130,5 @@
     </div>
 </div>
 
+<script src="/js/myexams-page.js"></script>
 <partial name="Shared/_SiteFooter" />

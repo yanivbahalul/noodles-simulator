@@ -68,11 +68,11 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"[EmailService] Configuration loaded:");
             Console.WriteLine($"  - SmtpHost: {(_smtpHost ?? "NULL")}");
             Console.WriteLine($"  - SmtpPort: {_smtpPort}");
-            Console.WriteLine($"  - SmtpUser: {(_smtpUser ?? "NULL")}");
+            Console.WriteLine($"  - SmtpUser: {(string.IsNullOrWhiteSpace(_smtpUser) ? "NULL" : "***SET***")}");
             Console.WriteLine($"  - SmtpPass: {(string.IsNullOrWhiteSpace(_smtpPass) ? "NULL/EMPTY" : "***SET***")}");
             Console.WriteLine($"  - UseSsl: {_useSsl}");
-            Console.WriteLine($"  - EmailTo: {(_emailTo ?? "NULL")}");
-            Console.WriteLine($"  - EmailFrom: {(_emailFrom ?? "NULL")}");
+            Console.WriteLine($"  - EmailTo: {(string.IsNullOrWhiteSpace(_emailTo) ? "NULL" : "***SET***")}");
+            Console.WriteLine($"  - EmailFrom: {(string.IsNullOrWhiteSpace(_emailFrom) ? "NULL" : "***SET***")}");
             Console.WriteLine($"  - EmailFromName: {(_emailFromName ?? "NULL")}");
             Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _brevoApiKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");

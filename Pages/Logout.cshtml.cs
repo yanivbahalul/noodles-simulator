@@ -18,7 +18,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"[Logout OnPost Error] {ex}");
-                return StatusCode(500, $"Server error: {ex.Message}");
+                return StatusCode(500, "Server error");
             }
         }
     }

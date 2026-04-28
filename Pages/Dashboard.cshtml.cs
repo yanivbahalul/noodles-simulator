@@ -35,8 +35,8 @@ namespace NoodlesSimulator.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (!string.Equals(username, "Admin", StringComparison.Ordinal))
+            var isAdmin = HttpContext.Session.GetString("IsAdmin");
+            if (!string.Equals(isAdmin, "1", StringComparison.Ordinal))
             {
                 return RedirectToPage("/Login");
             }
@@ -50,7 +50,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"[Dashboard OnGetAsync Error] {ex}");
-                return StatusCode(500, $"Server error: {ex.Message}");
+                return StatusCode(500, "Server error");
             }
         }
 

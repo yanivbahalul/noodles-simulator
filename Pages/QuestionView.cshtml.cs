@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NoodlesSimulator.Services;
 using System;
@@ -24,10 +25,16 @@ namespace NoodlesSimulator.Pages
         public string CorrectAnswerKey { get; set; } = "correct"; // Always "correct" is the right answer
         public bool ShowAnswerResults { get; set; }
 
-        public async Task OnGet()
+        public async Task<IActionResult> OnGet()
         {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return RedirectToPage("/Login");
+            }
+
             var questionId = Request.Query["id"].ToString();
-            if (string.IsNullOrWhiteSpace(questionId)) return;
+            if (string.IsNullOrWhiteSpace(questionId)) return Page();
             
             // Get selected and correct answer from query parameters (from error report email)
             SelectedAnswerKey = Request.Query["selected"].ToString();
@@ -70,7 +77,7 @@ namespace NoodlesSimulator.Pages
             {
                 // local filesystem
                 var imagesDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "images");
-                if (!System.IO.Directory.Exists(imagesDir)) return;
+                if (!System.IO.Directory.Exists(imagesDir)) return Page();
                 var filtered = System.IO.Directory.GetFiles(imagesDir)
                     .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
                     .Select(System.IO.Path.GetFileName)
@@ -93,6 +100,7 @@ namespace NoodlesSimulator.Pages
                     }
                 }
             }
+            return Page();
         }
     }
 }

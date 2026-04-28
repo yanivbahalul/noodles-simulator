@@ -22,8 +22,20 @@ namespace NoodlesSimulator.Services
 
         public TestSessionService(IConfiguration config)
         {
-            _url = config["SUPABASE_URL"]!;
-            _apiKey = config["SUPABASE_KEY"]!;
+            _url = config["SUPABASE_URL"]
+                   ?? Environment.GetEnvironmentVariable("SUPABASE_URL")
+                   ?? string.Empty;
+            _apiKey = config["SUPABASE_SERVICE_ROLE_KEY"]
+                      ?? config["SERVICE_ROLE_SECRET"]
+                      ?? config["SUPABASE_KEY"]
+                      ?? config["SUPABASE_ANON_KEY"]
+                      ?? config["ANON_PUBLIC"]
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")
+                      ?? Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET")
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
+                      ?? Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
+                      ?? Environment.GetEnvironmentVariable("ANON_PUBLIC")
+                      ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
                 throw new Exception("Missing Supabase ENV vars.");
@@ -55,11 +67,8 @@ namespace NoodlesSimulator.Services
             {
                 Console.WriteLine($"[TestSessionService] CreateSession called for user: {username}");
                 Console.WriteLine($"[TestSessionService] Questions JSON length: {questionsJson?.Length ?? 0}");
-                Console.WriteLine($"[TestSessionService] Supabase URL: {(_url ?? "NULL")}");
-                Console.WriteLine($"[TestSessionService] API Key set: {(!string.IsNullOrWhiteSpace(_apiKey))}");
                 
                 var token = GenerateToken();
-                Console.WriteLine($"[TestSessionService] Generated token: {token}");
                 
                 var now = DateTime.UtcNow;
                 
@@ -107,7 +116,7 @@ namespace NoodlesSimulator.Services
                 {
                     var error = await res.Content.ReadAsStringAsync();
                     Console.WriteLine($"[TestSessionService] CreateSession Error - Status: {res.StatusCode}");
-                    Console.WriteLine($"[TestSessionService] Error details: {error}");
+                    Console.WriteLine($"[TestSessionService] CreateSession Error body length: {error?.Length ?? 0}");
                     return null;
                 }
 
@@ -223,7 +232,7 @@ namespace NoodlesSimulator.Services
                 {
                     var error = await response.Content.ReadAsStringAsync();
                     Console.WriteLine($"[TestSessionService UpdateSession] Error - Status: {response.StatusCode}");
-                    Console.WriteLine($"[TestSessionService UpdateSession] Error details: {error}");
+                    Console.WriteLine($"[TestSessionService UpdateSession] Error body length: {error?.Length ?? 0}");
                     return false;
                 }
                 

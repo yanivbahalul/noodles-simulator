@@ -52,7 +52,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"[Stats OnGetAsync Error] {ex}");
-                return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+                return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
             }
         }
     }

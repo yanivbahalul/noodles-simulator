@@ -12,6 +12,7 @@ using System.Text;
 using MailKit.Net.Smtp;
 using MimeKit;
 using System.Security.Cryptography;
+using System.Net;
 using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Pages
@@ -288,7 +289,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"[OnPostAsync Error] {ex}");
-                return StatusCode(500, $"Server error: {ex.Message}");
+                return StatusCode(500, "Server error");
             }
         }
 
@@ -310,6 +311,9 @@ namespace NoodlesSimulator.Pages
                 var selectedAnswer = data["selectedAnswer"]?.ToString();
                 var username = HttpContext.Session.GetString("Username") ?? "Unknown";
                 var timestamp = DateTime.UtcNow;
+
+                username = WebUtility.HtmlEncode(username);
+                explanation = WebUtility.HtmlEncode(explanation ?? string.Empty);
 
                 if (!string.IsNullOrWhiteSpace(questionImage) && questionImage.Contains("token="))
                 {
@@ -387,12 +391,13 @@ namespace NoodlesSimulator.Pages
                 }
                 
                 var answersList = new StringBuilder();
-                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{correctAnswer}</span><br/>");
+                var safeCorrectAnswer = WebUtility.HtmlEncode(correctAnswer ?? string.Empty);
+                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{safeCorrectAnswer}</span><br/>");
                 var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
                 for (int i = 0; i < Math.Min(3, distractors.Count); i++)
                 {
                     var letter = abcd[i + 1];
-                    var distractor = distractors[i];
+                    var distractor = WebUtility.HtmlEncode(distractors[i] ?? string.Empty);
                     var isSelected = selectedAnswerValue == distractor;
                     var style = isSelected ? "font-weight: bold; color: #ffc107;" : "";
                     answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
@@ -515,7 +520,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"[OnPostReportErrorAsync Error] {ex}");
-                return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+                return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
             }
         }
 

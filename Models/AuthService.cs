@@ -82,6 +82,9 @@ namespace NoodlesSimulator.Models
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
                 return false;
 
+            if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+                return false;
+
             if (username.Length < 5 || password.Length < 5)
                 return false;
 
@@ -98,6 +101,7 @@ namespace NoodlesSimulator.Models
                 {
                     Username = username,
                     Password = HashPassword(password),
+                    IsAdmin = false,
                     CorrectAnswers = 0,
                     TotalAnswered = 0,
                     IsCheater = false,
@@ -135,6 +139,7 @@ namespace NoodlesSimulator.Models
                 var patch = new {
                     Username = updatedUser.Username,
                     Password = updatedUser.Password,
+                    IsAdmin = updatedUser.IsAdmin,
                     CorrectAnswers = updatedUser.CorrectAnswers,
                     TotalAnswered = updatedUser.TotalAnswered,
                     IsCheater = updatedUser.IsCheater,

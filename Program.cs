@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -35,20 +36,38 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
+var isProd = builder.Environment.IsProduction();
+
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".Noodles.Session.v2";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SecurePolicy = isProd ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
     options.IdleTimeout = TimeSpan.FromHours(1);
     options.Cookie.MaxAge = TimeSpan.FromHours(1);
 });
 
 builder.Services.AddHttpClient();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ip,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+    });
+});
 
-var isProd = builder.Environment.IsProduction();
 var statsPath = isProd 
     ? Path.Combine("/data-keys", "question_stats.json")
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
@@ -58,7 +77,7 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
     options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
-    options.Secure = CookieSecurePolicy.SameAsRequest;
+    options.Secure = isProd ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
 });
 
 // Antiforgery - disabled to prevent key ring issues
@@ -103,10 +122,40 @@ else
 
 var app = builder.Build();
 
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
+}
+
 static bool IsAdminSession(HttpContext context)
 {
+    return string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
+}
+
+static bool IsAuthenticated(HttpContext context)
+{
     var username = context.Session.GetString("Username");
-    return string.Equals(username, "Admin", StringComparison.Ordinal);
+    return !string.IsNullOrWhiteSpace(username);
+}
+
+static bool IsSameOriginRequest(HttpContext context)
+{
+    var expectedOrigin = $"{context.Request.Scheme}://{context.Request.Host}";
+    var origin = context.Request.Headers.Origin.ToString();
+    if (!string.IsNullOrWhiteSpace(origin))
+    {
+        return string.Equals(origin, expectedOrigin, StringComparison.OrdinalIgnoreCase);
+    }
+
+    var referer = context.Request.Headers.Referer.ToString();
+    if (!string.IsNullOrWhiteSpace(referer) &&
+        Uri.TryCreate(referer, UriKind.Absolute, out var refererUri))
+    {
+        var refererOrigin = $"{refererUri.Scheme}://{refererUri.Authority}";
+        return string.Equals(refererOrigin, expectedOrigin, StringComparison.OrdinalIgnoreCase);
+    }
+
+    return false;
 }
 
 static Task WritePlainError(HttpContext context, int statusCode, string message)
@@ -124,7 +173,7 @@ static Task WriteJson(HttpContext context, object payload)
 static Task WriteServerError(HttpContext context, string prefix, Exception ex)
 {
     Console.WriteLine($"[{prefix}] {ex}");
-    return WritePlainError(context, 500, $"Server error: {ex.Message}");
+    return WritePlainError(context, 500, "Server error");
 }
 
 static bool TryResolveAuthService(HttpContext context, out AuthService authService)
@@ -136,6 +185,16 @@ static bool TryResolveAuthService(HttpContext context, out AuthService authServi
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRateLimiter();
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    context.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    await next();
+});
 app.Use(async (context, next) =>
 {
     var reqCookies = context.Request.Cookies;
@@ -158,6 +217,17 @@ app.MapPost("/clear-session", async context =>
 {
     try
     {
+        if (!IsAuthenticated(context))
+        {
+            await WritePlainError(context, 401, "Unauthorized");
+            return;
+        }
+        if (!IsSameOriginRequest(context))
+        {
+            await WritePlainError(context, 403, "Forbidden");
+            return;
+        }
+
         context.Session.Clear();
         context.Response.Cookies.Delete("Username");
         context.Response.StatusCode = 200;
@@ -167,12 +237,18 @@ app.MapPost("/clear-session", async context =>
     {
         Console.WriteLine($"[ClearSession Error] {ex}");
         context.Response.StatusCode = 500;
-        await context.Response.WriteAsync($"Server error: {ex.Message}");
+        await context.Response.WriteAsync("Server error");
     }
 });
 
 app.MapGet("/health", async context =>
 {
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
     var url      = Environment.GetEnvironmentVariable("SUPABASE_URL");
     var anon     = Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY")
                    ?? Environment.GetEnvironmentVariable("SUPABASE_KEY")
@@ -206,6 +282,13 @@ app.MapGet("/health", async context =>
 
 app.MapGet("/signed", async (HttpContext ctx) =>
 {
+    if (!IsAuthenticated(ctx))
+    {
+        ctx.Response.StatusCode = 401;
+        await ctx.Response.WriteAsync("Unauthorized");
+        return;
+    }
+
     var storage = ctx.RequestServices.GetService<SupabaseStorageService>();
     if (storage == null)
     {
@@ -221,12 +304,26 @@ app.MapGet("/signed", async (HttpContext ctx) =>
         await ctx.Response.WriteAsync("query ?path=<objectPath> is required");
         return;
     }
+    // Restrict to known safe object path format and prevent path traversal-like patterns.
+    if (path.Contains("..", StringComparison.Ordinal) || path.StartsWith("/", StringComparison.Ordinal))
+    {
+        ctx.Response.StatusCode = 400;
+        await ctx.Response.WriteAsync("Invalid path");
+        return;
+    }
+
     var signedUrl = await storage.GetSignedUrlAsync(path);
     await ctx.Response.WriteAsync(signedUrl);
 });
 
 app.MapGet("/debug-random", async context =>
 {
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
     try
     {
         var (tracked, throttled) = NoodlesSimulator.Pages.IndexModel.GetThrottleSnapshot();

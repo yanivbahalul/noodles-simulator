@@ -6,6 +6,7 @@ namespace NoodlesSimulator.Models
     {
         public string Username { get; set; }
         public string Password { get; set; }
+        public bool IsAdmin { get; set; } = false;
         public int CorrectAnswers { get; set; }
         public int TotalAnswered { get; set; }
         public bool IsCheater { get; set; } = false;

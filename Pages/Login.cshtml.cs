@@ -7,11 +7,24 @@ using NoodlesSimulator.Models;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System;
+using System.Collections.Concurrent;
 
 namespace NoodlesSimulator.Pages
 {
     public class LoginModel : PageModel
     {
+        private class LoginAttemptState
+        {
+            public int Failures { get; set; }
+            public DateTime LastFailureUtc { get; set; }
+            public DateTime? BlockedUntilUtc { get; set; }
+        }
+
+        private static readonly ConcurrentDictionary<string, LoginAttemptState> _attempts = new();
+        private static readonly TimeSpan AttemptWindow = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan BlockDuration = TimeSpan.FromMinutes(15);
+        private const int MaxFailuresBeforeBlock = 8;
+
         private readonly AuthService _authService;
         private readonly ILogger<LoginModel> _logger;
         private readonly IConfiguration _configuration;
@@ -33,11 +46,87 @@ namespace NoodlesSimulator.Pages
 
         public void OnGet() { }
 
+        private string GetAttemptKey()
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+            var normalizedUsername = (Username ?? string.Empty).Trim().ToLowerInvariant();
+            return $"{ip}:{normalizedUsername}";
+        }
+
+        private bool IsBlocked(string key)
+        {
+            if (!_attempts.TryGetValue(key, out var state))
+            {
+                return false;
+            }
+
+            if (state.BlockedUntilUtc.HasValue && state.BlockedUntilUtc.Value > DateTime.UtcNow)
+            {
+                return true;
+            }
+
+            if (DateTime.UtcNow - state.LastFailureUtc > AttemptWindow)
+            {
+                _attempts.TryRemove(key, out _);
+            }
+
+            return false;
+        }
+
+        private void RecordFailure(string key)
+        {
+            var now = DateTime.UtcNow;
+            _attempts.AddOrUpdate(
+                key,
+                _ => new LoginAttemptState
+                {
+                    Failures = 1,
+                    LastFailureUtc = now
+                },
+                (_, existing) =>
+                {
+                    if (now - existing.LastFailureUtc > AttemptWindow)
+                    {
+                        existing.Failures = 1;
+                        existing.BlockedUntilUtc = null;
+                    }
+                    else
+                    {
+                        existing.Failures++;
+                    }
+
+                    existing.LastFailureUtc = now;
+                    if (existing.Failures >= MaxFailuresBeforeBlock)
+                    {
+                        existing.BlockedUntilUtc = now.Add(BlockDuration);
+                    }
+                    return existing;
+                });
+        }
+
+        private void RecordSuccess(string key)
+        {
+            _attempts.TryRemove(key, out _);
+        }
+
+        private void RotateSessionForLogin()
+        {
+            HttpContext.Session.Clear();
+            Response.Cookies.Delete(".Noodles.Session.v2");
+        }
+
         public async Task<IActionResult> OnPostAsync()
         {
             try
             {
                 var action = Request.Form["action"];
+                var attemptKey = GetAttemptKey();
+
+                if (IsBlocked(attemptKey))
+                {
+                    ErrorMessage = "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
+                    return Page();
+                }
 
                 if (action == "login")
                 {
@@ -56,6 +145,7 @@ namespace NoodlesSimulator.Pages
                     { 
                         _logger.LogError($"Authentication error: {ex}");
                         ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳”׳×׳—׳‘׳¨׳•׳×. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        RecordFailure(attemptKey);
                         return Page();
                     }
 
@@ -70,7 +160,9 @@ namespace NoodlesSimulator.Pages
 
                         try
                         {
+                            RotateSessionForLogin();
                             HttpContext.Session.SetString("Username", user.Username);
+                            HttpContext.Session.SetString("IsAdmin", user.IsAdmin ? "1" : "0");
                             Response.Cookies.Append("Username", user.Username, new CookieOptions
                             {
                                 HttpOnly = true,
@@ -86,9 +178,11 @@ namespace NoodlesSimulator.Pages
                             return Page();
                         }
 
+                        RecordSuccess(attemptKey);
                         return RedirectToPage("/Index");
                     }
 
+                    RecordFailure(attemptKey);
                     ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳׳• ׳”׳¡׳™׳¡׳׳” ׳©׳’׳•׳™׳™׳.";
                     return Page();
                 }
@@ -121,12 +215,14 @@ namespace NoodlesSimulator.Pages
                     { 
                         _logger.LogError($"GetUser error during registration: {ex}");
                         ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳‘׳“׳™׳§׳× ׳”׳׳©׳×׳׳©. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        RecordFailure(attemptKey);
                         return Page();
                     }
 
                     if (existingUser != null)
                     {
                         ErrorMessage = "׳©׳ ׳”׳׳©׳×׳׳© ׳›׳‘׳¨ ׳§׳™׳™׳ ׳‘׳׳¢׳¨׳›׳×.";
+                        RecordFailure(attemptKey);
                         return Page();
                     }
 
@@ -139,6 +235,7 @@ namespace NoodlesSimulator.Pages
                     { 
                         _logger.LogError($"Registration error: {ex}");
                         ErrorMessage = "׳©׳’׳™׳׳” ׳‘׳”׳¨׳©׳׳”. ׳ ׳¡׳” ׳©׳•׳‘ ׳׳׳•׳—׳¨ ׳™׳•׳×׳¨.";
+                        RecordFailure(attemptKey);
                         return Page();
                     }
 
@@ -146,7 +243,9 @@ namespace NoodlesSimulator.Pages
                     {
                         try
                         {
+                            RotateSessionForLogin();
                             HttpContext.Session.SetString("Username", Username);
+                            HttpContext.Session.SetString("IsAdmin", "0");
                             Response.Cookies.Append("Username", Username, new CookieOptions
                             {
                                 HttpOnly = true,
@@ -162,9 +261,11 @@ namespace NoodlesSimulator.Pages
                             return Page();
                         }
 
+                        RecordSuccess(attemptKey);
                         return RedirectToPage("/Index");
                     }
 
+                    RecordFailure(attemptKey);
                     ErrorMessage = "׳׳™׳¨׳¢׳” ׳©׳’׳™׳׳” ׳‘׳׳”׳׳ ׳”׳”׳¨׳©׳׳”.";
                     return Page();
                 }

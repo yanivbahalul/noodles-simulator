@@ -20,7 +20,7 @@
     <div class="quiz-container">
         @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
         {
-            <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+            <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="question-view-main-image" />
         }
 
         <div class="answers">
@@ -41,8 +41,8 @@
                     }
                 }
 
-                <button class="answer-btn @answerClass" disabled style="display: flex; justify-content: center; align-items: center;">
-                    <img src="@kv.Value" alt="תשובה" loading="lazy" style="margin: 0 auto;" />
+                <button class="answer-btn @answerClass question-view-answer-btn" disabled>
+                    <img src="@kv.Value" alt="תשובה" loading="lazy" class="question-view-answer-image" />
                 </button>
             }
         </div>
@@ -50,37 +50,20 @@
         @if (Model.ShowAnswerResults)
         {
             var isCorrect = Model.SelectedAnswerKey == Model.CorrectAnswerKey;
-            <p style="margin-top:15px; font-size:18px; color:@(isCorrect ? "#32cd32" : "#ff4c4c"); font-weight: bold; text-align: center;">
+            <p class="question-view-result @(isCorrect ? "question-view-result-correct" : "question-view-result-incorrect")">
                 @(isCorrect ? "✓ תשובה נכונה!" : "✗ תשובה שגויה")
             </p>
         }
     </div>
 
     <!-- Image Modal -->
-    <div id="image-modal" class="image-modal" style="display:none;">
-        <span class="close-modal" onclick="closeImageModal()">&times;</span>
+    <div id="image-modal" class="image-modal modal-hidden">
+        <span class="close-modal" id="close-image-modal-btn">&times;</span>
         <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
     </div>
 
-    <script>
-    function openImageModal() {
-        var modal = document.getElementById('image-modal');
-        var modalImg = document.getElementById('modal-img');
-        modalImg.src = '@Model.QuestionImageUrl';
-        modal.style.display = 'flex';
-    }
-    function closeImageModal() {
-        var modal = document.getElementById('image-modal');
-        modal.style.display = 'none';
-    }
-    document.addEventListener('DOMContentLoaded', function () {
-        var modal = document.getElementById('image-modal');
-        if (!modal) return;
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) closeImageModal();
-        });
-    });
-    </script>
+    <div id="question-view-data" data-question-image-url="@Model.QuestionImageUrl"></div>
+    <script src="/js/questionview-page.js"></script>
 
     <partial name="Shared/_SiteFooter" />
 </body>

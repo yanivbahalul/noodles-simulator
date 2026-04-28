@@ -19,7 +19,7 @@
 <div class="quiz-container">
     @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
     {
-        <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" style="cursor: pointer;" onclick="openImageModal()" />
+        <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="review-main-question-image" />
     }
 
     <div class="answers">
@@ -46,30 +46,13 @@
 </div>
 
 <!-- Image Modal -->
-<div id="image-modal" class="image-modal" style="display:none;">
-    <span class="close-modal" onclick="closeImageModal()">&times;</span>
+<div id="image-modal" class="image-modal modal-hidden">
+    <span class="close-modal" id="close-image-modal-btn">&times;</span>
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
 
-<script>
-function openImageModal() {
-    var modal = document.getElementById('image-modal');
-    var modalImg = document.getElementById('modal-img');
-    modalImg.src = '@Model.QuestionImageUrl';
-    modal.style.display = 'flex';
-}
-function closeImageModal() {
-    var modal = document.getElementById('image-modal');
-    modal.style.display = 'none';
-}
-document.addEventListener('DOMContentLoaded', function () {
-    var modal = document.getElementById('image-modal');
-    if (!modal) return;
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) closeImageModal();
-    });
-});
-</script>
+<div id="test-review-data" data-question-image-url="@Model.QuestionImageUrl"></div>
+<script src="/js/testreview-page.js"></script>
 
 <partial name="Shared/_SiteFooter" />
 
