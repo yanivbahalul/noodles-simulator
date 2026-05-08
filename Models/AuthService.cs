@@ -88,7 +88,9 @@ namespace NoodlesSimulator.Models
             if (username.Length < 5 || password.Length < 5)
                 return false;
 
-            if (!Regex.IsMatch(username, "^[a-zA-Z0-9א-ת]+$") || !Regex.IsMatch(password, "^[a-zA-Z0-9א-ת]+$"))
+            // Username is intentionally restricted to keep URLs/filters safe and consistent.
+            // Password should allow common symbols; we store a PBKDF2 hash, not the raw password.
+            if (!Regex.IsMatch(username, "^[a-zA-Z0-9א-ת]+$"))
                 return false;
 
             var existingUser = await GetUser(username);
@@ -112,7 +114,14 @@ namespace NoodlesSimulator.Models
 
             var content = new StringContent(JsonSerializer.Serialize(newUser), Encoding.UTF8, "application/json");
             var res = await _client.PostAsync($"{_url}/rest/v1/users", content);
-            return res.IsSuccessStatusCode;
+            if (res.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            var errorBody = await res.Content.ReadAsStringAsync();
+            Console.WriteLine($"[Register Error] INSERT failed for {username}: {res.StatusCode} | {errorBody}");
+            return false;
         }
 
         public async Task<User?> GetUser(string username)

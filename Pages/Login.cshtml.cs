@@ -204,7 +204,13 @@ namespace NoodlesSimulator.Pages
                         return Page();
                     }
 
-                    if (!Regex.IsMatch(Username, @"^[a-zA-Z0-9׳-׳×]+$"))
+                    if (string.Equals(Username, "admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ErrorMessage = "שם המשתמש הזה שמור. בחר שם אחר.";
+                        return Page();
+                    }
+
+                    if (!Regex.IsMatch(Username, @"^[a-zA-Z0-9א-ת]+$"))
                     {
                         ErrorMessage = "שם המשתמש יכול להכיל רק אותיות (עברית/אנגלית) ומספרים.";
                         return Page();
@@ -270,7 +276,7 @@ namespace NoodlesSimulator.Pages
                     }
 
                     RecordFailure(attemptKey);
-                    ErrorMessage = "אירעה שגיאה במהלך ההרשמה.";
+                    ErrorMessage = "לא ניתן להשלים הרשמה כרגע. נסה שוב מאוחר יותר.";
                     return Page();
                 }
 
