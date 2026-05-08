@@ -97,13 +97,14 @@ namespace NoodlesSimulator.Models
             if (existingUser != null)
                 return false;
 
+            // Keep the insert payload aligned to actual DB columns.
+            // (Some deployments don't have an 'IsAdmin' column; admin is derived elsewhere.)
             var newUser = new[]
             {
-                new User
+                new
                 {
                     Username = username,
                     Password = HashPassword(password),
-                    IsAdmin = false,
                     CorrectAnswers = 0,
                     TotalAnswered = 0,
                     IsCheater = false,
