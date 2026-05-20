@@ -19,6 +19,7 @@ using NoodlesSimulator.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<TestSessionService>();
@@ -206,8 +207,18 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
-    context.Response.Headers["Content-Security-Policy"] =
-        "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/modern-dashboard", StringComparison.OrdinalIgnoreCase))
+    {
+        // Tailwind Play CDN compiles utilities in the browser (requires eval). Blazor needs WebSockets.
+        context.Response.Headers["Content-Security-Policy"] =
+            "default-src 'self'; img-src 'self' data: https:; script-src 'self' https://cdn.tailwindcss.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; connect-src 'self' ws: wss:";
+    }
+    else
+    {
+        context.Response.Headers["Content-Security-Policy"] =
+            "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    }
     await next();
 });
 app.Use(async (context, next) =>
@@ -227,6 +238,7 @@ app.UseCookiePolicy();
 app.UseSession();
 app.UseAuthorization();
 app.MapRazorPages();
+app.MapBlazorHub();
 
 app.MapPost("/clear-session", async context =>
 {

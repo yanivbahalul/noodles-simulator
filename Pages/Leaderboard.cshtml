@@ -27,38 +27,40 @@
     <h2 class="leaderboard-title">🏆 טבלת המובילים</h2>
     <div id="last-update" class="leaderboard-last-update">(מתעדכן...)</div>
 
-    <table id="leaderboard-table" class="leaderboard-table">
-        <thead>
-            <tr class="leaderboard-header-row">
-                <th class="leaderboard-cell-header">#</th>
-                <th class="leaderboard-cell-header">שם משתמש</th>
-                <th class="leaderboard-cell-header">תשובות נכונות</th>
-            </tr>
-        </thead>
-        <tbody>
-        @for (int i = 0; i < Model.SortedUsers.Count; i++)
-        {
-            var user = Model.SortedUsers[i];
-            <tr class="leaderboard-data-row @(i % 2 == 0 ? "leaderboard-row-even" : "leaderboard-row-odd")">
-                <td class="leaderboard-cell">@(@i + 1)</td>
-                <td class="leaderboard-cell">
-                    @{
-                        var isOnline = user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5);
-                    }
-                    @if (isOnline)
-                    {
-                        <strong class="leaderboard-online-user">@user.Username</strong>
-                    }
-                    else
-                    {
-                        @user.Username
-                    }
-                </td>
-                <td class="leaderboard-cell">@user.CorrectAnswers</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <div class="leaderboard-table-shell">
+        <table id="leaderboard-table" class="leaderboard-table">
+            <thead>
+                <tr class="leaderboard-header-row">
+                    <th class="leaderboard-cell-header">#</th>
+                    <th class="leaderboard-cell-header">שם משתמש</th>
+                    <th class="leaderboard-cell-header">תשובות נכונות</th>
+                </tr>
+            </thead>
+            <tbody>
+            @for (int i = 0; i < Model.SortedUsers.Count; i++)
+            {
+                var user = Model.SortedUsers[i];
+                <tr class="leaderboard-data-row @(i % 2 == 0 ? "leaderboard-row-even" : "leaderboard-row-odd")">
+                    <td class="leaderboard-cell">@(@i + 1)</td>
+                    <td class="leaderboard-cell">
+                        @{
+                            var isOnline = user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5);
+                        }
+                        @if (isOnline)
+                        {
+                            <strong class="leaderboard-online-user">@user.Username</strong>
+                        }
+                        else
+                        {
+                            @user.Username
+                        }
+                    </td>
+                    <td class="leaderboard-cell">@user.CorrectAnswers</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script src="/js/leaderboard-page.js"></script>

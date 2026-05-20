@@ -822,34 +822,46 @@ button.answer-btn,
 /* -----------------------------------------------------------------------
    15. Leaderboard
    -----------------------------------------------------------------------*/
+/* Same card as .quiz-container but stretch children full width (quiz uses
+   align-items: center which shrinks the table to content — looks tiny). */
+.quiz-container.leaderboard-container {
+    align-items: stretch;
+}
+
 .leaderboard-container {
     text-align: center;
-    width: min(720px, calc(100% - 2 * var(--gutter-page)));
+    width: min(var(--quiz-max), calc(100% - 2 * var(--gutter-page)));
 }
 
 .leaderboard-title {
-    margin-bottom: 5px;
-    font-size: var(--fs-xl);
+    margin-bottom: 8px;
+    font-size: var(--fs-2xl);
 }
 
 .leaderboard-last-update {
-    font-size: var(--fs-xs);
-    color: #888;
-    margin-bottom: 20px;
+    font-size: var(--fs-sm);
+    color: #aaa;
+    margin-bottom: 16px;
 }
 
-/* Wrap the table in horizontal scroll on overflow. */
+/* Scroll lives on the shell; the <table> stays display:table so columns span the card. */
+.leaderboard-table-shell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+}
+
 .leaderboard-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
     color: #fff;
     direction: ltr;
-    text-align: left;
-    font-size: var(--fs-sm);
-    table-layout: auto;
-    display: block;
-    overflow-x: auto;
+    font-size: var(--fs-md);
+    table-layout: fixed;
 }
 
 .leaderboard-header-row {
@@ -858,10 +870,36 @@ button.answer-btn,
 
 .leaderboard-cell-header,
 .leaderboard-cell {
-    padding: clamp(8px, 1.6vw, 12px);
-    text-align: left;
+    padding: clamp(12px, 2.2vw, 18px) clamp(10px, 2vw, 16px);
+    text-align: center;
+    vertical-align: middle;
     direction: ltr;
+    overflow-wrap: anywhere;
+}
+
+/* Rank — narrow; username — flexible; score — stable column */
+.leaderboard-cell-header:nth-child(1),
+.leaderboard-cell:nth-child(1) {
+    width: 14%;
     white-space: nowrap;
+}
+
+.leaderboard-cell-header:nth-child(2),
+.leaderboard-cell:nth-child(2) {
+    width: 52%;
+    white-space: normal;
+}
+
+.leaderboard-cell-header:nth-child(3),
+.leaderboard-cell:nth-child(3) {
+    width: 34%;
+    white-space: nowrap;
+}
+
+.leaderboard-cell-header {
+    font-size: var(--fs-base);
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 .leaderboard-row-even { background-color: #222; }
@@ -1991,7 +2029,8 @@ pre,
 
     .leaderboard-cell-header,
     .leaderboard-cell {
-        padding: 8px;
+        padding: 10px 12px;
+        font-size: var(--fs-sm);
     }
 
     .difficulty-panel {
@@ -2112,7 +2151,7 @@ pre,
    Firefox uses scrollbar-width / scrollbar-color; WebKit uses ::-webkit-scrollbar. */
 .dashboard-table-shell,
 .difficulty-table-container,
-.leaderboard-table,
+.leaderboard-table-shell,
 pre,
 .code-block {
     scrollbar-width: thin;
@@ -2121,7 +2160,7 @@ pre,
 
 .dashboard-table-shell::-webkit-scrollbar,
 .difficulty-table-container::-webkit-scrollbar,
-.leaderboard-table::-webkit-scrollbar,
+.leaderboard-table-shell::-webkit-scrollbar,
 pre::-webkit-scrollbar,
 .code-block::-webkit-scrollbar {
     height: 8px;
@@ -2130,7 +2169,7 @@ pre::-webkit-scrollbar,
 
 .dashboard-table-shell::-webkit-scrollbar-track,
 .difficulty-table-container::-webkit-scrollbar-track,
-.leaderboard-table::-webkit-scrollbar-track,
+.leaderboard-table-shell::-webkit-scrollbar-track,
 pre::-webkit-scrollbar-track,
 .code-block::-webkit-scrollbar-track {
     background: transparent;
@@ -2138,7 +2177,7 @@ pre::-webkit-scrollbar-track,
 
 .dashboard-table-shell::-webkit-scrollbar-thumb,
 .difficulty-table-container::-webkit-scrollbar-thumb,
-.leaderboard-table::-webkit-scrollbar-thumb,
+.leaderboard-table-shell::-webkit-scrollbar-thumb,
 pre::-webkit-scrollbar-thumb,
 .code-block::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.22);
@@ -2147,7 +2186,7 @@ pre::-webkit-scrollbar-thumb,
 
 .dashboard-table-shell::-webkit-scrollbar-thumb:hover,
 .difficulty-table-container::-webkit-scrollbar-thumb:hover,
-.leaderboard-table::-webkit-scrollbar-thumb:hover,
+.leaderboard-table-shell::-webkit-scrollbar-thumb:hover,
 pre::-webkit-scrollbar-thumb:hover,
 .code-block::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.38);
