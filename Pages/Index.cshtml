@@ -8,6 +8,13 @@
 <head>
     <meta charset="utf-8" />
     <title>Noodles Simulator — Quiz</title>
+    <script>
+        // Set theme based on query param or cookie before rendering
+        const desktopParam = new URLSearchParams(window.location.search).get('desktop');
+        const layoutCookie = document.cookie.split('; ').find(row => row.startsWith('noodles_layout='));
+        const layout = desktopParam === '1' || layoutCookie?.includes('desktop') ? 'desktop' : 'mobile';
+        document.documentElement.classList.add('layout-' + layout);
+    </script>
     <link rel="stylesheet" href="/css/site.css" />
     <link rel="icon" type="image/png" sizes="32x32" href="/logo/noodles-logo-transparent.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/logo/noodles-logo-transparent.png">
@@ -17,21 +24,57 @@
     <meta name="theme-color" content="#222222">
 </head>
 
+@{
+    // Device detection (can be overridden with ?desktop=1 query param or cookie)
+    bool isPhoneQuiz = HttpContext.Request.Query["desktop"] != "1" 
+        && (HttpContext.Request.Headers["User-Agent"].ToString().Contains("Mobile")
+            || HttpContext.Request.Headers["User-Agent"].ToString().Contains("Android")
+            || HttpContext.Request.Headers["User-Agent"].ToString().Contains("iPhone")
+            || HttpContext.Request.Cookies["noodles_layout"] == "mobile");
+    
+    if (HttpContext.Request.Query["desktop"] == "1")
+    {
+        HttpContext.Response.Cookies.Append("noodles_layout", "desktop", 
+            new Microsoft.AspNetCore.Http.CookieOptions { Expires = DateTime.UtcNow.AddDays(30) });
+    }
+    else if (HttpContext.Request.Query["mobile"] == "1")
+    {
+        HttpContext.Response.Cookies.Append("noodles_layout", "mobile", 
+            new Microsoft.AspNetCore.Http.CookieOptions { Expires = DateTime.UtcNow.AddDays(30) });
+    }
+}
+
+<link rel="stylesheet" href="/css/mobile-shell.css" />
+<link rel="stylesheet" href="/css/mobile-shell-mobile.css" />
+<link rel="stylesheet" href="/css/quiz-index-layout.css" />
+
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
 
-<partial name="Shared/_TopBar" />
-<partial name="Shared/_LogoHeader" />
+@if (isPhoneQuiz)
+{
+    @* ═══════════════════════════════════════════════════════════════
+       MOBILE LAYOUT
+       ═══════════════════════════════════════════════════════════════ *@
+    <partial name="Shared/_MobileQuizShell" />
+}
+else
+{
+    @* ═══════════════════════════════════════════════════════════════
+       DESKTOP LAYOUT
+       ═══════════════════════════════════════════════════════════════ *@
+    <partial name="Shared/_TopBar" />
+    <partial name="Shared/_LogoHeader" />
 
+    <p class="quiz-meta quiz-meta-user">
+        👤 Logged in as <strong>@Model.Username</strong>
+    </p>
 
-<p class="quiz-meta quiz-meta-user">
-    👤 Logged in as <strong>@Model.Username</strong>
-</p>
+    <p class="quiz-meta quiz-meta-online">
+        🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
+    </p>
+}
 
-<p class="quiz-meta quiz-meta-online">
-    🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
-</p>
-
-<div class="quiz-container">
+<div class="quiz-container desktop-only">
     <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
 
     <form method="post">
@@ -84,6 +127,44 @@
     </div>
 </div>
 
+<!-- Mobile quiz container -->
+<div class="quiz-container mobile-only" style="padding-bottom: var(--bottom-nav-height); padding-top: var(--mobile-header-height);">
+    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image-mobile" class="quiz-main-image" />
+
+    <form method="post" class="mobile-quiz-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
+        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.ShuffledAnswers)' />
+
+        <div class="answers">
+            @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
+            {
+                var answerClass = "";
+                if (Model.AnswerChecked)
+                {
+                    answerClass = answer.Key == "correct" ? "correct" :
+                        (Model.SelectedAnswer == answer.Key ? "incorrect" : "");
+                }
+
+                <button type="submit"
+                        name="answer"
+                        value="@answer.Key"
+                        class="answer-btn @answerClass"
+                        @(Model.AnswerChecked ? "disabled" : "")>
+                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
+                </button>
+            }
+        </div>
+    </form>
+
+    @if (Model.AnswerChecked)
+    {
+        <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")">
+            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
+        </p>
+    }
+</div>
+
 <!-- Difficulty Selection Modal -->
 <div id="difficulty-modal" class="difficulty-modal">
     <div class="difficulty-modal-content">
@@ -112,7 +193,8 @@
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
 
-<div class="report-container">
+<!-- Desktop Report Form -->
+<div class="report-container desktop-only">
     <form id="report-form" class="report-form">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
@@ -125,8 +207,8 @@
     </form>
 </div>
 
-
-<div id="stats-panel" class="hidden">
+<!-- Desktop Stats Panel -->
+<div id="stats-panel" class="hidden desktop-only">
     <h3>📊 סטטיסטיקה אישית</h3>
     <ul>
         <li>✅ תשובות נכונות: <span id="stat-correct">0</span></li>
@@ -136,6 +218,8 @@
 </div>
 
 <script src="/js/index-page.js"></script>
+<script src="/js/mobile-shell.js"></script>
+<script src="/js/mobile-preview-page.js"></script>
 
 <!-- removed devtools cheat warning script for code cleanup -->
 
