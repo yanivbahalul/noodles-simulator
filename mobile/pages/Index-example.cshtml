@@ -1,0 +1,178 @@
+@page
+@model NoodlesSimulator.Pages.IndexModel
+@using NoodlesSimulator.Services
+@{
+    ViewData["Title"] = "Noodles Simulator — Quiz";
+    ViewData["ShowAdminLink"] = HttpContext.Session.GetString("IsAdmin") == "1";
+    var useMobileLayout = MobileLayoutPreference.ShouldUseMobileQuiz(Request);
+    var desktopLayoutPref =
+        Request.Query.ContainsKey("desktop") ||
+        string.Equals(
+            Request.Cookies[MobileLayoutPreference.LayoutCookieName],
+            MobileLayoutPreference.DesktopValue,
+            StringComparison.OrdinalIgnoreCase);
+    var isPhoneQuiz = useMobileLayout && !desktopLayoutPref;
+}
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — Quiz</title>
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/quiz-index-layout.css?v=2" />
+    @if (isPhoneQuiz)
+    {
+        <link rel="stylesheet" href="/css/mobile-shell.css?v=5" />
+        <link rel="stylesheet" href="/css/mobile-shell-mobile.css?v=5" />
+    }
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo/noodles-logo-transparent.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo/noodles-logo-transparent.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/logo/noodles-logo-transparent.png">
+    <link rel="manifest" href="/manifest.json">
+    @if (isPhoneQuiz)
+    {
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    }
+    else
+    {
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    }
+    <meta name="theme-color" content="#222222">
+</head>
+
+<body class="quiz-page" data-mobile-device="@(isPhoneQuiz ? "true" : "false")">
+
+<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+
+@if (isPhoneQuiz)
+{
+    <partial name="Shared/_MobileQuizShell" model="Model" />
+    <partial name="Shared/_LogoHeader" />
+    <p class="quiz-meta quiz-meta-user mobile-only">
+        👤 <strong>@Model.Username</strong> · 🟢 <strong id="online-count-mobile">@Model.OnlineCount</strong> מחוברים
+    </p>
+}
+else
+{
+    <partial name="Shared/_TopBar" />
+    <partial name="Shared/_LogoHeader" />
+    <p class="quiz-meta quiz-meta-user">
+        👤 Logged in as <strong>@Model.Username</strong>
+    </p>
+    <p class="quiz-meta quiz-meta-online">
+        🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
+    </p>
+}
+
+<div class="quiz-container">
+    @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
+    {
+        <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
+    }
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
+        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.ShuffledAnswers)' />
+
+        <div class="answers">
+            @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
+            {
+                var answerClass = "";
+                if (Model.AnswerChecked)
+                {
+                    answerClass = answer.Key == "correct" ? "correct" :
+                        (Model.SelectedAnswer == answer.Key ? "incorrect" : "");
+                }
+
+                <button type="submit"
+                        name="answer"
+                        value="@answer.Key"
+                        class="answer-btn @answerClass"
+                        @(Model.AnswerChecked ? "disabled" : "")>
+                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
+                </button>
+            }
+        </div>
+    </form>
+
+    @if (Model.AnswerChecked)
+    {
+        <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")">
+            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
+        </p>
+    }
+
+    @if (!isPhoneQuiz)
+    {
+        <div class="button-row">
+            <form class="inline-form-reset">
+                <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
+            </form>
+            <form method="get">
+                <button class="next-question-btn">שאלה הבאה</button>
+            </form>
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="reset" value="1" />
+                <button class="next-question-btn next-question-btn-danger">איפוס שאלות</button>
+            </form>
+        </div>
+    }
+</div>
+
+<div id="difficulty-modal" class="difficulty-modal">
+    <div class="difficulty-modal-content">
+        <span class="close-difficulty-modal" id="close-difficulty-modal-btn">&times;</span>
+        <h2 class="difficulty-modal-title">בחר רמת קושי</h2>
+        <div class="difficulty-buttons">
+            <a href="/Test?start=1&difficulty=easy" class="difficulty-btn difficulty-easy"><span class="difficulty-emoji">🟢</span><span class="difficulty-text">קל</span></a>
+            <a href="/Test?start=1&difficulty=medium" class="difficulty-btn difficulty-medium"><span class="difficulty-emoji">🟡</span><span class="difficulty-text">בינוני</span></a>
+            <a href="/Test?start=1&difficulty=hard" class="difficulty-btn difficulty-hard"><span class="difficulty-emoji">🔴</span><span class="difficulty-text">קשה</span></a>
+        </div>
+    </div>
+</div>
+
+<div id="image-modal" class="image-modal">
+    <span class="close-modal" id="close-image-modal-btn">&times;</span>
+    <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
+</div>
+
+@if (!isPhoneQuiz)
+{
+    <div class="report-container">
+        <form id="report-form" class="report-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
+            <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers)' />
+            <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
+            <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
+            <label for="explanation" class="report-label">יש טעות בשאלה? דווח לנו</label>
+            <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>
+            <button type="submit" class="next-question-btn report-submit-btn">דווח על טעות בשאלה</button>
+        </form>
+    </div>
+
+    <div id="stats-panel" class="hidden">
+        <h3>📊 סטטיסטיקה אישית</h3>
+        <ul>
+            <li>✅ תשובות נכונות: <span id="stat-correct">0</span></li>
+            <li>📋 שאלות שנענו: <span id="stat-total">0</span></li>
+            <li>📈 אחוז הצלחה: <span id="stat-success">0%</span></li>
+        </ul>
+    </div>
+}
+
+<script>window.NOODLES_QUIZ_PAGE = "/Index";</script>
+@if (isPhoneQuiz)
+{
+    <script src="/js/mobile-shell.js"></script>
+    <script src="/js/mobile-preview-page.js"></script>
+}
+<script src="/js/index-page.js"></script>
+
+<partial name="Shared/_SiteFooter" />
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+/* =======================================================================
+   quiz-index-layout.css
+   Index quiz page — center column + horizontal action buttons (RTL-safe).
+   Loaded on every Index visit (desktop and mobile).
+   ======================================================================= */
+
+/* ── Center the quiz column ──────────────────────────────────────────── */
+body.quiz-page {
+    align-items: center;
+}
+
+body.quiz-page > .top-bar,
+body.quiz-page > .top-bar-spacer,
+body.quiz-page > .site-footer {
+    align-self: stretch;
+    width: 100%;
+}
+
+body.quiz-page > .logo-header,
+body.quiz-page > .quiz-meta,
+body.quiz-page > .quiz-container,
+body.quiz-page > .report-container {
+    align-self: center;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+}
+
+body.quiz-page > .logo-header,
+body.quiz-page > .quiz-meta,
+body.quiz-page > .quiz-container {
+    width: min(var(--quiz-max, 900px), calc(100% - 2 * var(--gutter-page, 12px)));
+}
+
+body.quiz-page > .report-container {
+    width: min(440px, calc(100% - 2 * var(--gutter-page, 12px)));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+body.quiz-page .report-form {
+    width: min(440px, 100%);
+    margin-inline: auto;
+}
+
+/* ── Action buttons: one centered row (override tablet-stack from site.css) */
+body.quiz-page .quiz-container .button-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    width: 100%;
+    gap: clamp(8px, 2vw, 20px);
+    margin-top: clamp(14px, 2.5vw, 24px);
+}
+
+body.quiz-page .quiz-container .button-row > form {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+body.quiz-page .quiz-container .button-row .next-question-btn {
+    width: auto;
+    min-width: max(8rem, fit-content);
+}

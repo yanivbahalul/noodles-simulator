@@ -1,0 +1,302 @@
+@model NoodlesSimulator.Pages.IndexModel
+
+@* ================================================================
+   MobileLayout — Mobile Quiz Shell
+   Fixed header (hamburger), sticky action bar, bottom nav, drawers.
+   All elements carry .mobile-only so desktop browsers never see them.
+   ================================================================ *@
+
+@* ── Fixed top header ───────────────────────────────────────────── *@
+<header class="mobile-header mobile-only" aria-label="כותרת ניווט">
+    <div class="mobile-header-actions" dir="ltr">
+        <button type="button"
+                class="mobile-header-btn"
+                id="mobile-header-menu-btn"
+                aria-controls="mobile-drawer"
+                aria-expanded="false"
+                aria-label="פתח תפריט">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="24" height="24">
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+        </button>
+    </div>
+</header>
+
+@* ── Sticky action bar placeholder (prevents content jump) ─────── *@
+<div class="sticky-action-bar-placeholder mobile-only" aria-hidden="true"></div>
+
+@* ── Sticky action bar (fixed above bottom nav) ────────────────── *@
+<div class="button-row sticky-action-bar mobile-only" role="toolbar" aria-label="פעולות מבחן">
+    <form method="get" asp-page="/Index">
+        <button type="submit" class="next-question-btn sticky-action-primary" aria-label="שאלה הבאה">
+            שאלה הבאה
+        </button>
+    </form>
+    <form class="inline-form-reset">
+        <button type="button"
+                class="next-question-btn open-difficulty-modal-btn"
+                id="open-difficulty-modal-btn-mobile"
+                aria-label="בחר רמת קושי למבחן">
+            מבחן
+        </button>
+    </form>
+    <form method="post" asp-page="/Index">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="reset" value="1" />
+        <button type="submit" class="next-question-btn next-question-btn-danger" aria-label="אפס שאלות">
+            איפוס
+        </button>
+    </form>
+</div>
+
+@* ── Report bottom sheet backdrop ──────────────────────────────── *@
+<div class="bottom-sheet-backdrop mobile-only"
+     id="report-bottom-sheet-backdrop"
+     data-sheet-id="report-bottom-sheet"
+     aria-hidden="true"></div>
+
+@* ── Report bottom sheet ────────────────────────────────────────── *@
+<aside class="bottom-sheet report-bottom-sheet mobile-only"
+       id="report-bottom-sheet"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="report-sheet-title"
+       aria-hidden="true">
+    <div class="bottom-sheet-handle" aria-hidden="true"></div>
+    <div class="bottom-sheet-header">
+        <h3 class="bottom-sheet-title" id="report-sheet-title">דיווח על טעות בשאלה</h3>
+        <button type="button"
+                class="bottom-sheet-close"
+                data-bottom-sheet-close="report-bottom-sheet"
+                aria-label="סגור">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+        </button>
+    </div>
+    <div class="bottom-sheet-body">
+        <p class="report-sheet-intro">נתקלת בטעות? ספר לנו מה לא תקין ונתקן בהקדם.</p>
+        <form id="report-form-mobile" class="report-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="questionImage"
+                   value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
+            <input type="hidden" name="answersJson"
+                   value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers)' />
+            <input type="hidden" name="correctAnswer"
+                   value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct"))
+                       ? Model.AnswerImageOriginalNames["correct"]
+                       : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct")
+                           ? Model.ShuffledAnswers["correct"] : ""))' />
+            <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
+            <label for="explanation-mobile" class="sr-only">פרט מה לא תקין</label>
+            <textarea name="explanation"
+                      id="explanation-mobile"
+                      required
+                      placeholder="נא לפרט מה לא תקין בשאלה..."
+                      class="report-textarea"
+                      rows="4"></textarea>
+            <button type="submit" class="next-question-btn report-submit-btn">שלח דיווח</button>
+        </form>
+    </div>
+</aside>
+
+@* ── Drawer backdrop ─────────────────────────────────────────────── *@
+<div class="mobile-drawer-backdrop mobile-only"
+     id="mobile-drawer-backdrop"
+     aria-hidden="true"></div>
+
+@* ── Side drawer (slides in from the left) ───────────────────────── *@
+<aside class="mobile-drawer mobile-only"
+       id="mobile-drawer"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="mobile-drawer-heading"
+       aria-hidden="true">
+    <div class="mobile-drawer-header">
+        <span class="mobile-drawer-title" id="mobile-drawer-heading">תפריט</span>
+        <button type="button"
+                class="mobile-drawer-close"
+                id="mobile-drawer-close"
+                aria-label="סגור תפריט">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+        </button>
+    </div>
+    <nav class="mobile-drawer-nav" aria-label="ניווט ראשי">
+        <a href="/Index" class="mobile-drawer-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" />
+            </svg>
+            דף הבית
+        </a>
+        <a href="/MyExams" class="mobile-drawer-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="7" y1="9" x2="17" y2="9" />
+                <line x1="7" y1="13" x2="14" y2="13" />
+                <line x1="7" y1="17" x2="11" y2="17" />
+            </svg>
+            המבחנים שלי
+        </a>
+        <a href="/Leaderboard" class="mobile-drawer-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <path d="M8 21h8" />
+                <path d="M12 17v4" />
+                <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+            </svg>
+            טבלת מובילים
+        </a>
+        <div class="mobile-drawer-divider" role="separator"></div>
+        <button type="button"
+                class="mobile-drawer-link mobile-drawer-link-btn"
+                id="mobile-stats-trigger"
+                aria-label="פתח סטטיסטיקה אישית">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <line x1="18" y1="20" x2="18" y2="10" />
+                <line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            סטטיסטיקה אישית
+        </button>
+        <a href="/Index?desktop=1" class="mobile-drawer-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            תצוגת מחשב
+        </a>
+        <div class="mobile-drawer-divider" role="separator"></div>
+        <form method="post" asp-page="/Logout" class="mobile-drawer-logout-form">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="mobile-drawer-link mobile-drawer-link-btn mobile-drawer-link-danger">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true" width="22" height="22">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                התנתקות
+            </button>
+        </form>
+    </nav>
+</aside>
+
+@* ── Bottom navigation bar (fixed) ──────────────────────────────── *@
+<nav class="bottom-nav mobile-only" aria-label="ניווט תחתון">
+    <a href="/Index" class="bottom-nav-item is-active" aria-current="page" aria-label="דף הבית">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" width="24" height="24">
+            <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" />
+        </svg>
+        <span class="bottom-nav-label">בית</span>
+    </a>
+    <a href="/MyExams" class="bottom-nav-item" aria-label="המבחנים שלי">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" width="24" height="24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="7" y1="9" x2="17" y2="9" />
+            <line x1="7" y1="13" x2="14" y2="13" />
+        </svg>
+        <span class="bottom-nav-label">מבחנים</span>
+    </a>
+    <a href="/Leaderboard" class="bottom-nav-item" aria-label="טבלת מובילים">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" width="24" height="24">
+            <path d="M8 21h8" />
+            <path d="M12 17v4" />
+            <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
+        </svg>
+        <span class="bottom-nav-label">מובילים</span>
+    </a>
+    <button type="button"
+            class="bottom-nav-item bottom-nav-item-report"
+            id="mobile-report-trigger"
+            data-bottom-sheet="report-bottom-sheet"
+            data-bottom-sheet-focus="explanation-mobile"
+            aria-controls="report-bottom-sheet"
+            aria-label="דווח על טעות">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" width="24" height="24">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+            <line x1="4" y1="22" x2="4" y2="15" />
+        </svg>
+        <span class="bottom-nav-label">דיווח</span>
+    </button>
+</nav>
+
+@* ── Stats bottom sheet backdrop ────────────────────────────────── *@
+<div class="bottom-sheet-backdrop mobile-only"
+     id="stats-bottom-sheet-backdrop"
+     data-sheet-id="stats-bottom-sheet"
+     aria-hidden="true"></div>
+
+@* ── Stats bottom sheet ──────────────────────────────────────────── *@
+<aside class="bottom-sheet mobile-only"
+       id="stats-bottom-sheet"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="stats-sheet-title"
+       aria-hidden="true">
+    <div class="bottom-sheet-handle" aria-hidden="true"></div>
+    <div class="bottom-sheet-header">
+        <h3 class="bottom-sheet-title" id="stats-sheet-title">סטטיסטיקה אישית</h3>
+        <button type="button"
+                class="bottom-sheet-close"
+                data-bottom-sheet-close="stats-bottom-sheet"
+                aria-label="סגור">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 aria-hidden="true" width="22" height="22">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+        </button>
+    </div>
+    <div class="bottom-sheet-body">
+        <ul class="stats-bottom-sheet-list" role="list">
+            <li>
+                <span>תשובות נכונות</span>
+                <strong id="stat-correct-mobile">0</strong>
+            </li>
+            <li>
+                <span>שאלות שנענו</span>
+                <strong id="stat-total-mobile">0</strong>
+            </li>
+            <li>
+                <span>אחוז הצלחה</span>
+                <strong id="stat-success-mobile">0%</strong>
+            </li>
+            <li>
+                <span>מחוברים כעת</span>
+                <strong id="online-count-drawer">@Model.OnlineCount</strong>
+            </li>
+        </ul>
+    </div>
+</aside>
