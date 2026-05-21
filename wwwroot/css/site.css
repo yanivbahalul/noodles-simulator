@@ -46,13 +46,17 @@ html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
+    width: 100%;
+    max-width: 100%;
+    /* Clip (not hidden) on html only — overflow-x:hidden on body breaks vertical
+       scroll in Chrome when body is a flex column with min-height: 100vh. */
+    overflow-x: clip;
+    overflow-y: auto;
 }
 
-html,
 body {
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
 }
 
 img,
