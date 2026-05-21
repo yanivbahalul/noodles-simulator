@@ -4,7 +4,8 @@
     ViewData["Title"] = "Noodles Simulator — Quiz";
     ViewData["ShowAdminLink"] = HttpContext.Session.GetString("IsAdmin") == "1";
 }
-
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <title>Noodles Simulator — Quiz</title>
@@ -13,6 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
 </head>
+<body>
 
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
 
@@ -137,3 +139,5 @@
 <!-- removed devtools cheat warning script for code cleanup -->
 
 <partial name="Shared/_SiteFooter" />
+</body>
+</html>

@@ -48,15 +48,13 @@ html {
     -webkit-tap-highlight-color: transparent;
     width: 100%;
     max-width: 100%;
-    /* Clip (not hidden) on html only — overflow-x:hidden on body breaks vertical
-       scroll in Chrome when body is a flex column with min-height: 100vh. */
     overflow-x: clip;
-    overflow-y: auto;
 }
 
 body {
     width: 100%;
     max-width: 100%;
+    overflow-x: clip;
 }
 
 img,
@@ -109,6 +107,7 @@ button,
 
 .difficulty-modal-open {
     display: block !important;
+    pointer-events: auto;
 }
 
 .footer-stats-toggle-open {
@@ -137,11 +136,9 @@ body {
     background: transparent;
     color: #fff;
     min-height: 100vh;
-    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     position: relative;
-    overscroll-behavior: none;
     text-rendering: optimizeLegibility;
     font-size: var(--fs-base);
     line-height: 1.5;
@@ -1490,11 +1487,11 @@ button.answer-btn,
    -----------------------------------------------------------------------*/
 .image-modal {
     display: none;
+    pointer-events: none;
     position: fixed;
     inset: 0;
     width: 100vw;
     height: 100vh;
-    height: 100dvh;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.85);
     z-index: 5000;
@@ -1505,6 +1502,7 @@ button.answer-btn,
 .image-modal.modal-open,
 .image-modal[style*="display: flex"] {
     display: flex !important;
+    pointer-events: auto;
     justify-content: center;
     align-items: center;
 }
@@ -1547,6 +1545,7 @@ button.answer-btn,
 /* Difficulty selector */
 .difficulty-modal {
     display: none;
+    pointer-events: none;
     position: fixed;
     inset: 0;
     width: 100%;
