@@ -34,9 +34,6 @@ namespace NoodlesSimulator.Models
                 Env("SERVICE_ROLE_SECRET"),
                 Env("SUPABASE_KEY"));
 
-        public static string? AnyApiKey(IConfiguration configuration)
-            => First(AnonApiKey(configuration), ServiceRoleApiKey(configuration));
-
         public static string Bucket(IConfiguration configuration)
             => First(
                 Config(configuration, "SUPABASE_BUCKET"),

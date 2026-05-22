@@ -250,36 +250,6 @@ namespace NoodlesSimulator.Models
             return false;
         }
 
-        public async Task<List<User>> GetCheaters()
-        {
-            try
-            {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?IsCheater=eq.true&select=*");
-                var json = await res.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GetCheaters Exception] {ex}");
-                return new List<User>();
-            }
-        }
-
-        public async Task<List<User>> GetBannedUsers()
-        {
-            try
-            {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?IsBanned=eq.true&select=*");
-                var json = await res.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[GetBannedUsers Exception] {ex}");
-                return new List<User>();
-            }
-        }
-
         public async Task<List<User>> GetTopUsers(int count = 5)
         {
             try

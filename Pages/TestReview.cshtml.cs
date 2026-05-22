@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
+using System.Text.Json;
 using NoodlesSimulator.Services;
 using NoodlesSimulator.Models;
 using System;
@@ -70,8 +70,8 @@ namespace NoodlesSimulator.Pages
                     {
                         StartedUtc = session.StartedUtc,
                         CurrentIndex = session.CurrentIndex,
-                        Questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>(),
-                        Answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>()
+                        Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
+                        Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>()
                     };
                 }
             }

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.Text;
 using System.Security.Cryptography;
 using System.Net;
@@ -204,7 +204,7 @@ namespace NoodlesSimulator.Pages
                 SelectedAnswer = answer;
                 AnswerChecked = true;
                 QuestionImage = questionImage;
-                try { ShuffledAnswers = JsonConvert.DeserializeObject<Dictionary<string, string>>(answersJson); }
+                try { ShuffledAnswers = JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options); }
                 catch (Exception) { ShuffledAnswers = new Dictionary<string, string>(); }
                 IsCorrect = answer == "correct";
 
@@ -300,12 +300,13 @@ namespace NoodlesSimulator.Pages
                 if (string.IsNullOrWhiteSpace(body))
                     return new JsonResult(new { error = "Empty body" }) { StatusCode = 400 };
 
-                var data = Newtonsoft.Json.Linq.JObject.Parse(body);
-                var questionImage = data["questionImage"]?.ToString();
-                var answers = data["answers"]?.ToString();
-                var correctAnswer = data["correctAnswer"]?.ToString();
-                var explanation = data["explanation"]?.ToString();
-                var selectedAnswer = data["selectedAnswer"]?.ToString();
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                var questionImage = GetJsonString(root, "questionImage");
+                var answers = GetJsonString(root, "answers");
+                var correctAnswer = GetJsonString(root, "correctAnswer");
+                var explanation = GetJsonString(root, "explanation");
+                var selectedAnswer = GetJsonString(root, "selectedAnswer");
                 var username = HttpContext.Session.GetString("Username") ?? "Unknown";
                 var timestamp = DateTime.UtcNow;
 
@@ -331,7 +332,7 @@ namespace NoodlesSimulator.Pages
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(answers))
-                        answersDict = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(answers);
+                        answersDict = JsonSerializer.Deserialize<Dictionary<string, string>>(answers, AppJson.Options);
                     
                     if (answersDict != null)
                     {
@@ -703,7 +704,7 @@ CHOSEN_FOUND:
             {
                 var json = HttpContext.Session.GetString("RecentQuestions");
                 if (string.IsNullOrWhiteSpace(json)) return new List<string>();
-                var list = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
+                var list = JsonSerializer.Deserialize<List<string>>(json, AppJson.Options) ?? new List<string>();
                 return list.TakeLast(10).ToList();
             }
             catch
@@ -720,7 +721,7 @@ CHOSEN_FOUND:
                 list.Add(questionImage);
                 if (list.Count > 20)
                     list = list.TakeLast(20).ToList();
-                HttpContext.Session.SetString("RecentQuestions", JsonConvert.SerializeObject(list));
+                HttpContext.Session.SetString("RecentQuestions", JsonSerializer.Serialize(list, AppJson.Options));
             }
             catch (Exception ex) { Console.WriteLine($"[AddRecentQuestionToSession Error] {ex.Message}"); }
         }
@@ -829,6 +830,13 @@ CHOSEN_FOUND:
             {
                 Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}");
             }
+        }
+
+        private static string GetJsonString(JsonElement root, string propertyName)
+        {
+            if (!root.TryGetProperty(propertyName, out var value))
+                return null;
+            return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
         }
     }
 }

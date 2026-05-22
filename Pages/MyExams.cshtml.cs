@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
 using NoodlesSimulator.Services;
 using NoodlesSimulator.Models;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,25 +72,17 @@ namespace NoodlesSimulator.Pages
                 
                 if (session != null && session.Username == username && session.Status == "active")
                 {
-                    var questions = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.QuestionsJson);
-                    var answers = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(session.AnswersJson);
-                    
-                    int correctCount = 0;
-                    if (answers != null)
-                    {
-                        foreach (var answer in answers)
-                        {
-                            if (answer != null && answer.ContainsKey("IsCorrect") && answer["IsCorrect"] is bool isCorrect && isCorrect)
-                            {
-                                correctCount++;
-                            }
-                        }
-                    }
-                    
+                    var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options)
+                                    ?? new List<TestQuestion>();
+                    var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options)
+                                  ?? new List<TestAnswer>();
+
+                    var correctCount = answers.Count(a => a != null && a.IsCorrect);
+
                     session.Status = "completed";
                     session.CompletedUtc = DateTime.UtcNow;
                     session.Score = correctCount * 6;
-                    session.MaxScore = (questions?.Count ?? 0) * 6;
+                    session.MaxScore = questions.Count * 6;
                     
                     Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
@@ -118,7 +110,7 @@ namespace NoodlesSimulator.Pages
                 if (string.IsNullOrEmpty(session.QuestionsJson))
                     return 0;
                 
-                var questions = JsonConvert.DeserializeObject<List<object>>(session.QuestionsJson);
+                var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options);
                 return questions?.Count ?? 0;
             }
             catch

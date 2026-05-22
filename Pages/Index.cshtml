@@ -36,7 +36,7 @@
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
-        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.ShuffledAnswers)' />
+        <input type="hidden" name="answersJson" value='@System.Text.Json.JsonSerializer.Serialize(Model.ShuffledAnswers, NoodlesSimulator.Models.AppJson.Options)' />
 
         <div class="answers">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
@@ -115,7 +115,7 @@
     <form id="report-form" class="report-form">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
-        <input type="hidden" name="answersJson" value='@Newtonsoft.Json.JsonConvert.SerializeObject(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers)' />
+        <input type="hidden" name="answersJson" value='@System.Text.Json.JsonSerializer.Serialize(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers, NoodlesSimulator.Models.AppJson.Options)' />
         <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
         <label for="explanation" class="report-label">יש טעות בשאלה? דווח לנו</label>

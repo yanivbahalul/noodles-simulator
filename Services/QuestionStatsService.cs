@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using System.Text.Json;
+using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services
 {
@@ -55,7 +56,7 @@ namespace NoodlesSimulator.Services
                     var json = File.ReadAllText(_statsPath, Encoding.UTF8);
                     _cache = string.IsNullOrWhiteSpace(json)
                         ? new Dictionary<string, Stat>(StringComparer.OrdinalIgnoreCase)
-                        : JsonConvert.DeserializeObject<Dictionary<string, Stat>>(json)
+                        : JsonSerializer.Deserialize<Dictionary<string, Stat>>(json, AppJson.Options)
                           ?? new Dictionary<string, Stat>(StringComparer.OrdinalIgnoreCase);
                 }
                 catch
@@ -72,7 +73,7 @@ namespace NoodlesSimulator.Services
             {
                 try
                 {
-                    var json = JsonConvert.SerializeObject(_cache);
+                    var json = JsonSerializer.Serialize(_cache, AppJson.Options);
                     var tmp = _statsPath + ".tmp";
                     File.WriteAllText(tmp, json, Encoding.UTF8);
                     File.Copy(tmp, _statsPath, overwrite: true);

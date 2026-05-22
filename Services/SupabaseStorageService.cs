@@ -201,10 +201,10 @@ namespace NoodlesSimulator.Services
                 var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
                 
                 // Parse the JSON to get the "url" field
-                var tokenData = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                if (tokenData.TryGetValue("url", out var urlObj))
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("url", out var urlEl))
                 {
-                    var url = urlObj.ToString();
+                    var url = urlEl.GetString();
                     // Extract the file name from the URL
                     var fileName = System.IO.Path.GetFileName(url);
                     return fileName;

@@ -5,7 +5,7 @@ namespace NoodlesSimulator.Models
 {
     /// <summary>
     /// Single place for email env vars. Set each value once in Railway / shell:
-    /// EMAIL_TO, Email__SmtpUser, Email__SmtpPass (legacy alias: EMAIL_SMTP_PASS).
+    /// EMAIL_TO, Email__SmtpUser, Email__SmtpPass.
     /// </summary>
     internal static class EmailConfiguration
     {
@@ -17,7 +17,6 @@ namespace NoodlesSimulator.Models
         public static string SmtpPass(IConfiguration configuration)
             => FirstNonEmpty(
                 Env("Email__SmtpPass"),
-                Env("EMAIL_SMTP_PASS"),
                 Config(configuration, "Email:SmtpPass"))
                ?.Replace(" ", "") ?? string.Empty;
 

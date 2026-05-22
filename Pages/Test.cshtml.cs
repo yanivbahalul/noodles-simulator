@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
-using Newtonsoft.Json;
-using NoodlesSimulator.Services;
+using System.Text.Json;
 using NoodlesSimulator.Models;
+using NoodlesSimulator.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -89,7 +89,7 @@ namespace NoodlesSimulator.Pages
                 var state = await BuildNewStateAsync(difficulty);
                 Console.WriteLine($"[Test OnGet] Built state with {state.Questions.Count} questions");
                 
-                var questionsJson = JsonConvert.SerializeObject(state.Questions);
+                var questionsJson = JsonSerializer.Serialize(state.Questions, AppJson.Options);
                 Console.WriteLine($"[Test OnGet] Attempting to create session in database...");
                 
                 session = await _testSession.CreateSession(username, questionsJson);
@@ -117,8 +117,8 @@ namespace NoodlesSimulator.Pages
             var testState = new TestState
             {
                 StartedUtc = session.StartedUtc,
-                Questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>(),
-                Answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>(),
+                Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
+                Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>(),
                 CurrentIndex = session.CurrentIndex
             };
 
@@ -164,8 +164,8 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
 
-            var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
-            var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
+            var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
+            var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
 
             var selected = Request.Form["answer"].ToString();
             var idxStr = Request.Form["questionIndex"].ToString();
@@ -195,7 +195,7 @@ namespace NoodlesSimulator.Pages
             catch (Exception ex) { Console.WriteLine($"[Test OnPost Stats Update Error] {ex.Message}"); }
 
             session.CurrentIndex = Math.Min(idx + 1, questions.Count);
-            session.AnswersJson = JsonConvert.SerializeObject(answers);
+            session.AnswersJson = JsonSerializer.Serialize(answers, AppJson.Options);
             session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
             session.MaxScore = questions.Count * 6;
 
@@ -231,8 +231,8 @@ namespace NoodlesSimulator.Pages
                 {
                     Console.WriteLine($"[Test OnPostEndTest] Session found. Current status: {session.Status}");
                     
-                    var questions = JsonConvert.DeserializeObject<List<TestQuestion>>(session.QuestionsJson) ?? new List<TestQuestion>();
-                    var answers = JsonConvert.DeserializeObject<List<TestAnswer>>(session.AnswersJson) ?? new List<TestAnswer>();
+                    var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
+                    var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
                     
                     session.Status = "completed";
                     session.CompletedUtc = DateTime.UtcNow;
@@ -405,7 +405,7 @@ namespace NoodlesSimulator.Pages
                 }
 
                 var json = await System.IO.File.ReadAllTextAsync(fullPath);
-                var difficultyData = JsonConvert.DeserializeObject<DifficultyConfig>(json);
+                var difficultyData = JsonSerializer.Deserialize<DifficultyConfig>(json, AppJson.Options);
                 
                 Console.WriteLine($"[Test] Loaded {difficultyData?.Questions?.Count ?? 0} questions from JSON for difficulty '{difficulty}'");
                 return difficultyData?.Questions ?? new List<string>();
