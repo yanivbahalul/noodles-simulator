@@ -22,19 +22,9 @@ namespace NoodlesSimulator.Services
 
         public TestSessionService(IConfiguration config)
         {
-            _url = NormalizeSecret(config["SUPABASE_URL"])
-                   ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_URL"))
-                   ?? string.Empty;
-            _apiKey = NormalizeSecret(config["SUPABASE_SERVICE_ROLE_KEY"])
-                      ?? NormalizeSecret(config["SERVICE_ROLE_SECRET"])
-                      ?? NormalizeSecret(config["SUPABASE_KEY"])
-                      ?? NormalizeSecret(config["SUPABASE_ANON_KEY"])
-                      ?? NormalizeSecret(config["ANON_PUBLIC"])
-                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
-                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"))
-                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
-                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
-                      ?? NormalizeSecret(Environment.GetEnvironmentVariable("ANON_PUBLIC"))
+            _url = SupabaseConfiguration.Url(config) ?? string.Empty;
+            _apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
+                      ?? SupabaseConfiguration.AnonApiKey(config)
                       ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
@@ -46,20 +36,6 @@ namespace NoodlesSimulator.Services
             };
             _client.DefaultRequestHeaders.Add("apikey", _apiKey);
             _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
-        }
-
-        private static string? NormalizeSecret(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            var trimmed = value.Trim();
-            if (trimmed.Length >= 2 && trimmed.StartsWith("\"", StringComparison.Ordinal) && trimmed.EndsWith("\"", StringComparison.Ordinal))
-            {
-                trimmed = trimmed[1..^1].Trim();
-            }
-
-            return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
         }
 
         public string GenerateToken()

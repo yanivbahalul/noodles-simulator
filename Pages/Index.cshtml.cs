@@ -9,8 +9,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Text;
-using MailKit.Net.Smtp;
-using MimeKit;
 using System.Security.Cryptography;
 using System.Net;
 using NoodlesSimulator.Services;
@@ -328,10 +326,7 @@ namespace NoodlesSimulator.Pages
                         correctAnswer = extractedName;
                 }
 
-                var message = new MimeMessage();
-                message.Subject = $"דיווח טעות חדשה מהמשתמש {username}";
-
-                var bodyBuilder = new BodyBuilder();
+                var reportSubject = $"דיווח טעות חדשה מהמשתמש {username}";
                 var answersDict = new Dictionary<string, string>();
                 try
                 {
@@ -485,16 +480,12 @@ namespace NoodlesSimulator.Pages
 </body>
 </html>";
 
-                bodyBuilder.HtmlBody = htmlBody;
-                bodyBuilder.TextBody = null;
-
                 try
                 {
                     if (_emailService != null && _emailService.IsConfigured)
                     {
-                        var html = bodyBuilder.HtmlBody;
                         Console.WriteLine($"[Report] Sending error report email...");
-                        var result = _emailService.Send(message.Subject, html);
+                        var result = _emailService.Send(reportSubject, htmlBody);
                         if (result)
                         {
                             Console.WriteLine($"[Report] Error report email sent successfully");

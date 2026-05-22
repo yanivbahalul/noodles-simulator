@@ -1,8 +1,11 @@
 bin/
 obj/
 out/
+.DS_Store
+.cursor/
+.env
+data-keys/
 
-# Data files (stored in persistent storage in production)
 wwwroot/reports/*.json
 wwwroot/progress/*.json
 progress/*.json 

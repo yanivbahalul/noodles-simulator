@@ -60,7 +60,7 @@ namespace NoodlesSimulator.Models
             Console.WriteLine($"  - EmailTo: {(string.IsNullOrWhiteSpace(_emailTo) ? "NULL" : "***SET***")}");
             Console.WriteLine($"  - EmailFrom: {(string.IsNullOrWhiteSpace(_emailFrom) ? "NULL" : "***SET***")}");
             Console.WriteLine($"  - EmailFromName: {(_emailFromName ?? "NULL")}");
-            Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - Email will fail on Render!" : "SET (length: " + _brevoApiKey.Length + ")")}");
+            Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - required for email in Production" : "SET (length: " + _brevoApiKey.Length + ")")}");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
             
             if (!IsConfigured)
@@ -93,7 +93,7 @@ namespace NoodlesSimulator.Models
             
             try
             {
-                // Prefer Brevo API (works on Render/PaaS that block SMTP)
+                // Prefer Brevo API (works on Railway/PaaS that block SMTP)
                 if (!string.IsNullOrWhiteSpace(_brevoApiKey))
                 {
                     Console.WriteLine("[EmailService] Brevo API key found, using Brevo...");
@@ -110,7 +110,7 @@ namespace NoodlesSimulator.Models
                     Console.WriteLine("[EmailService] Brevo API key NOT found, falling back to SMTP");
                 }
 
-                // Check if we're in production (Render blocks SMTP)
+                // Check if we're in production (many hosts block outbound SMTP)
                 var isProd = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
                 if (isProd && string.IsNullOrWhiteSpace(_brevoApiKey))
                 {

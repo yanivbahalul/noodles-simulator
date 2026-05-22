@@ -37,13 +37,26 @@ namespace NoodlesSimulator.Models
         public static string? AnyApiKey(IConfiguration configuration)
             => First(AnonApiKey(configuration), ServiceRoleApiKey(configuration));
 
+        public static string Bucket(IConfiguration configuration)
+            => First(
+                Config(configuration, "SUPABASE_BUCKET"),
+                Env("SUPABASE_BUCKET")) ?? "noodles-images";
+
+        public static int SignedUrlTtlSeconds(IConfiguration configuration)
+        {
+            var ttlStr = First(
+                Config(configuration, "SUPABASE_SIGNED_URL_TTL"),
+                Env("SUPABASE_SIGNED_URL_TTL"));
+            return int.TryParse(ttlStr, out var ttl) && ttl > 0 ? ttl : 3600;
+        }
+
         private static string? Config(IConfiguration configuration, string key)
             => Normalize(configuration[key]);
 
         private static string? Env(string name)
             => Normalize(Environment.GetEnvironmentVariable(name));
 
-        private static string? Normalize(string? value)
+        internal static string? Normalize(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return null;

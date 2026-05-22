@@ -1,16 +1,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-RUN apt-get update \
-    && apt-get install -y python3 python-is-python3 \
-    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-RUN apt-get update \
-    && apt-get install -y python3 python-is-python3 \
-    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY NoodlesSimulator.csproj ./
 RUN dotnet restore "NoodlesSimulator.csproj"
@@ -20,5 +14,4 @@ RUN dotnet publish "NoodlesSimulator.csproj" -c Release -o /app/publish /p:UseAp
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-COPY render_monitor.py /app/render_monitor.py
-ENTRYPOINT ["sh", "-c", "python3 /app/render_monitor.py & dotnet NoodlesSimulator.dll --urls http://0.0.0.0:${PORT:-8080}"]
+ENTRYPOINT ["dotnet", "NoodlesSimulator.dll", "--urls", "http://0.0.0.0:8080"]

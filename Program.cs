@@ -31,9 +31,6 @@ builder.Services.AddSingleton<EmailService>(provider =>
     return new EmailService(configuration);
 });
 
-// Data protection - disabled to prevent key ring issues
-// builder.Services.AddDataProtection();
-
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -84,20 +81,6 @@ var statsPath = isProd
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
-static string NormalizeEnv(string value)
-{
-    if (string.IsNullOrWhiteSpace(value))
-        return null;
-
-    var trimmed = value.Trim();
-    if (trimmed.Length >= 2 && trimmed.StartsWith("\"", StringComparison.Ordinal) && trimmed.EndsWith("\"", StringComparison.Ordinal))
-    {
-        trimmed = trimmed[1..^1].Trim();
-    }
-
-    return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
-}
-
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
@@ -112,18 +95,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Antiforgery - disabled to prevent key ring issues
-// builder.Services.AddAntiforgery();
-
-var sbUrl = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_URL"));
-var sbAnon = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
-            ?? NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
-            ?? NormalizeEnv(Environment.GetEnvironmentVariable("ANON_PUBLIC"));
-var sbService = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
-               ?? NormalizeEnv(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"));
-var sbBucket = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_BUCKET")) ?? "noodles-images";
-var sbTtlStr = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL")) ?? "3600";
-var sbTtl = int.TryParse(sbTtlStr, out var ttlVal) ? ttlVal : 3600;
+var sbUrl = SupabaseConfiguration.Url(builder.Configuration);
+var sbService = SupabaseConfiguration.ServiceRoleApiKey(builder.Configuration);
+var sbBucket = SupabaseConfiguration.Bucket(builder.Configuration);
+var sbTtl = SupabaseConfiguration.SignedUrlTtlSeconds(builder.Configuration);
 
 if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 {
@@ -272,14 +247,12 @@ app.MapPost("/clear-session", async context =>
 
 app.MapGet("/health", async context =>
 {
-    var url      = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_URL"));
-    var anon     = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_ANON_KEY"))
-                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_KEY"))
-                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("ANON_PUBLIC"));
-    var service  = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY"))
-                   ?? NormalizeEnv(Environment.GetEnvironmentVariable("SERVICE_ROLE_SECRET"));
-    var bucket   = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_BUCKET"));
-    var ttl      = NormalizeEnv(Environment.GetEnvironmentVariable("SUPABASE_SIGNED_URL_TTL"));
+    var config = context.RequestServices.GetRequiredService<IConfiguration>();
+    var url = SupabaseConfiguration.Url(config);
+    var anon = SupabaseConfiguration.AnonApiKey(config);
+    var service = SupabaseConfiguration.ServiceRoleApiKey(config);
+    var bucket = SupabaseConfiguration.Bucket(config);
+    var ttl = SupabaseConfiguration.SignedUrlTtlSeconds(config).ToString();
 
     var isProdEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
     var imagesDir   = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
@@ -294,7 +267,7 @@ app.MapGet("/health", async context =>
         supabaseAnon = string.IsNullOrWhiteSpace(anon) ? "missing" : "ok",
         supabaseService = string.IsNullOrWhiteSpace(service) ? "missing" : "ok",
         supabaseBucket = string.IsNullOrWhiteSpace(bucket) ? "missing" : "ok",
-        supabaseTtl = string.IsNullOrWhiteSpace(ttl) ? "missing" : "ok",
+        supabaseTtlSeconds = ttl,
         imagesDir = Directory.Exists(imagesDir),
         reportsDir = Directory.Exists(reportsDir),
         progressDir = Directory.Exists(progressDir)
