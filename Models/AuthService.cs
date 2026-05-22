@@ -22,15 +22,12 @@ namespace NoodlesSimulator.Models
 
         public AuthService(IConfiguration config)
         {
-            _url = config["SUPABASE_URL"]!;
-            _apiKey =
-                config["SUPABASE_KEY"]
-                ?? config["SUPABASE_SERVICE_ROLE_KEY"]
-                ?? config["SUPABASE_ANON_KEY"]
-                ?? throw new Exception("Missing Supabase key ENV vars.");
+            _url = SupabaseConfiguration.Url(config)
+                   ?? throw new Exception("Missing Supabase URL ENV var (SUPABASE_URL).");
 
-            if (string.IsNullOrWhiteSpace(_url))
-                throw new Exception("Missing Supabase URL ENV var.");
+            _apiKey = SupabaseConfiguration.AnonApiKey(config)
+                      ?? throw new Exception(
+                          "Missing Supabase anon key (set SUPABASE_ANON_KEY, ANON_PUBLIC, or SUPABASE_KEY).");
 
             _client = new HttpClient
             {
