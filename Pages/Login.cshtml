@@ -20,7 +20,7 @@
 <partial name="Shared/_LogoHeader" />
 <!-- login button  -->
 <div class="login-container login-panel">
-    <h2 class="login-title">! ברוכים הבאים</h2>
+    <h2 class="login-title">ברוכים הבאים!</h2>
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
         <p class="error-message @(Model.ErrorMessage.Contains("נחסם") ? "login-error-banned" : "login-error-regular")">
