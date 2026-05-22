@@ -27,30 +27,16 @@ namespace NoodlesSimulator.Models
         public EmailService(IConfiguration configuration)
         {
             Console.WriteLine("[EmailService] Initializing EmailService...");
-            
-            string Get(string primary, string fallback1 = null, string fallback2 = null)
-                => Environment.GetEnvironmentVariable(primary)
-                   ?? (fallback1 != null ? Environment.GetEnvironmentVariable(fallback1) : null)
-                   ?? (fallback2 != null ? Environment.GetEnvironmentVariable(fallback2) : null)
-                   ?? configuration[$"{primary.Replace("__", ":").Replace("Email", "Email")}"]
-                   ?? string.Empty;
 
-            _smtpHost = Get("Email__SmtpHost", "EmailSmtpHost");
-            var portStr = Get("Email__SmtpPort", "EmailSmtpPort");
-            _smtpPort = int.TryParse(portStr, out var p) ? p : 587;
-            _smtpUser = Get("Email__SmtpUser");
-            var pass = Get("Email__SmtpPass", "EMAIL_SMTP_PASS").Replace(" ", "");
-            _smtpPass = string.IsNullOrWhiteSpace(pass) ? configuration["Email:SmtpPass"] ?? string.Empty : pass;
-            _useSsl = (Get("Email__UseSsl", "EmailUseSsl").ToLowerInvariant() == "true") || true;
-            _emailTo = Get("EMAIL_TO");
-            _emailFrom = Get("EMAIL_FROM");
-            _emailFromName = Get("EMAIL_FROM_NAME");
-
-            if (string.IsNullOrWhiteSpace(_emailFrom)) _emailFrom = _smtpUser;
-            if (string.IsNullOrWhiteSpace(_smtpHost)) _smtpHost = "smtp.gmail.com";
-
-            // Brevo (Sendinblue) API key (preferred for cloud)
-            _brevoApiKey = Environment.GetEnvironmentVariable("BREVO_API_KEY");
+            _smtpHost = EmailConfiguration.SmtpHost(configuration);
+            _smtpPort = EmailConfiguration.SmtpPort(configuration);
+            _smtpUser = EmailConfiguration.SmtpUser(configuration);
+            _smtpPass = EmailConfiguration.SmtpPass(configuration);
+            _useSsl = EmailConfiguration.UseSsl(configuration);
+            _emailTo = EmailConfiguration.EmailTo(configuration);
+            _emailFrom = EmailConfiguration.EmailFrom(configuration);
+            _emailFromName = EmailConfiguration.EmailFromName(configuration);
+            _brevoApiKey = EmailConfiguration.BrevoApiKey();
 
             var smtpConfigured = !string.IsNullOrWhiteSpace(_smtpHost)
                            && !string.IsNullOrWhiteSpace(_smtpUser)

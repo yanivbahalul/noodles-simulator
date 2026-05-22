@@ -134,14 +134,19 @@ else
     Console.WriteLine("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
 }
 
-var emailTo = Environment.GetEnvironmentVariable("EMAIL_TO");
-var emailUser = Environment.GetEnvironmentVariable("Email__SmtpUser");
-var emailPass = Environment.GetEnvironmentVariable("Email__SmtpPass");
+var emailTo = NoodlesSimulator.Models.EmailConfiguration.EmailTo(builder.Configuration);
+var emailUser = NoodlesSimulator.Models.EmailConfiguration.SmtpUser(builder.Configuration);
+var emailPass = NoodlesSimulator.Models.EmailConfiguration.SmtpPass(builder.Configuration);
 
-Console.WriteLine($"Email configuration:");
-Console.WriteLine($"   EMAIL_TO: {emailTo}");
-Console.WriteLine($"   SmtpUser: {emailUser}");
-Console.WriteLine($"   SmtpPass: {(string.IsNullOrEmpty(emailPass) ? "NOT SET" : "SET")}");
+Console.WriteLine("Email configuration (set each once: EMAIL_TO, Email__SmtpUser, Email__SmtpPass):");
+Console.WriteLine($"   EMAIL_TO: {(string.IsNullOrEmpty(emailTo) ? "NOT SET" : "SET")}");
+Console.WriteLine($"   Email__SmtpUser: {(string.IsNullOrEmpty(emailUser) ? "NOT SET" : "SET")}");
+Console.WriteLine($"   Email__SmtpPass: {(string.IsNullOrEmpty(emailPass) ? "NOT SET" : "SET")}");
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("EMAIL_SMTP_PASS"))
+    && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("Email__SmtpPass")))
+{
+    Console.WriteLine("   (using legacy EMAIL_SMTP_PASS — you can remove it and keep only Email__SmtpPass)");
+}
 
 if (string.IsNullOrEmpty(emailTo) || string.IsNullOrEmpty(emailUser) || string.IsNullOrEmpty(emailPass))
 {
