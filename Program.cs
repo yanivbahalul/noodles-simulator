@@ -155,6 +155,7 @@ builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
 builder.Services.AddSingleton<DashboardDataService>();
+builder.Services.AddSingleton<SystemHealthService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {

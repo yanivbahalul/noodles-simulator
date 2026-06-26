@@ -3419,3 +3419,60 @@ pre::-webkit-scrollbar-thumb:hover,
         display: none !important;
     }
 }
+
+/* System check (admin) */
+.system-check-page .system-check-subtitle {
+    color: #aaa;
+    margin: -0.5rem 0 1rem;
+    font-size: var(--fs-sm);
+}
+
+.system-check-banner {
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.system-check-banner-ok {
+    background: #1f3d2a;
+    border-color: #28a745;
+    color: #9fdfb0;
+}
+
+.system-check-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+}
+
+.system-check-table td:nth-child(3) {
+    word-break: break-word;
+    max-width: 420px;
+}
+
+.system-check-row-ok td:first-child {
+    border-right: 3px solid #28a745;
+}
+
+.system-check-row-fail td:first-child {
+    border-right: 3px solid #dc3545;
+}
+
+.system-check-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: var(--fs-xs);
+    font-weight: 700;
+}
+
+.system-check-badge-ok {
+    background: #1f3d2a;
+    color: #9fdfb0;
+}
+
+.system-check-badge-fail {
+    background: #3d1f1f;
+    color: #ffb0b0;
+}
