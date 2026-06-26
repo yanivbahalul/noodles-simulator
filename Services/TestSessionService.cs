@@ -310,6 +310,61 @@ public class TestSessionService
             return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
         }
 
+        public async Task<List<TestSession>> GetActiveSessionsAsync(int limit = 20)
+        {
+            try
+            {
+                var res = await _client.GetAsync(
+                    $"{_url}/rest/v1/test_sessions?Status=eq.active&select=*&order=UpdatedAt.desc&limit={limit}");
+                if (!res.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[GetActiveSessionsAsync Error] {res.StatusCode}");
+                    return new List<TestSession>();
+                }
+
+                var json = await res.Content.ReadAsStringAsync();
+                var sessions = JsonSerializer.Deserialize<List<TestSession>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return (sessions ?? new List<TestSession>())
+                    .Where(s => s != null && !IsExpired(s))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetActiveSessionsAsync Exception] {ex}");
+                return new List<TestSession>();
+            }
+        }
+
+        public async Task<List<TestSession>> GetRecentCompletedSessionsAsync(int limit = 25)
+        {
+            try
+            {
+                var res = await _client.GetAsync(
+                    $"{_url}/rest/v1/test_sessions?Status=eq.completed&select=*&order=CompletedUtc.desc&limit={limit}");
+                if (!res.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[GetRecentCompletedSessionsAsync Error] {res.StatusCode}");
+                    return new List<TestSession>();
+                }
+
+                var json = await res.Content.ReadAsStringAsync();
+                var sessions = JsonSerializer.Deserialize<List<TestSession>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return sessions ?? new List<TestSession>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetRecentCompletedSessionsAsync Exception] {ex}");
+                return new List<TestSession>();
+            }
+        }
+
         public async Task<List<(string Username, int ExamCount)>> GetExamCountLeaderboardAsync(int limit = 50)
         {
             try

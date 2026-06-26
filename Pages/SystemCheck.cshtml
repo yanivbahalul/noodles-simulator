@@ -1,0 +1,78 @@
+@page
+@model NoodlesSimulator.Pages.SystemCheckModel
+@{
+    Layout = null;
+    ViewData["ShowAdminLink"] = true;
+    var report = Model.Report;
+}
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — בדיקת מערכות</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <partial name="Shared/_SiteIcons" />
+</head>
+<body>
+    <partial name="Shared/_TopBar" />
+    <partial name="Shared/_LogoHeader" />
+    <img src="/assets/background.gif" class="background-gif" alt="" aria-hidden="true" />
+
+    <main class="dashboard-page system-check-page">
+        <h1 class="dashboard-title">🔍 בדיקת מערכות</h1>
+        <p class="system-check-subtitle">
+            סביבה: <strong>@report.Environment</strong>
+            · נבדק ב-@report.CheckedAtUtc.ToLocalTime().ToString("HH:mm:ss")
+        </p>
+
+        @if (report.AllOk)
+        {
+            <div class="dashboard-alert dashboard-alert-success system-check-banner system-check-banner-ok">
+                ✅ כל המערכות פועלות תקין
+            </div>
+        }
+        else
+        {
+            <div class="dashboard-alert dashboard-alert-soft-error system-check-banner">
+                ⚠️ יש בעיות שדורשות טיפול
+            </div>
+        }
+
+        <div class="system-check-actions">
+            <a href="/SystemCheck" class="btn">🔄 הרץ שוב</a>
+            <a href="/Dashboard" class="btn">⬅ חזרה לניהול</a>
+        </div>
+
+        <div class="dashboard-table-shell">
+            <table class="dashboard-table system-check-table">
+                <thead>
+                    <tr>
+                        <th>מערכת</th>
+                        <th>סטטוס</th>
+                        <th>פרטים</th>
+                        <th>זמן</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var check in report.Checks)
+                    {
+                        <tr class="@(check.Ok ? "system-check-row-ok" : "system-check-row-fail")">
+                            <td>@check.Name</td>
+                            <td>
+                                <span class="system-check-badge @(check.Ok ? "system-check-badge-ok" : "system-check-badge-fail")">
+                                    @(check.Ok ? "תקין" : "בעיה")
+                                </span>
+                            </td>
+                            <td>@check.Detail</td>
+                            <td>@check.ElapsedMs ms</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <partial name="Shared/_SiteFooter" />
+</body>
+</html>

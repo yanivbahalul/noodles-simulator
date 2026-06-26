@@ -57,11 +57,12 @@ public class LeaderboardDataService
 
         var (rows, hint) = tab switch
         {
-            "rate" => (await BuildSuccessRateAsync(), "ממוין לפי אחוז הצלחה — כל המשתמשים בטבלה"),
-            "weekly" => (await BuildWeeklyAsync(), "50 המובילים — נכונות מתחילת השבוע הנוכחי"),
-            "exam" => (await BuildExamAsync(), "50 המובילים — מספר מבחנים שהושלמו"),
-            "level" or "daily" => (await BuildLevelAsync(), "50 המובילים לפי רמה — מתעדכן אוטומטית כל 3 שניות"),
-            _ => (await BuildTotalAsync(), "50 המובילים לפי סה\"כ תשובות נכונות")
+            "rate" => (await BuildSuccessRateAsync(), "דירוג לפי אחוז הצלחה"),
+            "weekly" => (await BuildWeeklyAsync(), "דירוג לפי נכונות השבוע"),
+            "exam" => (await BuildExamAsync(), "דירוג לפי מבחנים שהושלמו"),
+            "achievement" or "achievements" => (await BuildAchievementsAsync(), "דירוג לפי הישגים"),
+            "level" or "daily" => (await BuildLevelAsync(), "דירוג לפי רמה"),
+            _ => (await BuildTotalAsync(), "דירוג לפי סה\"כ תשובות נכונות")
         };
 
         lock (_cacheLock)
@@ -123,26 +124,12 @@ public class LeaderboardDataService
 
     private async Task<List<User>> GetLeaderboardPoolAsync()
     {
-        var byName = new Dictionary<string, User>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var u in Eligible(await _auth.GetTopUsersAsync(LeaderboardSize)))
-            byName[u.Username] = u;
-
-        foreach (var u in Eligible(await _auth.GetAllUsersLightAsync()))
-        {
-            if (!byName.ContainsKey(u.Username))
-                byName[u.Username] = u;
-        }
-
-        return byName.Values.ToList();
+        return Eligible(await _auth.GetTopUsersAsync(LeaderboardSize)).ToList();
     }
 
     private async Task<List<Row>> BuildSuccessRateAsync()
     {
-        var users = (await GetLeaderboardPoolAsync())
-            .OrderByDescending(SuccessRate)
-            .ThenByDescending(u => u.CorrectAnswers)
-            .ThenBy(u => u.Username, StringComparer.OrdinalIgnoreCase)
+        var users = Eligible(await _auth.GetTopUsersBySuccessRateAsync(LeaderboardSize))
             .Take(LeaderboardSize)
             .ToList();
 
@@ -158,7 +145,6 @@ public class LeaderboardDataService
     {
         var weekKey = UserProgressService.GetWeekKey();
         var pool = await GetLeaderboardPoolAsync();
-        var allUsers = await _auth.GetAllUsersLightAsync();
         var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var u in pool)
@@ -166,7 +152,7 @@ public class LeaderboardDataService
 
         if (_progress != null)
         {
-            foreach (var (username, weeklyCorrect) in _progress.GetWeeklyLeaderboard(500))
+            foreach (var (username, weeklyCorrect) in _progress.GetWeeklyLeaderboard(LeaderboardSize))
             {
                 if (!scores.ContainsKey(username))
                     scores[username] = weeklyCorrect;
@@ -175,13 +161,12 @@ public class LeaderboardDataService
             }
         }
 
-        return ToRows(TopScores(scores, pool), allUsers, kv => kv.Value.ToString());
+        return ToRows(TopScores(scores, pool), pool, kv => kv.Value.ToString());
     }
 
     private async Task<List<Row>> BuildExamAsync()
     {
         var pool = await GetLeaderboardPoolAsync();
-        var allUsers = await _auth.GetAllUsersLightAsync();
         var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var u in pool)
@@ -189,7 +174,7 @@ public class LeaderboardDataService
 
         if (_testSessions != null)
         {
-            foreach (var (username, examCount) in await _testSessions.GetExamCountLeaderboardAsync(500))
+            foreach (var (username, examCount) in await _testSessions.GetExamCountLeaderboardAsync(LeaderboardSize))
             {
                 if (!counts.ContainsKey(username))
                     counts[username] = examCount;
@@ -200,7 +185,7 @@ public class LeaderboardDataService
 
         if (_progress != null)
         {
-            foreach (var (username, examCount) in _progress.GetExamCountLeaderboard(500))
+            foreach (var (username, examCount) in _progress.GetExamCountLeaderboard(LeaderboardSize))
             {
                 if (!counts.ContainsKey(username))
                     counts[username] = examCount;
@@ -209,30 +194,60 @@ public class LeaderboardDataService
             }
         }
 
-        return ToRows(TopScores(counts, pool), allUsers, kv => kv.Value.ToString());
+        return ToRows(TopScores(counts, pool), pool, kv => kv.Value.ToString());
     }
 
-    private List<Row> ToRows(IEnumerable<KeyValuePair<string, int>> ordered, List<User> allUsers, Func<KeyValuePair<string, int>, string> format)
+    private async Task<List<Row>> BuildAchievementsAsync()
+    {
+        var pool = await GetLeaderboardPoolAsync();
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var u in pool)
+            counts[u.Username] = 0;
+
+        if (_progressStore?.IsEnabled == true)
+        {
+            foreach (var (username, achievementCount) in await _progressStore.GetAchievementCountLeaderboardAsync(LeaderboardSize))
+            {
+                if (!counts.ContainsKey(username))
+                    counts[username] = achievementCount;
+                else if (achievementCount > counts[username])
+                    counts[username] = achievementCount;
+            }
+        }
+
+        if (_progress != null)
+        {
+            foreach (var (username, achievementCount) in _progress.GetAchievementCountLeaderboard(LeaderboardSize))
+            {
+                if (!counts.ContainsKey(username))
+                    counts[username] = achievementCount;
+                else if (achievementCount > counts[username])
+                    counts[username] = achievementCount;
+            }
+        }
+
+        return ToRows(TopScores(counts, pool), pool, kv => kv.Value.ToString());
+    }
+
+    private List<Row> ToRows(IEnumerable<KeyValuePair<string, int>> ordered, List<User> onlineLookup, Func<KeyValuePair<string, int>, string> format)
     {
         return ordered.Select(kv => new Row
         {
             Username = kv.Key,
             ScoreDisplay = format(kv),
-            IsOnline = allUsers.Any(u =>
+            IsOnline = onlineLookup.Any(u =>
                 string.Equals(u.Username, kv.Key, StringComparison.OrdinalIgnoreCase) && UserIsOnline(u))
         }).ToList();
     }
 
     private async Task<List<Row>> BuildLevelAsync()
     {
-        var allUsers = await _auth.GetAllUsersLightAsync();
+        var pool = await GetLeaderboardPoolAsync();
         var xpMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var u in Eligible(allUsers))
-        {
-            if (string.IsNullOrWhiteSpace(u.Username)) continue;
+        foreach (var u in pool)
             xpMap[u.Username] = Math.Max(0, u.Xp);
-        }
 
         if (_progress != null)
         {
@@ -269,7 +284,7 @@ public class LeaderboardDataService
             {
                 Username = x.Key,
                 ScoreDisplay = x.Level.ToString(),
-                IsOnline = allUsers.Any(u =>
+                IsOnline = pool.Any(u =>
                     string.Equals(u.Username, x.Key, StringComparison.OrdinalIgnoreCase) && UserIsOnline(u))
             })
             .ToList();

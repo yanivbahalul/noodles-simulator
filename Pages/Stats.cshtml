@@ -1,14 +1,15 @@
 @page
 @model NoodlesSimulator.Pages.StatsModel
+@using System.Globalization
 @{
-    ViewData["Title"] = "📊 סטטיסטיקה אישית";
+    ViewData["Title"] = Model.IsCommunityScope ? "📊 סטטיסטיקות כלליות" : "📊 סטטיסטיקה אישית";
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="utf-8" />
-    <title>Noodles Simulator — 📊 סטטיסטיקה אישית</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    <title>Noodles Simulator — @ViewData["Title"]</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <partial name="Shared/_SiteIcons" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
@@ -20,28 +21,295 @@
 <partial name="Shared/_LogoHeader" />
 
 <div class="quiz-container stats-page">
-    <h2 class="stats-title">📊 סטטיסטיקה אישית</h2>
+    @if (Model.IsCommunityScope)
+    {
+        <h2 class="stats-title">📊 סטטיסטיקות כלליות</h2>
+        <p class="stats-subtitle">סיכום כל המשתמשים במערכת</p>
 
-    <!-- הצגת הנתונים -->
-    <ul class="stats-list">
-        <li>👤 Logged in as: <strong class="stats-breakable">@Model.Username</strong></li>
-        <li>✅ תשובות נכונות: <strong>@Model.CorrectAnswers</strong></li>
-        <li>📋 שאלות שנענו: <strong>@Model.TotalAnswered</strong></li>
-        <li>📈 אחוז הצלחה: <strong>@Model.SuccessRate</strong>%</li>
-    </ul>
+        <section class="stats-section" aria-label="מדדים כלליים">
+            <div class="stats-metrics-grid">
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.AllUsersCount</span>
+                    <span class="stats-metric-label">משתמשים רשומים</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.OnlineUsersCount</span>
+                    <span class="stats-metric-label">מחוברים כעת</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.ActiveToday</span>
+                    <span class="stats-metric-label">פעילים היום</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.AnswersToday</span>
+                    <span class="stats-metric-label">תשובות נכונות היום</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.AverageSuccessRate%</span>
+                    <span class="stats-metric-label">ממוצע הצלחה</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunityTotalCorrect</span>
+                    <span class="stats-metric-label">סה״כ נכונות</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunityTotalAnswered</span>
+                    <span class="stats-metric-label">סה״כ שאלות שנענו</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.CheatersCount</span>
+                    <span class="stats-metric-label">Cheaters</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.BannedUsersCount</span>
+                    <span class="stats-metric-label">חסומים</span>
+                </div>
+            </div>
+        </section>
 
-    <!-- תצוגת DEBUG -->
-    <div class="stats-debug">
-        <p><strong>Debug:</strong></p>
-        <p>Username: <span class="stats-breakable">@Model.Username</span></p>
-        <p>Correct: @Model.CorrectAnswers</p>
-        <p>Total: @Model.TotalAnswered</p>
-        <p>Success: @Model.SuccessRate%</p>
-    </div>
+        <section class="stats-section" aria-label="מובילים">
+            <h3 class="stats-section-title">🏆 מובילים</h3>
+            @if (Model.TopUsers.Count == 0)
+            {
+                <p class="stats-empty-hint">אין נתונים עדיין.</p>
+            }
+            else
+            {
+                <div class="stats-table-shell">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>משתמש</th>
+                                <th>רמה</th>
+                                <th>נכונות</th>
+                                <th>שאלות</th>
+                                <th>הצלחה</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var i = 0; i < Model.TopUsers.Count; i++)
+                            {
+                                var u = Model.TopUsers[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td>@u.Username</td>
+                                    <td>@u.Level</td>
+                                    <td>@u.CorrectAnswers</td>
+                                    <td>@u.TotalAnswered</td>
+                                    <td>@u.SuccessRate%</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
 
-    <div class="stats-actions">
-        <a href="/Index" class="next-question-btn">⬅ חזרה לחידון</a>
-    </div>
+        <section class="stats-section" aria-label="מבחנים פעילים">
+            <h3 class="stats-section-title">📝 מבחנים פעילים</h3>
+            @if (Model.ActiveExams.Count == 0)
+            {
+                <p class="stats-empty-hint">אין מבחנים פעילים כרגע.</p>
+            }
+            else
+            {
+                <div class="stats-table-shell">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>משתמש</th>
+                                <th>שאלה</th>
+                                <th>ציון</th>
+                                <th>נותר</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var exam in Model.ActiveExams)
+                            {
+                                var questionLabel = exam.TotalQuestions > 0
+                                    ? $"{exam.CurrentIndex + 1}/{exam.TotalQuestions}"
+                                    : "—";
+                                <tr>
+                                    <td>@exam.Username</td>
+                                    <td>@questionLabel</td>
+                                    <td>@exam.Score/@exam.MaxScore</td>
+                                    <td>@exam.RemainingMinutes דק׳</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="stats-section" aria-label="פעילות אחרונה">
+            <h3 class="stats-section-title">🕐 פעילות אחרונה</h3>
+            @if (Model.RecentActivity.Count == 0)
+            {
+                <p class="stats-empty-hint">אין פעילות אחרונה.</p>
+            }
+            else
+            {
+                <ul class="stats-detail-list stats-activity-list">
+                    @foreach (var item in Model.RecentActivity.Take(20))
+                    {
+                        var when = DateTime.TryParse(item.TimestampIso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt)
+                            ? dt.ToLocalTime().ToString("dd/MM HH:mm")
+                            : "—";
+                        <li><strong>@item.Username</strong> — @item.Message <span class="stats-activity-time">(@when)</span></li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <div class="stats-actions">
+            <a href="/Dashboard" class="next-question-btn">🔧 ממשק ניהול מלא</a>
+            <a href="/Stats" class="btn secondary-btn stats-secondary-link">👤 הסטטיסטיקה שלי</a>
+            <a href="/Index" class="btn secondary-btn stats-secondary-link">⬅ חזרה לחידון</a>
+        </div>
+    }
+    else
+    {
+        <h2 class="stats-title">📊 סטטיסטיקה אישית</h2>
+        <p class="stats-subtitle">👤 <strong class="stats-breakable">@Model.Username</strong></p>
+
+        <section class="stats-section" aria-label="מדדים עיקריים">
+            <div class="stats-metrics-grid">
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CorrectAnswers</span>
+                    <span class="stats-metric-label">תשובות נכונות</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.TotalAnswered</span>
+                    <span class="stats-metric-label">שאלות שנענו</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.SuccessRate%</span>
+                    <span class="stats-metric-label">אחוז הצלחה</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.WrongAnswers</span>
+                    <span class="stats-metric-label">טעויות</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CurrentStreak 🔥</span>
+                    <span class="stats-metric-label">רצף נוכחי</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.BestStreak</span>
+                    <span class="stats-metric-label">רצף שיא</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-section stats-level-card" aria-label="רמה ונקודות">
+            <h3 class="stats-section-title">⭐ רמה ו־XP</h3>
+            <div class="stats-level-row">
+                <span class="xp-level-label">רמה @Model.Level</span>
+                <div class="xp-bar-wrap stats-xp-bar">
+                    <div class="xp-bar-track">
+                        <div class="xp-bar-fill" style="width: @Model.XpProgressPercent%"></div>
+                    </div>
+                    <span class="xp-points-label">@Model.Xp XP</span>
+                </div>
+                <p class="stats-level-hint">עוד @Model.XpToNextLevel XP לרמה הבאה</p>
+            </div>
+        </section>
+
+        <section class="stats-section" aria-label="פעילות">
+            <h3 class="stats-section-title">📅 פעילות</h3>
+            <ul class="stats-detail-list">
+                <li>היום: <strong>@Model.DailyCorrect</strong> תשובות נכונות</li>
+                <li>השבוע: <strong>@Model.WeeklyCorrect</strong> תשובות נכונות</li>
+                <li>שאלות ייחודיות שתרגלת: <strong>@Model.DistinctQuestions</strong></li>
+                @if (Model.DistinctQuestions > 0)
+                {
+                    <li>דיוק לפי שאלות: <strong>@Model.QuestionAccuracy.ToString("0.0")%</strong></li>
+                }
+                <li>אתגרים יומיים שהושלמו: <strong>@Model.DailyChallengesCompleted</strong></li>
+            </ul>
+        </section>
+
+        <section class="stats-section" aria-label="מבחנים">
+            <h3 class="stats-section-title">📝 מבחנים</h3>
+            <ul class="stats-detail-list">
+                <li>מבחן מיטבי: <strong>@Model.BestExamCorrect נכונות</strong> (@Model.BestExamScore נקודות)</li>
+                <li>מבחנים שהושלמו: <strong>@Model.CompletedExamsCount</strong></li>
+                <li>סה״כ מבחנים שנרשמו: <strong>@Model.ExamsCompleted</strong></li>
+            </ul>
+        </section>
+
+        <section class="stats-section" aria-label="הישגים">
+            <h3 class="stats-section-title">🏅 הישגים (@Model.AchievementCount / @Model.TotalAchievements)</h3>
+            @if (Model.Achievements.Count == 0)
+            {
+                <p class="stats-empty-hint">אין נתוני הישגים עדיין.</p>
+            }
+            else
+            {
+                <div class="stats-achievements-grid">
+                    @foreach (var achievement in Model.Achievements)
+                    {
+                        <div class="stats-achievement-chip @(achievement.Unlocked ? "is-unlocked" : "is-locked")" title="@achievement.Description">
+                            <span class="stats-achievement-emoji">@achievement.Emoji</span>
+                            <span class="stats-achievement-title">@achievement.Title</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="stats-section" aria-label="שאלות אחרונות">
+            <h3 class="stats-section-title">🕐 שאלות אחרונות</h3>
+            @if (Model.RecentQuestions.Count == 0)
+            {
+                <p class="stats-empty-hint">עדיין לא תרגלת שאלות — התחל בחידון!</p>
+            }
+            else
+            {
+                <div class="stats-table-shell">
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>שאלה</th>
+                                <th>נכונות</th>
+                                <th>ניסיונות</th>
+                                <th>הצלחה</th>
+                                <th>אחרון</th>
+                                <th>תוצאה</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in Model.RecentQuestions)
+                            {
+                                <tr>
+                                    <td class="stats-breakable">
+                                        <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)" class="stats-question-link" title="@q.QuestionId">@q.QuestionLabel</a>
+                                    </td>
+                                    <td>@q.Correct</td>
+                                    <td>@q.Attempts</td>
+                                    <td>@q.SuccessPercent%</td>
+                                    <td>@q.LastAnsweredLocal.ToString("dd/MM HH:mm")</td>
+                                    <td>@(q.LastWasCorrect ? "✅" : "❌")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <div class="stats-actions">
+            <a href="/Index" class="next-question-btn">⬅ חזרה לחידון</a>
+            <a href="/Leaderboard" class="btn secondary-btn stats-secondary-link">🏆 טבלת מובילים</a>
+            <a href="/MyExams" class="btn secondary-btn stats-secondary-link">📝 המבחנים שלי</a>
+            @if (ViewData["ShowAdminLink"] as bool? == true)
+            {
+                <a href="/Stats?scope=all" class="btn secondary-btn stats-secondary-link">📊 סטטיסטיקות כלליות</a>
+            }
+        </div>
+    }
 </div>
 
 <partial name="Shared/_SiteFooter" />

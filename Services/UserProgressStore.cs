@@ -41,6 +41,132 @@ public class UserProgressStore
 
     public bool IsEnabled => _enabled;
 
+    public class ProgressUpdateRow
+    {
+        public string Username { get; set; } = "";
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class AchievementUnlockRow
+    {
+        public string Username { get; set; } = "";
+        public string AchievementKey { get; set; } = "";
+        public DateTime UnlockedAt { get; set; }
+    }
+
+    public async Task<List<ProgressUpdateRow>> FetchRecentProgressUpdatesAsync(int limit = 25)
+    {
+        if (!_enabled) return new List<ProgressUpdateRow>();
+
+        try
+        {
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/user_progress?select=Username,UpdatedAt&order=UpdatedAt.desc&limit={limit}");
+            if (!res.IsSuccessStatusCode) return new List<ProgressUpdateRow>();
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var rows = new List<ProgressUpdateRow>();
+            foreach (var row in doc.RootElement.EnumerateArray())
+            {
+                if (!row.TryGetProperty("Username", out var userEl)) continue;
+                var username = userEl.GetString();
+                if (string.IsNullOrWhiteSpace(username)) continue;
+                if (!row.TryGetProperty("UpdatedAt", out var atEl) ||
+                    !DateTime.TryParse(atEl.GetString(), out var updatedAt))
+                    continue;
+
+                rows.Add(new ProgressUpdateRow
+                {
+                    Username = username,
+                    UpdatedAt = updatedAt.ToUniversalTime()
+                });
+            }
+
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressStore] FetchRecentProgressUpdates failed: {ex.Message}");
+            return new List<ProgressUpdateRow>();
+        }
+    }
+
+    public async Task<List<(string Username, int AchievementCount)>> GetAchievementCountLeaderboardAsync(int limit = 50)
+    {
+        if (!_enabled) return new List<(string, int)>();
+
+        try
+        {
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/user_achievements?select=username&limit=5000");
+            if (!res.IsSuccessStatusCode) return new List<(string, int)>();
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in doc.RootElement.EnumerateArray())
+            {
+                if (!row.TryGetProperty("username", out var userEl)) continue;
+                var username = userEl.GetString();
+                if (string.IsNullOrWhiteSpace(username)) continue;
+                counts.TryGetValue(username, out var current);
+                counts[username] = current + 1;
+            }
+
+            return counts
+                .OrderByDescending(kv => kv.Value)
+                .ThenBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                .Take(limit)
+                .Select(kv => (kv.Key, kv.Value))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressStore] GetAchievementCountLeaderboard failed: {ex.Message}");
+            return new List<(string, int)>();
+        }
+    }
+
+    public async Task<List<AchievementUnlockRow>> FetchRecentAchievementsAsync(int limit = 25)
+    {
+        if (!_enabled) return new List<AchievementUnlockRow>();
+
+        try
+        {
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/user_achievements?select=username,achievement_key,unlocked_at&order=unlocked_at.desc&limit={limit}");
+            if (!res.IsSuccessStatusCode) return new List<AchievementUnlockRow>();
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var rows = new List<AchievementUnlockRow>();
+            foreach (var row in doc.RootElement.EnumerateArray())
+            {
+                var username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() : null;
+                var key = row.TryGetProperty("achievement_key", out var keyEl) ? keyEl.GetString() : null;
+                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(key)) continue;
+                if (!row.TryGetProperty("unlocked_at", out var atEl) ||
+                    !DateTime.TryParse(atEl.GetString(), out var unlockedAt))
+                    continue;
+
+                rows.Add(new AchievementUnlockRow
+                {
+                    Username = username,
+                    AchievementKey = key,
+                    UnlockedAt = unlockedAt.ToUniversalTime()
+                });
+            }
+
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressStore] FetchRecentAchievements failed: {ex.Message}");
+            return new List<AchievementUnlockRow>();
+        }
+    }
+
     public (UserProgressService.UserProgressData Data, DateTime? UpdatedAt) TryLoadWithMeta(string username)
     {
         if (!_enabled || string.IsNullOrWhiteSpace(username))

@@ -28,15 +28,17 @@ public class LoginModel : PageModel
 
         private readonly AuthService _authService;
         private readonly RememberMeService _rememberMe;
+        private readonly ActivityEventService _activityEvents;
         private readonly ILogger<LoginModel> _logger;
         private readonly IConfiguration _configuration;
 
-        public LoginModel(AuthService authService, RememberMeService rememberMe, ILogger<LoginModel> logger, IConfiguration configuration)
+        public LoginModel(AuthService authService, RememberMeService rememberMe, ILogger<LoginModel> logger, IConfiguration configuration, ActivityEventService activityEvents = null)
         {
             _authService = authService;
             _rememberMe = rememberMe;
             _logger = logger;
             _configuration = configuration;
+            _activityEvents = activityEvents;
         }
 
         [BindProperty]
@@ -135,6 +137,7 @@ public class LoginModel : PageModel
         private async Task<IActionResult> CompleteLoginAsync(User user)
         {
             _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
+            _activityEvents?.Log(user.Username, "login");
 
             RotateSessionForLogin();
             var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);

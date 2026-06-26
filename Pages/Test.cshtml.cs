@@ -21,13 +21,15 @@ public class TestModel : PageModel
         private readonly QuestionStatsService _stats;
         private readonly TestSessionService _testSession;
         private readonly QuestionDifficultyService _difficultyService;
+        private readonly ActivityEventService _activityEvents;
 
-        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, QuestionDifficultyService difficultyService = null)
+        public TestModel(SupabaseStorageService storage = null, QuestionStatsService stats = null, TestSessionService testSession = null, QuestionDifficultyService difficultyService = null, ActivityEventService activityEvents = null)
         {
             _storage = storage;
             _stats = stats;
             _testSession = testSession;
             _difficultyService = difficultyService;
+            _activityEvents = activityEvents;
         }
 
         public bool AnswerChecked { get; set; }
@@ -98,6 +100,11 @@ public class TestModel : PageModel
                 {
                     return StatusCode(500, "Failed to create test session.");
                 }
+
+                _activityEvents?.Log(username, "exam_start", new Dictionary<string, object>
+                {
+                    ["token"] = session.Token
+                });
 
                 Console.WriteLine($"[Test OnGet] Session created successfully! Token: {session.Token}");
                 Console.WriteLine($"[Test OnGet] Redirecting to /Test?token={session.Token}");
@@ -208,6 +215,7 @@ public class TestModel : PageModel
                 if (session.Status == "active")
                 {
                     await _testSession.UpdateSessionStatusAsync(session.Token, "completed");
+                    LogExamComplete(session.Username, session.Score, session.MaxScore);
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
@@ -251,6 +259,7 @@ public class TestModel : PageModel
 
             Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
             await _testSession.UpdateSessionAsync(session);
+            LogExamComplete(session.Username, session.Score, session.MaxScore);
 
             Console.WriteLine("[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
 
@@ -428,6 +437,15 @@ public class TestModel : PageModel
 
             var end = state.StartedUtc.Add(TestDuration);
             TestEndUtcString = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        }
+
+        private void LogExamComplete(string username, int score, int maxScore)
+        {
+            _activityEvents?.Log(username, "exam_complete", new Dictionary<string, object>
+            {
+                ["score"] = score,
+                ["maxScore"] = maxScore
+            });
         }
 
         private static void FisherYatesShuffle<T>(IList<T> list)

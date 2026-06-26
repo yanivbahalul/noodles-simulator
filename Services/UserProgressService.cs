@@ -473,6 +473,45 @@ public class UserProgressService
         return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
     }
 
+    public List<(string Username, int AchievementCount)> GetAchievementCountLeaderboard(int limit = 50)
+    {
+        var results = new List<(string, int)>();
+        if (!Directory.Exists(_progressDir)) return results;
+
+        foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
+        {
+            try
+            {
+                var json = File.ReadAllText(file, Encoding.UTF8);
+                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+                var count = data?.Achievements?.Count ?? 0;
+                if (count <= 0) continue;
+                var username = System.IO.Path.GetFileNameWithoutExtension(file);
+                results.Add((username, count));
+            }
+            catch { /* skip */ }
+        }
+
+        return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
+    }
+
+    public (int TotalAnswered, int CorrectAnswers) GetAnswerTotals(string username)
+    {
+        var data = Load(username);
+        if (data?.QuestionStats == null || data.QuestionStats.Count == 0)
+            return (0, 0);
+
+        var total = 0;
+        var correct = 0;
+        foreach (var stat in data.QuestionStats.Values)
+        {
+            total += stat.Attempts;
+            correct += stat.Correct;
+        }
+
+        return (total, correct);
+    }
+
     private static void EnsureDay(UserProgressData data)
     {
         var dayKey = TodayKey();

@@ -383,7 +383,7 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit=500");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit={Math.Max(count * 3, 100)}");
             var json = await res.Content.ReadAsStringAsync();
             var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
             return users
