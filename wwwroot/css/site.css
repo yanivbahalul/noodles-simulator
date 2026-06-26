@@ -621,6 +621,7 @@ button.answer-btn,
 .report-label {
     font-weight: 700;
     text-align: center;
+    color: #222;
 }
 
 .report-textarea {
