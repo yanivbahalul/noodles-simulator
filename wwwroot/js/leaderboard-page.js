@@ -11,13 +11,21 @@
         level: "רמה"
     };
 
+    function updateLeaderboardHint(hint) {
+        const hintEl = document.getElementById("leaderboard-tab-hint");
+        if (hintEl && hint) hintEl.textContent = hint;
+    }
+
+    function updateLeaderboardEmptyState(userCount) {
+        const emptyEl = document.getElementById("leaderboard-empty");
+        if (emptyEl) emptyEl.style.display = userCount === 0 ? "block" : "none";
+    }
+
     function applyLeaderboardResponse(data) {
         if (!Array.isArray(data?.users)) return;
         updateLeaderboardTable(data.users, data.tab || activeTab);
-        const hintEl = document.getElementById("leaderboard-tab-hint");
-        if (hintEl && data.hint) hintEl.textContent = data.hint;
-        const emptyEl = document.getElementById("leaderboard-empty");
-        if (emptyEl) emptyEl.style.display = data.users.length === 0 ? "block" : "none";
+        updateLeaderboardHint(data.hint);
+        updateLeaderboardEmptyState(data.users.length);
         window.__lastUpdateAt = Date.now();
     }
 

@@ -81,6 +81,20 @@
         if (data.xp !== undefined) setText("stat-xp-value", data.xp);
     }
 
+    const FEEDBACK_TONES = {
+        correct: { frequency: 880, duration: 0.15 },
+        incorrect: { frequency: 220, duration: 0.25 }
+    };
+
+    function isSoundEnabled() {
+        return localStorage.getItem("quizSounds") !== "off";
+    }
+
+    function createAudioContext() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        return new AudioCtx();
+    }
+
     function playTone(ctx, frequency, duration) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -92,12 +106,16 @@
         osc.stop(ctx.currentTime + duration);
     }
 
-    function playFeedbackSound(isCorrect) {
-        if (localStorage.getItem("quizSounds") === "off") return;
+    function playFeedbackTone(isCorrect) {
+        const tone = FEEDBACK_TONES[isCorrect ? "correct" : "incorrect"];
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            playTone(ctx, isCorrect ? 880 : 220, isCorrect ? 0.15 : 0.25);
+            playTone(createAudioContext(), tone.frequency, tone.duration);
         } catch { /* no audio */ }
+    }
+
+    function playFeedbackSound(isCorrect) {
+        if (!isSoundEnabled()) return;
+        playFeedbackTone(isCorrect);
     }
 
     function bindSoundToggle() {

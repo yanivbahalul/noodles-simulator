@@ -374,6 +374,21 @@ public class IndexModel : PageModel
 
     private async Task ProcessSubmittedAnswerAsync(User user)
     {
+        ParseSubmittedAnswerForm();
+        ApplyAnswerToUserStats(user);
+
+        var streak = UpdateAnswerStreak();
+        var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
+        var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
+        var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
+
+        RecordPracticeProgress(user, streak, practiceMode, practiceDifficulty, xpGain);
+        SyncUserLevelFromProgress(user);
+        await FinalizeAnswerSubmissionAsync(user, streak);
+    }
+
+    private void ParseSubmittedAnswerForm()
+    {
         var answer = Request.Form["answer"];
         var questionImage = Request.Form["questionImage"];
         var answersJson = Request.Form["answersJson"];
@@ -384,7 +399,10 @@ public class IndexModel : PageModel
         try { ShuffledAnswers = JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options); }
         catch (JsonException) { ShuffledAnswers = new Dictionary<string, string>(); }
         IsCorrect = answer == "correct";
+    }
 
+    private void ApplyAnswerToUserStats(User user)
+    {
         user.TotalAnswered++;
         if (IsCorrect)
         {
@@ -398,7 +416,10 @@ public class IndexModel : PageModel
 
         try { _stats?.Record(QuestionImage, IsCorrect); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync RecordStats Error] {ex.Message}"); }
+    }
 
+    private int UpdateAnswerStreak()
+    {
         var streak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
         if (IsCorrect)
         {
@@ -410,57 +431,69 @@ public class IndexModel : PageModel
             streak = 0;
             HttpContext.Session.SetInt32("CurrentStreak", 0);
         }
+
         CurrentStreak = streak;
+        return streak;
+    }
 
-        var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
-        var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
-        var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
+    private void RecordPracticeProgress(User user, int streak, string practiceMode, string practiceDifficulty, int xpGain)
+    {
+        if (_userProgress == null) return;
 
-        if (_userProgress != null)
+        _userProgress.RecordAnswer(user.Username, QuestionImage, IsCorrect, xpGain);
+        _userProgress.UpdateBestStreak(user.Username, streak);
+
+        if (IsCorrect)
+            RecordCorrectAnswerProgress(user, practiceMode, practiceDifficulty);
+
+        if (practiceMode == "daily")
+            RecordDailyChallengeProgress(user);
+    }
+
+    private void RecordCorrectAnswerProgress(User user, string practiceMode, string practiceDifficulty)
+    {
+        if (practiceMode == "weak")
+            _userProgress.IncrementWeakCorrect(user.Username);
+        if (practiceDifficulty == "hard")
+            _userProgress.IncrementHardCorrect(user.Username);
+        if (practiceMode != "review" || _achievements == null
+            || !_userProgress.RemoveSessionMistake(user.Username, QuestionImage))
+            return;
+
+        _userProgress.IncrementReviewClear(user.Username);
+        NewlyUnlockedAchievements.AddRange(_achievements.CheckReviewClear(user.Username));
+    }
+
+    private void RecordDailyChallengeProgress(User user)
+    {
+        _userProgress.RecordDailyChallengeAnswer(user.Username, IsCorrect);
+        var dailyIdx = (HttpContext.Session.GetInt32("DailyQuestionIndex") ?? 0) + 1;
+        HttpContext.Session.SetInt32("DailyQuestionIndex", dailyIdx);
+
+        if (IsCorrect)
         {
-            _userProgress.RecordAnswer(user.Username, QuestionImage, IsCorrect, xpGain);
-            _userProgress.UpdateBestStreak(user.Username, streak);
-
-            if (IsCorrect)
-            {
-                if (practiceMode == "weak")
-                    _userProgress.IncrementWeakCorrect(user.Username);
-                if (practiceDifficulty == "hard")
-                    _userProgress.IncrementHardCorrect(user.Username);
-                if (practiceMode == "review" && _achievements != null
-                    && _userProgress.RemoveSessionMistake(user.Username, QuestionImage))
-                {
-                    _userProgress.IncrementReviewClear(user.Username);
-                    NewlyUnlockedAchievements.AddRange(_achievements.CheckReviewClear(user.Username));
-                }
-            }
-
-            if (practiceMode == "daily")
-            {
-                _userProgress.RecordDailyChallengeAnswer(user.Username, IsCorrect);
-                var dailyIdx = (HttpContext.Session.GetInt32("DailyQuestionIndex") ?? 0) + 1;
-                HttpContext.Session.SetInt32("DailyQuestionIndex", dailyIdx);
-                if (IsCorrect)
-                {
-                    var dailyScore = (HttpContext.Session.GetInt32("DailyScore") ?? 0) + 1;
-                    HttpContext.Session.SetInt32("DailyScore", dailyScore);
-                }
-                if (dailyIdx >= DailyTotal && _achievements != null)
-                {
-                    var dailyScore = HttpContext.Session.GetInt32("DailyScore") ?? 0;
-                    _userProgress.RecordDailyChallengeComplete(user.Username, dailyScore >= DailyTotal);
-                    NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
-                }
-            }
+            var dailyScore = (HttpContext.Session.GetInt32("DailyScore") ?? 0) + 1;
+            HttpContext.Session.SetInt32("DailyScore", dailyScore);
         }
 
-        if (_userProgress != null)
-        {
-            var progress = _userProgress.Load(user.Username);
-            user.Xp = progress.Xp;
-            user.Level = QuizGamification.LevelFromXp(user.Xp);
-        }
+        if (dailyIdx < DailyTotal || _achievements == null) return;
 
+        var finalScore = HttpContext.Session.GetInt32("DailyScore") ?? 0;
+        _userProgress.RecordDailyChallengeComplete(user.Username, finalScore >= DailyTotal);
+        NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
+    }
+
+    private void SyncUserLevelFromProgress(User user)
+    {
+        if (_userProgress == null) return;
+
+        var progress = _userProgress.Load(user.Username);
+        user.Xp = progress.Xp;
+        user.Level = QuizGamification.LevelFromXp(user.Xp);
+    }
+
+    private async Task FinalizeAnswerSubmissionAsync(User user, int streak)
+    {
         if (_achievements != null)
             NewlyUnlockedAchievements.AddRange(_achievements.CheckPracticeAchievements(user.Username, streak, user.TotalAnswered, user.Xp));
 
