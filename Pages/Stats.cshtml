@@ -285,7 +285,7 @@
                             {
                                 <tr>
                                     <td class="stats-breakable">
-                                        <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)" class="stats-question-link" title="@q.QuestionId">@q.QuestionLabel</a>
+                                        <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)&from=stats@(Model.IsCommunityScope ? "&scope=all" : "")" class="stats-question-link" title="@q.QuestionId">@q.QuestionLabel</a>
                                     </td>
                                     <td>@q.Correct</td>
                                     <td>@q.Attempts</td>

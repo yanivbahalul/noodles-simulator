@@ -341,7 +341,7 @@
         const rows = questions.map((q) => {
             const label = formatQuestionLabel(q.questionId);
             const full = escapeHtml(q.questionId);
-            const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}`;
+            const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>
             <td>
                 <span class="dashboard-question-cell">

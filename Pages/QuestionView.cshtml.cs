@@ -23,6 +23,8 @@ public class QuestionViewModel : PageModel
     public string SelectedAnswerKey { get; set; }
     public string CorrectAnswerKey { get; set; } = "correct"; // Always "correct" is the right answer
     public bool ShowAnswerResults { get; set; }
+    public string BackUrl { get; set; } = "/Index";
+    public string BackLabel { get; set; } = "⬅ חזרה לחידון";
 
     public async Task<IActionResult> OnGet()
     {
@@ -31,6 +33,8 @@ public class QuestionViewModel : PageModel
         {
             return RedirectToPage("/Login");
         }
+
+        SetBackNavigation(Request.Query["from"].ToString(), Request.Query["scope"].ToString());
 
         var questionId = Request.Query["id"].ToString();
         if (string.IsNullOrWhiteSpace(questionId)) return Page();
@@ -100,5 +104,23 @@ public class QuestionViewModel : PageModel
             }
         }
         return Page();
+    }
+
+    private void SetBackNavigation(string from, string scope)
+    {
+        if (string.Equals(from, "dashboard", StringComparison.OrdinalIgnoreCase))
+        {
+            BackUrl = "/Dashboard";
+            BackLabel = "⬅ חזרה לניהול";
+            return;
+        }
+
+        if (string.Equals(from, "stats", StringComparison.OrdinalIgnoreCase))
+        {
+            BackUrl = string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase)
+                ? "/Stats?scope=all"
+                : "/Stats";
+            BackLabel = "⬅ חזרה לסטטיסטיקה";
+        }
     }
 }
