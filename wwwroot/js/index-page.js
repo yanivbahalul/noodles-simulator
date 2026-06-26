@@ -221,22 +221,34 @@
         prefetchPromise = null;
     }
 
+    function getCurrentQuestionAnchor() {
+        return document.getElementById("quiz-question-image")?.value ?? "";
+    }
+
+    async function fetchNextQuestionData() {
+        const res = await fetch("/Index?handler=PrefetchNextQuestion");
+        if (res.status === 204 || !res.ok) return null;
+        const data = await res.json();
+        return data?.questionImage ? data : null;
+    }
+
+    function storePrefetchedQuestion(anchor, data) {
+        prefetchAnchor = anchor;
+        prefetchedQuestion = data;
+    }
+
     async function loadPrefetchNextQuestion() {
         try {
-            const anchor = document.getElementById("quiz-question-image")?.value ?? "";
+            const anchor = getCurrentQuestionAnchor();
             if (!anchor) return null;
 
-            const res = await fetch("/Index?handler=PrefetchNextQuestion");
-            if (res.status === 204 || !res.ok) return null;
-
-            const data = await res.json();
-            if (!data?.questionImage) return null;
+            const data = await fetchNextQuestionData();
+            if (!data) return null;
 
             await preloadQuestionImages(data);
-            if (document.getElementById("quiz-question-image")?.value !== anchor) return null;
+            if (getCurrentQuestionAnchor() !== anchor) return null;
 
-            prefetchAnchor = anchor;
-            prefetchedQuestion = data;
+            storePrefetchedQuestion(anchor, data);
             return data;
         } catch {
             return null;
@@ -270,6 +282,16 @@
 
     let viewportAdjustTimer = null;
 
+    function isQuizFullyVisible(rect, minTop, maxBottom) {
+        return rect.top >= minTop - 3 && rect.bottom <= maxBottom + 3;
+    }
+
+    function computeDeltaWhenFits(rect, minTop, maxBottom) {
+        if (rect.top < minTop) return rect.top - minTop;
+        if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
+        return 0;
+    }
+
     function computeQuizScrollDelta(rect, viewportH) {
         const marginTop = 8;
         const marginBottom = 16;
@@ -277,15 +299,8 @@
         const maxBottom = viewportH - marginBottom;
         const available = viewportH - marginTop - marginBottom;
 
-        const topVisible = rect.top >= minTop - 3;
-        const bottomVisible = rect.bottom <= maxBottom + 3;
-        if (topVisible && bottomVisible) return 0;
-
-        if (rect.height <= available) {
-            if (rect.top < minTop) return rect.top - minTop;
-            if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
-            return 0;
-        }
+        if (isQuizFullyVisible(rect, minTop, maxBottom)) return 0;
+        if (rect.height <= available) return computeDeltaWhenFits(rect, minTop, maxBottom);
         return rect.top - minTop;
     }
 
@@ -430,21 +445,25 @@
         return file === correct.fileName || imgFile === correct.fileName;
     }
 
+    function matchesCorrectAnswerUrl(imgFile, data) {
+        if (!data.correctAnswerUrl) return false;
+        const correctFile = answerFileFromUrl(data.correctAnswerUrl);
+        return Boolean(correctFile && imgFile && correctFile === imgFile);
+    }
+
     function isAnswerButtonCorrect(btn, data) {
         const key = btn.value;
         const img = btn.querySelector("img");
         const file = img?.dataset?.answerFile ?? "";
         const imgFile = answerFileFromUrl(img?.src ?? "");
 
-        if (data.correctKey && key === data.correctKey) return true;
-        if (filesMatchCorrectAnswer(file, imgFile, data.correctAnswerFile)) return true;
-
-        if (data.correctAnswerUrl) {
-            const correctFile = answerFileFromUrl(data.correctAnswerUrl);
-            if (correctFile && imgFile && correctFile === imgFile) return true;
-        }
-
-        return matchesCorrectAnswerFromList(file, imgFile, data);
+        const matchers = [
+            () => data.correctKey && key === data.correctKey,
+            () => filesMatchCorrectAnswer(file, imgFile, data.correctAnswerFile),
+            () => matchesCorrectAnswerUrl(imgFile, data),
+            () => matchesCorrectAnswerFromList(file, imgFile, data)
+        ];
+        return matchers.some((match) => match());
     }
 
     function styleAnswerButtons(grid, data) {
@@ -485,10 +504,15 @@
         schedulePrefetchNextQuestion();
     }
 
+    function setImageSource(img, url) {
+        if (img && url) img.src = url;
+    }
+
     function updateQuestionImages(mainImg, modalImg, data) {
+        const url = data.questionImageUrl;
         if (mainImg) mainImg.style.maxHeight = "";
-        if (mainImg && data.questionImageUrl) mainImg.src = data.questionImageUrl;
-        if (modalImg && data.questionImageUrl) modalImg.src = data.questionImageUrl;
+        setImageSource(mainImg, url);
+        setImageSource(modalImg, url);
     }
 
     function renderAnswerButtons(grid, answers) {
@@ -522,12 +546,7 @@
         if (sInput) sInput.value = "";
     }
 
-    async function renderQuestion(data, seq, options = {}) {
-        if (!options.imagesPreloaded) {
-            await preloadQuestionImages(data);
-        }
-        if (seq !== questionRenderSeq) return;
-
+    function applyRenderedQuestionDom(data) {
         updateQuestionImages(
             document.getElementById("main-question-image"),
             document.getElementById("modal-img"),
@@ -548,22 +567,73 @@
         if (data.practiceMode === "daily") {
             updatePracticeModeBadge(data);
         }
+    }
+
+    async function renderQuestion(data, seq, options = {}) {
+        if (!options.imagesPreloaded) {
+            await preloadQuestionImages(data);
+        }
+        if (seq !== questionRenderSeq) return;
+
+        applyRenderedQuestionDom(data);
         scheduleQuizViewportAdjust();
         schedulePrefetchNextQuestion();
+    }
+
+    function getQuizAnswerPayload(e, form) {
+        const submitter = e.submitter;
+        if (!submitter || submitter.name !== "answer") return null;
+        const questionImage = form.querySelector('input[name="questionImage"]')?.value;
+        if (!questionImage) return { missingQuestion: true };
+        return { questionImage, answer: submitter.value, submitter };
+    }
+
+    async function submitQuizAnswer(questionImage, answer, token) {
+        const res = await fetch("/Index?handler=SubmitAnswer", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                RequestVerificationToken: token
+            },
+            body: JSON.stringify({ questionImage, answer })
+        });
+        const data = await res.json();
+        return { res, data };
+    }
+
+    function lockAnswerButtonsAfterCheck() {
+        document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
+            btn.disabled = true;
+        });
+    }
+
+    async function processQuizAnswerResponse(res, data) {
+        if (data.redirect) {
+            window.location.assign(data.redirect);
+            return;
+        }
+        if (!res.ok) throw new Error("submit failed");
+        applyAnswerResult(data);
+        answerChecked = true;
+    }
+
+    async function recoverQuizAnswerSubmitError(responseReceived, form, submitter) {
+        if (!responseReceived) {
+            form.requestSubmit(submitter);
+            return;
+        }
+        if (window.showAppAlert) {
+            await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
+        }
     }
 
     async function handleQuizAnswerSubmit(e, form) {
         e.preventDefault();
         if (answerChecked || quizBusy) return;
 
-        const submitter = e.submitter;
-        if (!submitter || submitter.name !== "answer") return;
-
-        const questionImage = form.querySelector('input[name="questionImage"]')?.value;
-        const answer = submitter.value;
-        const token = getAntiForgeryToken();
-
-        if (!questionImage) {
+        const payload = getQuizAnswerPayload(e, form);
+        if (!payload) return;
+        if (payload.missingQuestion) {
             if (window.showAppAlert) await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
             return;
         }
@@ -571,36 +641,18 @@
         setQuizBusy(true);
         let responseReceived = false;
         try {
-            const res = await fetch("/Index?handler=SubmitAnswer", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    RequestVerificationToken: token
-                },
-                body: JSON.stringify({ questionImage, answer })
-            });
+            const { res, data } = await submitQuizAnswer(
+                payload.questionImage,
+                payload.answer,
+                getAntiForgeryToken()
+            );
             responseReceived = true;
-            const data = await res.json();
-            if (data.redirect) {
-                window.location.assign(data.redirect);
-                return;
-            }
-            if (!res.ok) throw new Error("submit failed");
-            applyAnswerResult(data);
-            answerChecked = true;
+            await processQuizAnswerResponse(res, data);
         } catch {
-            if (!responseReceived) {
-                form.requestSubmit(submitter);
-            } else if (window.showAppAlert) {
-                await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
-            }
+            await recoverQuizAnswerSubmitError(responseReceived, form, payload.submitter);
         } finally {
             setQuizBusy(false);
-            if (answerChecked) {
-                document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
-                    btn.disabled = true;
-                });
-            }
+            if (answerChecked) lockAnswerButtonsAfterCheck();
         }
     }
 
@@ -610,6 +662,38 @@
         form.addEventListener("submit", (e) => {
             handleQuizAnswerSubmit(e, form);
         });
+    }
+
+    async function fetchNextQuestionResponse() {
+        const res = await fetch("/Index?handler=NextQuestion");
+        const data = await res.json();
+        return { res, data };
+    }
+
+    async function applyNextQuestion(data, mySeq, cached) {
+        const imagesPreloaded = cached && cached.questionImage === data.questionImage;
+        await renderQuestion(data, mySeq, { imagesPreloaded });
+        invalidatePrefetchCache();
+        if (mySeq === questionRenderSeq) answerChecked = false;
+    }
+
+    async function processNextQuestionResponse(res, data, mySeq, cached) {
+        if (data.redirect) {
+            window.location.assign(data.redirect);
+            return;
+        }
+        if (!res.ok) throw new Error("next failed");
+        await applyNextQuestion(data, mySeq, cached);
+    }
+
+    async function recoverNextQuestionSubmitError(responseReceived, form) {
+        if (!responseReceived) {
+            form.submit();
+            return;
+        }
+        if (window.showAppAlert) {
+            await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
+        }
     }
 
     async function handleNextQuestionSubmit(e, form) {
@@ -622,32 +706,13 @@
         setQuizBusy(true);
         let responseReceived = false;
         try {
-            const res = await fetch("/Index?handler=NextQuestion");
+            const { res, data } = await fetchNextQuestionResponse();
             responseReceived = true;
-            const data = await res.json();
-            if (data.redirect) {
-                window.location.assign(data.redirect);
-                return;
-            }
-            if (!res.ok) throw new Error("next failed");
-
-            const imagesPreloaded = cached && cached.questionImage === data.questionImage;
-            await renderQuestion(data, mySeq, { imagesPreloaded });
-            invalidatePrefetchCache();
-
-            if (mySeq === questionRenderSeq) {
-                answerChecked = false;
-            }
+            await processNextQuestionResponse(res, data, mySeq, cached);
         } catch {
-            if (!responseReceived) {
-                form.submit();
-            } else if (window.showAppAlert) {
-                await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
-            }
+            await recoverNextQuestionSubmitError(responseReceived, form);
         } finally {
-            if (mySeq === questionRenderSeq) {
-                setQuizSwapping(false);
-            }
+            if (mySeq === questionRenderSeq) setQuizSwapping(false);
             setQuizBusy(false);
         }
     }
