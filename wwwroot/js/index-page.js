@@ -261,6 +261,30 @@
         if (el) el.addEventListener("click", handler);
     }
 
+    function bindStatsAdvancedPanel() {
+        const toggle = document.getElementById("stats-advanced-toggle");
+        const panel = document.getElementById("stats-advanced-panel");
+        const statsPanel = document.getElementById("stats-panel");
+        const resetForm = document.getElementById("reset-progress-form");
+        if (!toggle || !panel) return;
+
+        toggle.addEventListener("click", () => {
+            const willOpen = panel.hidden;
+            panel.hidden = !willOpen;
+            toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+            statsPanel?.classList.toggle("is-advanced-open", willOpen);
+        });
+
+        resetForm?.addEventListener("submit", (e) => {
+            const ok = window.confirm(
+                "לאפס את כל ההתקדמות?\n\n" +
+                "יסיר: סטטיסטיקה, XP, רמה, רצף, הישגים ונתוני תרגול.\n" +
+                "לא ניתן לבטל."
+            );
+            if (!ok) e.preventDefault();
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         bindClick("main-question-image", openImageModal);
         bindClick("open-difficulty-modal-btn", (e) => {
@@ -283,6 +307,7 @@
         bindSoundToggle();
         bindAchievementToast();
         bindAnswerFeedback();
+        bindStatsAdvancedPanel();
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {

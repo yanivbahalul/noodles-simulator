@@ -433,10 +433,48 @@ public class IndexModel : PageModel
         user.IsCheater = false;
         user.Xp = 0;
         user.Level = 1;
-        HttpContext.Session.SetInt32("CurrentStreak", 0);
+        user.WeeklyCorrect = 0;
+        user.WeekKey = UserProgressService.GetWeekKey();
+        user.DailyCorrect = 0;
+        user.DayKey = UserProgressService.TodayKey();
+        user.DailyChallengeScore = 0;
+        user.DailyChallengeDate = "";
+        user.BestExamScore = 0;
+        user.BestExamCorrect = 0;
+
         try { await _authService.UpdateUserAsync(user); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UpdateUserAsync Error] {ex.Message}"); }
+
+        try
+        {
+            await _authService.SyncLeaderboardStatsAsync(
+                user.Username, 0, user.WeekKey, 0, user.DayKey, 0, "", 0, 0);
+        }
+        catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset SyncLeaderboardStatsAsync Error] {ex.Message}"); }
+
+        try { _userProgress?.ResetAll(user.Username); }
+        catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UserProgress Error] {ex.Message}"); }
+
+        ClearQuizProgressSession();
+        _activityEvents?.Log(user.Username, "progress_reset");
+
         return RedirectToPage("/Index");
+    }
+
+    private void ClearQuizProgressSession()
+    {
+        HttpContext.Session.SetInt32("CurrentStreak", 0);
+        HttpContext.Session.Remove("RecentQuestions");
+        HttpContext.Session.Remove("DailyDate");
+        HttpContext.Session.Remove("DailyQuestionIndex");
+        HttpContext.Session.Remove("DailyScore");
+        HttpContext.Session.Remove("DailyQuestions");
+        HttpContext.Session.Remove("PendingAchievements");
+        HttpContext.Session.Remove("CheaterCount");
+        HttpContext.Session.SetInt32("RapidTotal", 0);
+        HttpContext.Session.SetInt32("RapidCorrect", 0);
+        HttpContext.Session.SetString("SessionStart", DateTime.UtcNow.ToString("o"));
+        ClearAnswerFlash();
     }
 
     private async Task ProcessSubmittedAnswerAsync(User user)

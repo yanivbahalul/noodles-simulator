@@ -345,6 +345,30 @@ public class UserProgressStore
             await SyncAllAchievementsAsync(username, data.Achievements);
     }
 
+    public void ClearAchievements(string username)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(username)) return;
+        try
+        {
+            ClearAchievementsAsync(username).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressStore] ClearAchievements failed for {username}: {ex.Message}");
+        }
+    }
+
+    private async Task ClearAchievementsAsync(string username)
+    {
+        var safe = Uri.EscapeDataString(username.Trim());
+        var res = await _client.DeleteAsync($"{_url}/rest/v1/user_achievements?username=eq.{safe}");
+        if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
+        {
+            var body = await res.Content.ReadAsStringAsync();
+            throw new InvalidOperationException($"user_achievements delete failed: {res.StatusCode} | {body}");
+        }
+    }
+
     private async Task SyncAllAchievementsAsync(string username, IReadOnlyList<string> keys)
     {
         var rows = keys

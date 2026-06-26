@@ -145,12 +145,6 @@
             }
             <button class="next-question-btn">שאלה הבאה</button>
         </form>
-
-        <form method="post">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="reset" value="1" />
-            <button class="next-question-btn next-question-btn-danger">איפוס שאלות</button>
-        </form>
     </div>
 </div>
 
@@ -277,6 +271,24 @@
                 <span>צליל</span>
             </label>
             <a href="/Stats" class="stats-drawer-more-btn">הצג עוד</a>
+        </div>
+        <div class="stats-drawer-advanced">
+            <button type="button"
+                    class="stats-drawer-advanced-toggle"
+                    id="stats-advanced-toggle"
+                    aria-expanded="false"
+                    aria-controls="stats-advanced-panel">
+                אפשרויות מתקדמות
+                <span class="stats-drawer-advanced-chevron" aria-hidden="true">▾</span>
+            </button>
+            <div id="stats-advanced-panel" class="stats-drawer-advanced-panel" hidden>
+                <p class="stats-drawer-advanced-hint">מאפס סטטיסטיקה, XP, רמה, רצף והישגים. לא ניתן לבטל.</p>
+                <form method="post" id="reset-progress-form" class="stats-drawer-reset-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reset" value="1" />
+                    <button type="submit" class="stats-drawer-reset-btn">איפוס התקדמות</button>
+                </form>
+            </div>
         </div>
     </div>
 

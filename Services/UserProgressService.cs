@@ -192,6 +192,34 @@ public class UserProgressService
         Save(username, data);
     }
 
+    public void ResetAll(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return;
+
+        var fresh = new UserProgressData
+        {
+            WeekKey = GetWeekKey(),
+            DayKey = TodayKey()
+        };
+
+        lock (_lock)
+        {
+            WriteFile(username, fresh);
+        }
+
+        try
+        {
+            _store?.Save(username, fresh);
+            _store?.ClearAchievements(username);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressService] ResetAll Supabase failed for {username}: {ex.Message}");
+        }
+
+        QueueDbSync(username, fresh);
+    }
+
     public int RecordExamComplete(string username, int correctCount, int totalQuestions, int score)
     {
         var data = Load(username);
