@@ -147,7 +147,7 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch(`/Stats?_=${Date.now()}`);
+            const res = await fetch(`/api/stats-data?_=${Date.now()}`);
             if (!res.ok) throw new Error("stats fetch failed");
             applyStatsData(await res.json());
         } catch {
@@ -165,28 +165,7 @@
         }
     }
 
-    function setStatsPanelOpen(panel, toggle, willOpen) {
-        panel.classList.toggle("is-open", willOpen);
-        panel.setAttribute("aria-hidden", willOpen ? "false" : "true");
-        if (!toggle) return;
-        toggle.classList.toggle("footer-stats-toggle-open", willOpen);
-        toggle.classList.toggle("footer-stats-toggle-closed", !willOpen);
-        toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
-    }
-
-    function toggleStats() {
-        const panel = document.getElementById("stats-panel");
-        const toggle = document.getElementById("footer-stats-toggle");
-        if (!panel) return;
-        const willOpen = !panel.classList.contains("is-open");
-        setStatsPanelOpen(panel, toggle, willOpen);
-        if (willOpen) {
-            fetchStats();
-            fetchOnlineCount();
-        }
-    }
-
-    function startAutoUpdate() {
+    async function fetchOnlineCount() {
         updateInterval = setInterval(() => {
             fetchStats();
             fetchOnlineCount();
@@ -297,7 +276,6 @@
         bindModalDismiss("image-modal", closeImageModal);
         bindModalDismiss("difficulty-modal", closeDifficultyModal);
         bindModalDismiss("practice-options-modal", closePracticeOptionsModal);
-        bindClick("footer-stats-toggle", toggleStats);
         bindReportForm();
         bindAppNotice();
         bindDifficultyChoices();

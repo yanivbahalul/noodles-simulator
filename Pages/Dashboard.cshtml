@@ -32,10 +32,66 @@
     <ul class="dashboard-stat-list">
         <li>👥 משתמשים רשומים: <strong id="all-users-count">@Model.AllUsers.Count</strong></li>
         <li>🟢 מחוברים כרגע: <strong id="online-users-count">@Model.OnlineUsers.Count</strong></li>
+        <li>📅 פעילים היום: <strong id="active-today-count">—</strong></li>
+        <li>✏️ תשובות נכונות היום: <strong id="answers-today-count">—</strong></li>
         <li>🚩 מסומנים כ־Cheaters: <strong id="cheaters-count">@Model.Cheaters.Count</strong></li>
         <li>🔒 חסומים: <strong id="banned-users-count">@Model.BannedUsers.Count</strong></li>
         <li>📈 ממוצע הצלחה: <strong id="average-success-rate">@Model.AverageSuccessRate.ToString("0.0")%</strong></li>
     </ul>
+
+    <h2 class="dashboard-section-title">⚡ פעילות חיה</h2>
+    <div class="dashboard-activity-feed" id="live-activity-feed">
+        <p class="dashboard-empty-hint">טוען פעילות...</p>
+    </div>
+
+    <h2 class="dashboard-section-title">🕐 פעילות אחרונה</h2>
+    <div class="dashboard-activity-feed" id="recent-activity-feed">
+        <p class="dashboard-empty-hint">טוען פעילות...</p>
+    </div>
+
+    <h2 class="dashboard-section-title">📝 מבחנים פעילים</h2>
+    <div class="dashboard-table-shell">
+    <table id="active-exams-table" class="dashboard-table">
+        <tr>
+            <th>משתמש</th>
+            <th>התחיל</th>
+            <th>עודכן</th>
+            <th>שאלה</th>
+            <th>ציון</th>
+            <th>נותר</th>
+        </tr>
+    </table>
+    </div>
+
+    <h2 class="dashboard-section-title">👥 כל המשתמשים</h2>
+    <div class="dashboard-toolbar">
+        <input type="search" id="user-search" class="dashboard-search" placeholder="חיפוש לפי שם משתמש..." aria-label="חיפוש משתמש" />
+        <div class="dashboard-filter-group" role="group" aria-label="סינון משתמשים">
+            <button type="button" class="dashboard-filter-btn is-active" data-filter="all">הכל</button>
+            <button type="button" class="dashboard-filter-btn" data-filter="online">מחוברים</button>
+            <button type="button" class="dashboard-filter-btn" data-filter="today">פעילים היום</button>
+            <button type="button" class="dashboard-filter-btn" data-filter="cheaters">Cheaters</button>
+            <button type="button" class="dashboard-filter-btn" data-filter="banned">חסומים</button>
+        </div>
+    </div>
+    <div class="dashboard-table-shell">
+    <table id="all-users-table" class="dashboard-table dashboard-table-wide">
+        <tr>
+            <th class="dashboard-sticky-col">משתמש</th>
+            <th>סטטוס</th>
+            <th>נראה לאחרונה</th>
+            <th>רמה</th>
+            <th>XP</th>
+            <th>היום</th>
+            <th>השבוע</th>
+            <th>נענו</th>
+            <th>נכונות</th>
+            <th>הצלחה</th>
+            <th>מבחן מיטבי</th>
+            <th>דגלים</th>
+        </tr>
+    </table>
+    </div>
 
     <h2 class="dashboard-section-title">📶 משתמשים מחוברים כרגע</h2>
     <div class="dashboard-table-shell">
@@ -117,7 +173,7 @@
     </table>
     </div>
 
-<script src="/js/dashboard-page.js"></script>
+<script src="/js/dashboard-page.js?v=5"></script>
 
 <!-- Difficulty Management Section -->
 <h2 class="dashboard-section-title">🎯 ניהול רמות קושי</h2>
@@ -244,6 +300,21 @@
 }
 
     </main>
+
+<div id="user-detail-modal" class="dashboard-modal" hidden aria-hidden="true">
+    <div class="dashboard-modal-backdrop" data-close-modal></div>
+    <div class="dashboard-modal-panel" role="dialog" aria-labelledby="user-detail-title">
+        <div class="dashboard-modal-header">
+            <button type="button" class="dashboard-modal-close" data-close-modal aria-label="סגור">×</button>
+            <h3 id="user-detail-title" class="dashboard-modal-title">פרטי משתמש</h3>
+        </div>
+        <div id="user-detail-body" class="dashboard-modal-body">
+            <p class="dashboard-empty-hint">טוען...</p>
+        </div>
+        <div id="user-detail-actions" class="dashboard-modal-actions"></div>
+    </div>
+</div>
+
 <partial name="Shared/_SiteFooter" />
 </body>
 </html>

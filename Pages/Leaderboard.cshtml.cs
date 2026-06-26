@@ -58,6 +58,7 @@ public class LeaderboardModel : PageModel
             "rate" => "אחוז הצלחה",
             "weekly" => "נכונות השבוע",
             "exam" => "מבחנים שהושלמו",
+            "achievement" or "achievements" => "הישגים",
             "level" => "רמה",
             _ => "תשובות נכונות"
         };

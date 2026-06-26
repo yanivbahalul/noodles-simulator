@@ -7,10 +7,12 @@ namespace NoodlesSimulator.Services;
 public class AchievementService
 {
     private readonly UserProgressService _progress;
+    private readonly ActivityEventService _activityEvents;
 
-    public AchievementService(UserProgressService progress)
+    public AchievementService(UserProgressService progress, ActivityEventService activityEvents = null)
     {
         _progress = progress;
+        _activityEvents = activityEvents;
     }
 
     public List<string> CheckPracticeAchievements(string username, int streak, int totalAnswered, int xp)
@@ -22,7 +24,7 @@ public class AchievementService
         candidates.AddRange(CollectWeeklyCandidates(data));
         candidates.AddRange(CollectModeCandidates(data));
         candidates.AddRange(CollectAccuracyCandidates(username));
-        return _progress.UnlockAchievements(username, candidates);
+        return UnlockAndLog(username, candidates);
     }
 
     public List<string> CheckExamAchievements(string username, int correctCount, int totalQuestions, bool isFirstExam, int previousExamCorrect)
@@ -34,19 +36,19 @@ public class AchievementService
         candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
         if (!isFirstExam)
             candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
-        return _progress.UnlockAchievements(username, candidates);
+        return UnlockAndLog(username, candidates);
     }
 
     public List<string> CheckDailyAchievements(string username)
     {
         var data = _progress.Load(username);
-        return _progress.UnlockAchievements(username, CollectDailyCandidates(data, forCompletion: true));
+        return UnlockAndLog(username, CollectDailyCandidates(data, forCompletion: true));
     }
 
     public List<string> CheckReviewClear(string username)
     {
         var data = _progress.Load(username);
-        return _progress.UnlockAchievements(username, CollectReviewCandidates(data.ReviewClearCount));
+        return UnlockAndLog(username, CollectReviewCandidates(data.ReviewClearCount));
     }
 
     public List<string> CheckAllAchievements(string username, User user)
@@ -65,7 +67,25 @@ public class AchievementService
         candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
         candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
         candidates.AddRange(CollectReviewCandidates(data.ReviewClearCount));
-        return _progress.UnlockAchievements(username, candidates);
+        return UnlockAndLog(username, candidates);
+    }
+
+    private List<string> UnlockAndLog(string username, IEnumerable<string> candidates)
+    {
+        var newly = _progress.UnlockAchievements(username, candidates);
+        if (_activityEvents == null || newly.Count == 0) return newly;
+
+        foreach (var key in newly)
+        {
+            var def = AchievementCatalog.Find(key);
+            _activityEvents.Log(username, "achievement", new Dictionary<string, object>
+            {
+                ["key"] = key,
+                ["title"] = def?.Title ?? key
+            });
+        }
+
+        return newly;
     }
 
     public List<AchievementDefinition> GetUnlocked(string username)

@@ -153,6 +153,8 @@ builder.Services.AddSingleton<UserProgressService>(sp =>
         sp.GetService<UserProgressStore>()));
 builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
+builder.Services.AddSingleton<ActivityEventService>();
+builder.Services.AddSingleton<DashboardDataService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
@@ -239,6 +241,24 @@ static bool TryResolveAuthService(HttpContext context, out AuthService authServi
 {
     authService = context.RequestServices.GetService<AuthService>();
     return authService != null;
+}
+
+static void RestoreUserStatsFromProgress(HttpContext context, User user)
+{
+    var progress = context.RequestServices.GetService<UserProgressService>();
+    if (progress == null) return;
+
+    var (total, correct) = progress.GetAnswerTotals(user.Username);
+    if (total > user.TotalAnswered)
+        user.TotalAnswered = total;
+    if (correct > user.CorrectAnswers)
+        user.CorrectAnswers = correct;
+
+    var data = progress.Load(user.Username);
+    if (data.Xp > user.Xp)
+        user.Xp = data.Xp;
+    if (user.Xp > 0)
+        user.Level = QuizGamification.LevelFromXp(user.Xp);
 }
 
 app.UseForwardedHeaders();
@@ -418,49 +438,154 @@ api.MapGet("/dashboard-data", async context =>
 
     try
     {
+        var dashboard = context.RequestServices.GetService<DashboardDataService>();
+        if (dashboard == null)
+        {
+            await WritePlainError(context, 503, "Dashboard service not available");
+            return;
+        }
+
+        var snapshot = await dashboard.GetSnapshotAsync();
+        await WriteJson(context, dashboard.ToApiPayload(snapshot));
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard API Error", ex);
+    }
+});
+
+api.MapGet("/dashboard-activity", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        if (activity == null || !activity.IsEnabled)
+        {
+            await WriteJson(context, new { items = Array.Empty<object>() });
+            return;
+        }
+
+        var limit = 50;
+        if (int.TryParse(context.Request.Query["limit"], out var parsed) && parsed > 0 && parsed <= 100)
+            limit = parsed;
+
+        var events = await activity.GetRecentAsync(limit);
+        await WriteJson(context, new
+        {
+            items = events.Select(e => new
+            {
+                id = e.Id,
+                username = e.Username,
+                eventType = e.EventType,
+                payload = e.Payload,
+                createdAt = e.CreatedAt.ToUniversalTime().ToString("o")
+            })
+        });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard Activity API Error", ex);
+    }
+});
+
+api.MapGet("/dashboard-user", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var username = context.Request.Query["username"].ToString();
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            await WritePlainError(context, 400, "Missing username");
+            return;
+        }
+
+        var dashboard = context.RequestServices.GetService<DashboardDataService>();
+        if (dashboard == null)
+        {
+            await WritePlainError(context, 503, "Dashboard service not available");
+            return;
+        }
+
+        var detail = await dashboard.GetUserDetailAsync(username);
+        if (detail == null)
+        {
+            await WritePlainError(context, 404, "User not found");
+            return;
+        }
+
+        await WriteJson(context, dashboard.ToApiUserDetail(detail));
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard User API Error", ex);
+    }
+});
+
+api.MapPost("/dashboard-user-action", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
         if (!TryResolveAuthService(context, out var authService))
         {
             await WritePlainError(context, 503, "AuthService not available");
             return;
         }
 
-        var allUsers = await authService.GetAllUsersLightAsync();
-        var onlineUsers = allUsers.Where(AuthService.UserIsOnline).ToList();
-        var cheaters = allUsers.Where(u => u.IsCheater).ToList();
-        var bannedUsers = allUsers.Where(u => u.IsBanned).ToList();
-        var topUsers = allUsers.OrderByDescending(u => u.CorrectAnswers).Take(5).ToList();
-        var averageSuccessRate = allUsers.Where(u => u.TotalAnswered > 0)
-            .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
-            .DefaultIfEmpty(0).Average() * 100;
-
-        var data = new
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        var root = doc.RootElement;
+        var username = root.TryGetProperty("username", out var u) ? u.GetString() : null;
+        if (string.IsNullOrWhiteSpace(username))
         {
-            allUsersCount = allUsers.Count,
-            onlineUsersCount = onlineUsers.Count,
-            cheatersCount = cheaters.Count,
-            bannedUsersCount = bannedUsers.Count,
-            averageSuccessRate = Math.Round(averageSuccessRate, 1),
-            onlineUsersList = onlineUsers.Select(u => new
-            {
-                username = u.Username,
-                totalAnswered = u.TotalAnswered,
-                correctAnswers = u.CorrectAnswers,
-                successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0
-            }).ToList(),
-            topUsersList = topUsers.Select(u => new
-            {
-                username = u.Username,
-                totalAnswered = u.TotalAnswered,
-                correctAnswers = u.CorrectAnswers,
-                successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0
-            }).ToList()
-        };
+            await WritePlainError(context, 400, "Missing username");
+            return;
+        }
 
-        await WriteJson(context, data);
+        var user = await authService.GetUserAsync(username);
+        if (user == null)
+        {
+            await WritePlainError(context, 404, "User not found");
+            return;
+        }
+
+        if (root.TryGetProperty("isCheater", out var cheaterEl) &&
+            (cheaterEl.ValueKind == System.Text.Json.JsonValueKind.True ||
+             cheaterEl.ValueKind == System.Text.Json.JsonValueKind.False))
+        {
+            var wasCheater = user.IsCheater;
+            user.IsCheater = cheaterEl.GetBoolean();
+            if (wasCheater && !user.IsCheater)
+                RestoreUserStatsFromProgress(context, user);
+        }
+
+        if (root.TryGetProperty("isBanned", out var bannedEl) &&
+            (bannedEl.ValueKind == System.Text.Json.JsonValueKind.True ||
+             bannedEl.ValueKind == System.Text.Json.JsonValueKind.False))
+            user.IsBanned = bannedEl.GetBoolean();
+
+        var ok = await authService.UpdateUserAsync(user);
+        await WriteJson(context, new { success = ok, username = user.Username, isCheater = user.IsCheater, isBanned = user.IsBanned });
     }
     catch (Exception ex)
     {
-        await WriteServerError(context, "Dashboard API Error", ex);
+        await WriteServerError(context, "Dashboard User Action API Error", ex);
     }
 });
 
@@ -571,6 +696,63 @@ api.MapGet("/online-count", async context =>
     catch (Exception ex)
     {
         await WriteServerError(context, "Online Count API Error", ex);
+    }
+});
+
+api.MapGet("/stats-data", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        if (!TryResolveAuthService(context, out var authService))
+        {
+            await WritePlainError(context, 503, "AuthService not available");
+            return;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var user = await authService.GetUserAsync(username);
+        if (user == null)
+        {
+            await WritePlainError(context, 401, "Unauthorized");
+            return;
+        }
+
+        var progressService = context.RequestServices.GetService<UserProgressService>();
+        var correct = user.CorrectAnswers;
+        var total = user.TotalAnswered;
+        var xp = user.Xp;
+        var streak = context.Session.GetInt32("CurrentStreak") ?? 0;
+        var level = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(xp);
+
+        if (progressService != null)
+        {
+            var progress = progressService.Load(username);
+            var (progTotal, progCorrect) = progressService.GetAnswerTotals(username);
+            correct = Math.Max(correct, progCorrect);
+            total = Math.Max(total, progTotal);
+            xp = Math.Max(xp, progress.Xp);
+        }
+
+        var successRate = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
+        await WriteJson(context, new
+        {
+            correct,
+            total,
+            successRate,
+            streak,
+            level,
+            xp
+        });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Stats Data API Error", ex);
     }
 });
 
