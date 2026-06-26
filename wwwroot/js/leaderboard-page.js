@@ -87,7 +87,7 @@
     }
 
     function startAutoUpdate() {
-        updateInterval = setInterval(fetchLeaderboardData, 3000);
+        updateInterval = setInterval(fetchLeaderboardData, 5000);
         if (!clockInterval) {
             clockInterval = setInterval(() => {
                 const el = document.getElementById("last-update");

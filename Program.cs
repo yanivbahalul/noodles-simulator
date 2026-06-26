@@ -113,7 +113,7 @@ builder.Services.AddRateLimiter(options =>
                 partitionKey: $"session:{context.Session.Id}",
                 factory: _ => new SlidingWindowRateLimiterOptions
                 {
-                    PermitLimit = 200,
+                    PermitLimit = 400,
                     Window = TimeSpan.FromMinutes(1),
                     SegmentsPerWindow = 4,
                     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

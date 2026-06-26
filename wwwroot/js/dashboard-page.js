@@ -418,7 +418,7 @@
     }
 
     function startAutoUpdate() {
-        updateInterval = setInterval(fetchDashboardData, 3000);
+        updateInterval = setInterval(fetchDashboardData, 5000);
         if (!window.__dashClockInterval) {
             window.__dashClockInterval = setInterval(() => {
                 const el = document.getElementById("last-update");

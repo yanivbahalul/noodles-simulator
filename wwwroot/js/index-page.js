@@ -165,7 +165,8 @@
         }
     }
 
-    async function fetchOnlineCount() {
+    function startAutoUpdate() {
+        stopAutoUpdate();
         updateInterval = setInterval(() => {
             fetchStats();
             fetchOnlineCount();
