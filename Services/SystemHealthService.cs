@@ -247,11 +247,18 @@ public class SystemHealthService
         var user = EmailConfiguration.SmtpUser(_config);
         var pass = EmailConfiguration.SmtpPass(_config);
         var brevo = EmailConfiguration.BrevoApiKey();
-        var ok = (!string.IsNullOrWhiteSpace(to) && !string.IsNullOrWhiteSpace(brevo))
-                 || (!string.IsNullOrWhiteSpace(to) && !string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(pass));
-        var detail = ok
-            ? (string.IsNullOrWhiteSpace(brevo) ? "SMTP מוגדר" : "Brevo API מוגדר")
-            : "חסרות הגדרות דוא\"ל";
+        var hasBrevo = !string.IsNullOrWhiteSpace(to) && !string.IsNullOrWhiteSpace(brevo);
+        var hasSmtp = !string.IsNullOrWhiteSpace(to) && !string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(pass);
+        var ok = hasBrevo || hasSmtp;
+
+        string detail;
+        if (!ok)
+            detail = "חסרות הגדרות דוא\"ל";
+        else if (hasBrevo)
+            detail = "Brevo API מוגדר";
+        else
+            detail = "SMTP מוגדר";
+
         return new SystemHealthCheck { Id = "email", Name = "דוא\"ל", Ok = ok, Detail = detail, ElapsedMs = sw.ElapsedMilliseconds };
     }
 
