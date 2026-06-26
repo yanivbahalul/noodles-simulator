@@ -36,13 +36,13 @@
 
     <div class="test-progress-wrap">
         <div class="test-progress-track">
-            <div class="test-progress-fill" style="width: @(Model.DisplayQuestionNumber * 100 / 17)%"></div>
+            <div class="test-progress-fill" id="test-progress-fill" style="width: @(Model.DisplayQuestionNumber * 100 / 17)%"></div>
         </div>
-        <p class="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / 17</p>
+        <p class="test-progress-label" id="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / 17</p>
     </div>
     
     <p class="test-meta">
-        שאלה @Model.DisplayQuestionNumber מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>
+        שאלה <span id="test-question-number">@Model.DisplayQuestionNumber</span> מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>
     </p>
 
     @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
@@ -50,14 +50,14 @@
         <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="test-main-question-image" />
     }
 
-    <form method="post">
+    <form method="post" id="test-answer-form">
         @Html.AntiForgeryToken()
         @if (ViewData["Token"] != null)
         {
             <input type="hidden" name="token" value="@ViewData["Token"]" />
         }
 
-        <div class="answers">
+        <div class="answers" id="answers-grid">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
             {
                 <button type="submit"
@@ -78,9 +78,10 @@
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
 </div>
 
-<div id="test-page-data" data-question-image-url="@Model.QuestionImageUrl" data-test-end-utc="@Model.TestEndUtcString"></div>
+<div id="test-page-data" data-test-end-utc="@Model.TestEndUtcString"></div>
 <script src="/js/dialog.js"></script>
-<script src="/js/test-page.js"></script>
+<script src="/js/quiz-viewport.js" asp-append-version="true"></script>
+<script src="/js/test-page.js" asp-append-version="true"></script>
 
 <partial name="Shared/_SiteFooter" />
 </body>

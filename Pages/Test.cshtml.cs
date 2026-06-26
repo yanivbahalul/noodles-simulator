@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Text;
 using System.Text.Json;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
@@ -149,36 +151,113 @@ public class TestModel : PageModel
             }
 
             var token = Request.Form["token"].ToString();
-            
+            var selected = Request.Form["answer"].ToString();
+            var result = await ProcessTestAnswerAsync(username, token, selected);
+            if (result.ErrorResult != null)
+                return result.ErrorResult;
+            if (result.RedirectResult != null)
+                return result.RedirectResult;
+            if (result.RedirectPath != null)
+                return Redirect(result.RedirectPath);
+
+            return RedirectToPage("/Test", new { token });
+        }
+
+        public async Task<IActionResult> OnPostSubmitAnswerAsync()
+        {
+            try
+            {
+                var username = HttpContext.Session.GetString("Username");
+                if (string.IsNullOrEmpty(username))
+                    return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
+
+                string body;
+                using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
+                    body = await reader.ReadToEndAsync();
+                if (string.IsNullOrWhiteSpace(body))
+                    return new JsonResult(new { error = "Empty body" }) { StatusCode = 400 };
+
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("token", out var tokenEl) || !root.TryGetProperty("answer", out var answerEl))
+                    return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+                var token = tokenEl.GetString();
+                var selected = answerEl.GetString();
+                if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(selected))
+                    return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+                var result = await ProcessTestAnswerAsync(username, token, selected);
+                if (result.ErrorResult != null)
+                    return result.ErrorResult;
+                if (result.RedirectPath != null)
+                    return new JsonResult(new { redirect = result.RedirectPath });
+
+                await BindCurrentAsync(result.State);
+                return new JsonResult(BuildTestQuestionResponse(result.Session));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[OnPostSubmitAnswerAsync Error] {ex}");
+                return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
+            }
+        }
+
+        private sealed class TestAnswerProcessResult
+        {
+            public IActionResult ErrorResult { get; init; }
+            public IActionResult RedirectResult { get; init; }
+            public string RedirectPath { get; init; }
+            public TestSession Session { get; init; }
+            public TestState State { get; init; }
+        }
+
+        private async Task<TestAnswerProcessResult> ProcessTestAnswerAsync(string username, string token, string selected)
+        {
             if (_testSession == null)
             {
-                return StatusCode(503, "Test session service is not available.");
+                return new TestAnswerProcessResult
+                {
+                    ErrorResult = StatusCode(503, "Test session service is not available.")
+                };
             }
             if (string.IsNullOrEmpty(token))
             {
-                return BadRequest("Missing test token.");
+                return new TestAnswerProcessResult
+                {
+                    ErrorResult = BadRequest("Missing test token.")
+                };
             }
 
             var session = await _testSession.GetSessionAsync(token);
             if (session == null || session.Username != username)
             {
-                return RedirectToPage("/MyExams");
+                return new TestAnswerProcessResult
+                {
+                    RedirectResult = RedirectToPage("/MyExams")
+                };
             }
 
             if (_testSession.IsExpired(session) || session.Status != "active")
             {
                 await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
-                return RedirectToPage("/TestResults", new { token = session.Token });
+                return new TestAnswerProcessResult
+                {
+                    RedirectPath = $"/TestResults?token={Uri.EscapeDataString(session.Token)}"
+                };
             }
 
             var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
             var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
-
-            var selected = Request.Form["answer"].ToString();
             var idx = session.CurrentIndex;
 
             if (idx < 0 || idx >= questions.Count)
-                return RedirectToPage("/TestResults", new { token = session.Token });
+            {
+                return new TestAnswerProcessResult
+                {
+                    RedirectPath = $"/TestResults?token={Uri.EscapeDataString(session.Token)}"
+                };
+            }
 
             var q = questions[idx];
             var isCorrect = AnswerOptionShuffle.IsSelectedCorrect(q, selected);
@@ -192,17 +271,20 @@ public class TestModel : PageModel
             else if (idx < answers.Count)
                 answers[idx] = recorded;
 
-            try 
-            { 
-                var qid = (idx >= 0 && idx < questions.Count) ? questions[idx].Question : null; 
+            try
+            {
+                var qid = questions[idx].Question;
                 _stats?.Record(qid, isCorrect);
-                
+
                 if (!string.IsNullOrEmpty(qid) && _difficultyService != null)
                 {
                     _ = _difficultyService.UpdateQuestionStatsAsync(qid, isCorrect);
                 }
-            } 
-            catch (Exception ex) { Console.WriteLine($"[Test OnPost Stats Update Error] {ex.Message}"); }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Test ProcessTestAnswer Stats Update Error] {ex.Message}");
+            }
 
             session.CurrentIndex = Math.Min(idx + 1, questions.Count);
             session.AnswersJson = JsonSerializer.Serialize(answers, AppJson.Options);
@@ -218,10 +300,46 @@ public class TestModel : PageModel
                     await _testSession.UpdateSessionStatusAsync(session.Token, "completed");
                     LogExamComplete(session.Username, session.Score, session.MaxScore);
                 }
-                return RedirectToPage("/TestResults", new { token = session.Token });
+                return new TestAnswerProcessResult
+                {
+                    RedirectPath = $"/TestResults?token={Uri.EscapeDataString(session.Token)}"
+                };
             }
 
-            return RedirectToPage("/Test", new { token = session.Token });
+            var state = new TestState
+            {
+                StartedUtc = session.StartedUtc,
+                Questions = questions,
+                Answers = answers,
+                CurrentIndex = session.CurrentIndex
+            };
+
+            return new TestAnswerProcessResult
+            {
+                Session = session,
+                State = state
+            };
+        }
+
+        private object BuildTestQuestionResponse(TestSession session)
+        {
+            return new
+            {
+                questionImageUrl = QuestionImageUrl,
+                displayQuestionNumber = DisplayQuestionNumber,
+                totalQuestions = TotalQuestions,
+                progressPercent = DisplayQuestionNumber * 100 / TotalQuestions,
+                score = session.Score,
+                maxScore = session.MaxScore,
+                answers = (ShuffledAnswers ?? new Dictionary<string, string>())
+                    .Select(kv => new
+                    {
+                        key = kv.Key,
+                        imageUrl = AnswerImageUrls?.TryGetValue(kv.Key, out var url) == true ? url : ""
+                    })
+                    .ToList(),
+                redirect = (string)null
+            };
         }
 
         public async Task<IActionResult> OnPostEndTest()

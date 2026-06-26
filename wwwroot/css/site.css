@@ -938,6 +938,7 @@ button.answer-btn,
 }
 
 .quiz-container.quiz-loading .quiz-main-image,
+.quiz-container.quiz-loading .test-main-question-image,
 .quiz-container.quiz-loading .answers {
     opacity: 0.55;
     pointer-events: none;
