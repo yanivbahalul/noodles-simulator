@@ -42,6 +42,8 @@ public class TestModel : PageModel
         public Dictionary<string, string> AnswerImageUrls { get; set; }
         public int CurrentIndex { get; set; }
         public int DisplayQuestionNumber => CurrentIndex + 1;
+        public int QuestionCount => TotalQuestions;
+        public int ProgressPercent => TotalQuestions == 0 ? 0 : CurrentIndex * 100 / TotalQuestions;
         public string TestEndUtcString { get; set; }
 
         public async Task<IActionResult> OnGet()
@@ -328,7 +330,7 @@ public class TestModel : PageModel
                 questionImageUrl = QuestionImageUrl,
                 displayQuestionNumber = DisplayQuestionNumber,
                 totalQuestions = TotalQuestions,
-                progressPercent = DisplayQuestionNumber * 100 / TotalQuestions,
+                progressPercent = ProgressPercent,
                 score = session.Score,
                 maxScore = session.MaxScore,
                 answers = (ShuffledAnswers ?? new Dictionary<string, string>())

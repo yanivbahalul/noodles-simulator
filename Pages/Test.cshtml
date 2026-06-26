@@ -36,13 +36,13 @@
 
     <div class="test-progress-wrap">
         <div class="test-progress-track">
-            <div class="test-progress-fill" id="test-progress-fill" style="width: @(Model.DisplayQuestionNumber * 100 / 17)%"></div>
+            <div class="test-progress-fill" id="test-progress-fill" style="width: @Model.ProgressPercent%"></div>
         </div>
-        <p class="test-progress-label" id="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / 17</p>
+        <p class="test-progress-label" id="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / @Model.QuestionCount</p>
     </div>
     
     <p class="test-meta">
-        שאלה <span id="test-question-number">@Model.DisplayQuestionNumber</span> מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>
+        שאלה <span id="test-question-number">@Model.DisplayQuestionNumber</span> מתוך @Model.QuestionCount · זמן נותר: <span id="countdown">--:--:--</span>
     </p>
 
     @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
