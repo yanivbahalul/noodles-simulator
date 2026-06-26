@@ -63,7 +63,7 @@ namespace NoodlesSimulator.Pages
             var token = Request.Query["token"].ToString();
             if (!string.IsNullOrWhiteSpace(token))
             {
-                var session = await _testSession.GetSession(token);
+                var session = await _testSession.GetSessionAsync(token);
                 if (session != null && session.Username == username)
                 {
                     return new TestState

@@ -15,7 +15,29 @@
         if (modal) modal.classList.remove("modal-open");
     }
 
+    function closeAppDialog() {
+        const dialog = document.getElementById("app-dialog");
+        if (dialog) dialog.classList.remove("notice-modal-open");
+    }
+
+    function dismissExamFixNotice() {
+        const modal = document.getElementById("exam-fix-notice-modal");
+        const prompt = document.getElementById("exam-fix-notice-prompt");
+        if (!modal) return;
+        modal.classList.remove("difficulty-modal-open");
+        const noticeId = prompt?.dataset.noticeId;
+        if (!noticeId) return;
+        fetch("/api/notices/dismiss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noticeId })
+        }).catch(() => {});
+    }
+
     function openDifficultyModal() {
+        closeImageModal();
+        closeAppDialog();
+        dismissExamFixNotice();
         const modal = document.getElementById("difficulty-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
     }
@@ -25,19 +47,28 @@
         if (modal) modal.classList.remove("difficulty-modal-open");
     }
 
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    }
+
+    function applyStatsData(data) {
+        if (data?.correct === undefined) return;
+        setText("stat-correct", data.correct);
+        setText("stat-total", data.total);
+        setText("stat-success", `${data.successRate}%`);
+    }
+
+    function applyOnlineCount(data) {
+        if (data?.online === undefined || data.online === null) return;
+        setText("online-count", data.online);
+    }
+
     async function fetchStats() {
         try {
             const res = await fetch(`/Stats?_=${Date.now()}`);
             if (!res.ok) throw new Error("stats fetch failed");
-            const data = await res.json();
-            if (data && data.correct !== undefined) {
-                document.getElementById("stat-correct").innerText = data.correct;
-                document.getElementById("stat-total").innerText = data.total;
-                document.getElementById("stat-success").innerText = `${data.successRate}%`;
-            }
-            if (data && data.online !== undefined && data.online !== null) {
-                document.getElementById("online-count").innerText = data.online;
-            }
+            applyStatsData(await res.json());
         } catch {
             // keep existing values
         }
@@ -47,10 +78,7 @@
         try {
             const res = await fetch(`/api/online-count?_=${Date.now()}`);
             if (!res.ok) throw new Error("online fetch failed");
-            const data = await res.json();
-            if (data && data.online !== undefined && data.online !== null) {
-                document.getElementById("online-count").innerText = data.online;
-            }
+            applyOnlineCount(await res.json());
         } catch {
             // keep existing values
         }
@@ -86,6 +114,10 @@
         }
     }
 
+    function bindDismissHandler(element, dismiss) {
+        if (element) element.addEventListener("click", dismiss);
+    }
+
     function bindExamFixNotice() {
         const prompt = document.getElementById("exam-fix-notice-prompt");
         if (!prompt) return;
@@ -94,27 +126,25 @@
         const modal = document.getElementById("exam-fix-notice-modal");
         if (!modal || !noticeId) return;
 
-        const dismiss = async () => {
-            modal.classList.remove("notice-modal-open");
-            try {
-                await fetch("/api/notices/dismiss", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ noticeId })
-                });
-            } catch {
-                // modal already closed
-            }
-        };
+        modal.classList.add("difficulty-modal-open");
 
-        const dismissBtn = document.getElementById("exam-fix-notice-dismiss-btn");
-        if (dismissBtn) dismissBtn.addEventListener("click", dismiss);
+        const dismiss = () => dismissExamFixNotice();
 
-        const closeBtn = document.getElementById("close-exam-fix-notice-btn");
-        if (closeBtn) closeBtn.addEventListener("click", dismiss);
-
+        bindDismissHandler(document.getElementById("exam-fix-notice-dismiss-btn"), dismiss);
+        bindDismissHandler(document.getElementById("close-exam-fix-notice-btn"), dismiss);
         modal.addEventListener("click", (e) => {
             if (e.target === modal) dismiss();
+        });
+    }
+
+    function bindDifficultyChoices() {
+        document.querySelectorAll(".difficulty-btn[data-difficulty]").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const level = btn.getAttribute("data-difficulty");
+                if (!level) return;
+                window.location.assign(`/Test?start=1&difficulty=${encodeURIComponent(level)}`);
+            });
         });
     }
 
@@ -152,38 +182,37 @@
         });
     }
 
+    function bindModalDismiss(modalId, closeFn) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeFn();
+        });
+    }
+
+    function bindClick(id, handler) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("click", handler);
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
-        const mainQuestionImage = document.getElementById("main-question-image");
-        if (mainQuestionImage) mainQuestionImage.addEventListener("click", openImageModal);
-
-        const openDifficultyBtn = document.getElementById("open-difficulty-modal-btn");
-        if (openDifficultyBtn) openDifficultyBtn.addEventListener("click", openDifficultyModal);
-
-        const closeDifficultyBtn = document.getElementById("close-difficulty-modal-btn");
-        if (closeDifficultyBtn) closeDifficultyBtn.addEventListener("click", closeDifficultyModal);
-
-        const closeImageBtn = document.getElementById("close-image-modal-btn");
-        if (closeImageBtn) closeImageBtn.addEventListener("click", closeImageModal);
-
-        const modal = document.getElementById("image-modal");
-        if (modal) {
-            modal.addEventListener("click", (e) => {
-                if (e.target === modal) closeImageModal();
-            });
-        }
-
-        const diffModal = document.getElementById("difficulty-modal");
-        if (diffModal) {
-            diffModal.addEventListener("click", (e) => {
-                if (e.target === diffModal) closeDifficultyModal();
-            });
-        }
-
-        const footerStatsToggle = document.getElementById("footer-stats-toggle");
-        if (footerStatsToggle) footerStatsToggle.addEventListener("click", toggleStats);
-
+        bindClick("main-question-image", openImageModal);
+        bindClick("open-difficulty-modal-btn", (e) => {
+            e.preventDefault();
+            openDifficultyModal();
+        });
+        bindClick("close-difficulty-modal-btn", closeDifficultyModal);
+        bindClick("close-image-modal-btn", closeImageModal);
+        bindModalDismiss("image-modal", closeImageModal);
+        bindModalDismiss("difficulty-modal", closeDifficultyModal);
+        bindClick("footer-stats-toggle", toggleStats);
         bindReportForm();
         bindExamFixNotice();
+        bindDifficultyChoices();
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeDifficultyModal();
+        });
     });
 
     window.addEventListener("load", () => {

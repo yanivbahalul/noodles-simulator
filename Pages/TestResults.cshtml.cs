@@ -57,7 +57,7 @@ namespace NoodlesSimulator.Pages
                 return RedirectToPage("/MyExams");
             }
 
-            var session = await _testSession.GetSession(token);
+            var session = await _testSession.GetSessionAsync(token);
             if (session == null || session.Username != username)
             {
                 return RedirectToPage("/MyExams");

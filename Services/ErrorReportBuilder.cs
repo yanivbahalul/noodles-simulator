@@ -9,10 +9,10 @@ using NoodlesSimulator.Models;
 
 #nullable enable
 
-namespace NoodlesSimulator.Services
+namespace NoodlesSimulator.Services;
+
+public static class ErrorReportBuilder
 {
-    public static class ErrorReportBuilder
-    {
         public sealed class ReportPayload
         {
             public string Username { get; init; } = "Unknown";
@@ -185,4 +185,3 @@ namespace NoodlesSimulator.Services
             return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
         }
     }
-}

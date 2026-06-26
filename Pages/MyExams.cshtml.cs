@@ -38,7 +38,7 @@ namespace NoodlesSimulator.Pages
                 return Page();
             }
 
-            Sessions = await _testSession.GetUserSessions(username, 50);
+            Sessions = await _testSession.GetUserSessionsAsync(username, 50);
             
             ActiveSession = Sessions.FirstOrDefault(s => s.Status == "active");
             
@@ -46,7 +46,7 @@ namespace NoodlesSimulator.Pages
             {
                 if (_testSession.IsExpired(session))
                 {
-                    await _testSession.UpdateSessionStatus(session.Token, "expired");
+                    await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
                     session.Status = "expired";
                 }
             }
@@ -67,10 +67,10 @@ namespace NoodlesSimulator.Pages
             
             if (_testSession != null && !string.IsNullOrEmpty(token))
             {
-                var session = await _testSession.GetSession(token);
+                var session = await _testSession.GetSessionAsync(token);
                 Console.WriteLine($"[MyExams OnPost] Session found: {session != null}, Status: {session?.Status}");
                 
-                if (session != null && session.Username == username && session.Status == "active")
+                if (session?.Username == username && session.Status == "active")
                 {
                     var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options)
                                     ?? new List<TestQuestion>();
@@ -85,7 +85,7 @@ namespace NoodlesSimulator.Pages
                     session.MaxScore = questions.Count * 6;
                     
                     Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
-                    await _testSession.UpdateSession(session);
+                    await _testSession.UpdateSessionAsync(session);
                     
                     Console.WriteLine("[MyExams OnPost] Test ended successfully");
                     TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";

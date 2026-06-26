@@ -62,9 +62,9 @@ namespace NoodlesSimulator.Pages
 
             if (!string.IsNullOrEmpty(token))
             {
-                session = await _testSession.GetSession(token);
+                session = await _testSession.GetSessionAsync(token);
                 
-                if (session != null && session.Username != username)
+                if (session?.Username != username)
                 {
                     return RedirectToPage("/MyExams");
                 }
@@ -72,7 +72,7 @@ namespace NoodlesSimulator.Pages
 
             if (session == null)
             {
-                session = await _testSession.GetActiveSession(username);
+                session = await _testSession.GetActiveSessionAsync(username);
             }
 
             if (!string.IsNullOrEmpty(start) && session != null && session.Status == "active")
@@ -92,7 +92,7 @@ namespace NoodlesSimulator.Pages
                 var questionsJson = JsonSerializer.Serialize(state.Questions, AppJson.Options);
                 Console.WriteLine("[Test OnGet] Attempting to create session in database...");
                 
-                session = await _testSession.CreateSession(username, questionsJson);
+                session = await _testSession.CreateSessionAsync(username, questionsJson);
                 
                 if (session == null)
                 {
@@ -109,7 +109,7 @@ namespace NoodlesSimulator.Pages
             {
                 if (session.Status == "active")
                 {
-                    await _testSession.UpdateSessionStatus(session.Token, "expired");
+                    await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
@@ -124,7 +124,7 @@ namespace NoodlesSimulator.Pages
 
             if (testState.CurrentIndex >= testState.Questions.Count)
             {
-                await _testSession.UpdateSessionStatus(session.Token, "completed");
+                await _testSession.UpdateSessionStatusAsync(session.Token, "completed");
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
 
@@ -152,7 +152,7 @@ namespace NoodlesSimulator.Pages
                 return BadRequest("Missing test token.");
             }
 
-            var session = await _testSession.GetSession(token);
+            var session = await _testSession.GetSessionAsync(token);
             if (session == null || session.Username != username)
             {
                 return RedirectToPage("/MyExams");
@@ -160,7 +160,7 @@ namespace NoodlesSimulator.Pages
 
             if (_testSession.IsExpired(session) || session.Status != "active")
             {
-                await _testSession.UpdateSessionStatus(session.Token, "expired");
+                await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
 
@@ -191,7 +191,7 @@ namespace NoodlesSimulator.Pages
                 
                 if (!string.IsNullOrEmpty(qid) && _difficultyService != null)
                 {
-                    _ = _difficultyService.UpdateQuestionStats(qid, isCorrect);
+                    _ = _difficultyService.UpdateQuestionStatsAsync(qid, isCorrect);
                 }
             } 
             catch (Exception ex) { Console.WriteLine($"[Test OnPost Stats Update Error] {ex.Message}"); }
@@ -201,13 +201,13 @@ namespace NoodlesSimulator.Pages
             session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
             session.MaxScore = questions.Count * 6;
 
-            await _testSession.UpdateSession(session);
+            await _testSession.UpdateSessionAsync(session);
 
             if (_testSession.IsExpired(session) || session.CurrentIndex >= questions.Count)
             {
                 if (session.Status == "active")
                 {
-                    await _testSession.UpdateSessionStatus(session.Token, "completed");
+                    await _testSession.UpdateSessionStatusAsync(session.Token, "completed");
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
@@ -226,39 +226,35 @@ namespace NoodlesSimulator.Pages
             var token = Request.Form["token"].ToString();
             Console.WriteLine($"[Test OnPostEndTest] Called with token: {token}");
             
-            if (_testSession != null && !string.IsNullOrEmpty(token))
-            {
-                var session = await _testSession.GetSession(token);
-                if (session != null && session.Username == username)
-                {
-                    Console.WriteLine($"[Test OnPostEndTest] Session found. Current status: {session.Status}");
-                    
-                    var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
-                    var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
-                    
-                    session.Status = "completed";
-                    session.CompletedUtc = DateTime.UtcNow;
-                    session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
-                    session.MaxScore = questions.Count * 6;
-                    
-                    Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
-                    await _testSession.UpdateSession(session);
-                    
-                    Console.WriteLine("[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
-                    
-                    return RedirectToPage("/TestResults", new { token = token });
-                }
-                else
-                {
-                    Console.WriteLine("[Test OnPostEndTest] Session not found or username mismatch");
-                }
-            }
-            else
+            if (_testSession == null || string.IsNullOrEmpty(token))
             {
                 Console.WriteLine("[Test OnPostEndTest] TestSessionService null or token empty");
+                return RedirectToPage("/TestResults");
             }
-            
-            return RedirectToPage("/TestResults");
+
+            var session = await _testSession.GetSessionAsync(token);
+            if (session?.Username != username)
+            {
+                Console.WriteLine("[Test OnPostEndTest] Session not found or username mismatch");
+                return RedirectToPage("/TestResults");
+            }
+
+            Console.WriteLine($"[Test OnPostEndTest] Session found. Current status: {session.Status}");
+
+            var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
+            var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
+
+            session.Status = "completed";
+            session.CompletedUtc = DateTime.UtcNow;
+            session.Score = answers.Count(a => a != null && a.IsCorrect) * 6;
+            session.MaxScore = questions.Count * 6;
+
+            Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
+            await _testSession.UpdateSessionAsync(session);
+
+            Console.WriteLine("[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
+
+            return RedirectToPage("/TestResults", new { token });
         }
 
         private async Task<TestState> BuildNewStateAsync(string difficulty = null)
@@ -325,7 +321,7 @@ namespace NoodlesSimulator.Pages
             if (!string.IsNullOrEmpty(difficulty))
             {
                 var allowedQuestions = await LoadDifficultyQuestionsAsync(difficulty);
-                if (allowedQuestions != null && allowedQuestions.Any())
+                    if (allowedQuestions.Count > 0)
                 {
                     Console.WriteLine($"[Test] Filtering by difficulty '{difficulty}': {allowedQuestions.Count} questions available");
                     
@@ -386,9 +382,9 @@ namespace NoodlesSimulator.Pages
                 if (_difficultyService != null)
                 {
                     Console.WriteLine($"[Test] Loading difficulty '{difficulty}' from database...");
-                    var questions = await _difficultyService.GetQuestionsByDifficulty(difficulty);
+                    var questions = await _difficultyService.GetQuestionsByDifficultyAsync(difficulty);
                     
-                    if (questions != null && questions.Any())
+                        if (questions.Count > 0)
                     {
                         Console.WriteLine($"[Test] Loaded {questions.Count} questions from database for difficulty '{difficulty}'");
                         return questions;

@@ -140,7 +140,7 @@ namespace NoodlesSimulator.Pages
                     User user = null;
                     try 
                     { 
-                        user = await _authService.Authenticate(Username, Password); 
+                        user = await _authService.AuthenticateAsync(Username, Password); 
                     } 
                     catch (Exception ex) 
                     { 
@@ -161,7 +161,7 @@ namespace NoodlesSimulator.Pages
 
                         try
                         {
-                            _ = _authService.TouchLastSeen(user.Username, DateTime.UtcNow);
+                            _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
 
                             RotateSessionForLogin();
                             var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);
@@ -219,11 +219,11 @@ namespace NoodlesSimulator.Pages
                     User existingUser = null;
                     try 
                     { 
-                        existingUser = await _authService.GetUser(Username); 
+                        existingUser = await _authService.GetUserAsync(Username); 
                     } 
                     catch (Exception ex) 
                     { 
-                        _logger.LogError($"GetUser error during registration: {ex}");
+                        _logger.LogError($"GetUserAsync error during registration: {ex}");
                         ErrorMessage = "שגיאה בבדיקת המשתמש. נסה שוב מאוחר יותר.";
                         RecordFailure(attemptKey);
                         return Page();
@@ -239,7 +239,7 @@ namespace NoodlesSimulator.Pages
                     bool success = false;
                     try 
                     { 
-                        success = await _authService.Register(Username, Password); 
+                        success = await _authService.RegisterAsync(Username, Password); 
                     } 
                     catch (Exception ex) 
                     { 

@@ -9,7 +9,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Noodles Simulator — Quiz</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <partial name="Shared/_SiteIcons" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
@@ -86,14 +86,14 @@
 @if (Model.ShowExamFixNotice)
 {
     <div id="exam-fix-notice-prompt" data-notice-id="@AppNotices.ExamFix" hidden></div>
-    <div id="exam-fix-notice-modal" class="notice-modal notice-modal-open">
-        <div class="notice-modal-content">
-            <span class="close-notice-modal" id="close-exam-fix-notice-btn">&times;</span>
-            <h2 class="notice-modal-title">מצב המבחן תוקן</h2>
-            <p class="notice-modal-text">
-                תיקנו בעיה במצב המבחן. אפשר להתחיל מבחן חדש בלחיצה על «מצב מבחן» בדף הבית.
-            </p>
-            <button type="button" class="notice-modal-btn" id="exam-fix-notice-dismiss-btn">הבנתי</button>
+    <div id="exam-fix-notice-modal" class="difficulty-modal exam-fix-notice-modal">
+        <div class="difficulty-modal-content">
+            <span class="close-difficulty-modal" id="close-exam-fix-notice-btn">&times;</span>
+            <h2 class="difficulty-modal-title">מצב המבחן תוקן</h2>
+            <p class="difficulty-modal-message">תיקנו בעיה במצב המבחן. אפשר להתחיל מבחן חדש בלחיצה על «מצב מבחן» בדף הבית.</p>
+            <div class="difficulty-buttons difficulty-buttons-single">
+                <button type="button" class="difficulty-btn difficulty-easy" id="exam-fix-notice-dismiss-btn">הבנתי</button>
+            </div>
         </div>
     </div>
 }
@@ -104,15 +104,15 @@
         <span class="close-difficulty-modal" id="close-difficulty-modal-btn">&times;</span>
         <h2 class="difficulty-modal-title">בחר רמת קושי</h2>
         <div class="difficulty-buttons">
-            <a href="/Test?start=1&difficulty=easy" class="difficulty-btn difficulty-easy">
+            <a href="/Test?start=1&amp;difficulty=easy" class="difficulty-btn difficulty-easy" data-difficulty="easy">
                 <span class="difficulty-emoji">🟢</span>
                 <span class="difficulty-text">קל</span>
             </a>
-            <a href="/Test?start=1&difficulty=medium" class="difficulty-btn difficulty-medium">
+            <a href="/Test?start=1&amp;difficulty=medium" class="difficulty-btn difficulty-medium" data-difficulty="medium">
                 <span class="difficulty-emoji">🟡</span>
                 <span class="difficulty-text">בינוני</span>
             </a>
-            <a href="/Test?start=1&difficulty=hard" class="difficulty-btn difficulty-hard">
+            <a href="/Test?start=1&amp;difficulty=hard" class="difficulty-btn difficulty-hard" data-difficulty="hard">
                 <span class="difficulty-emoji">🔴</span>
                 <span class="difficulty-text">קשה</span>
             </a>
@@ -150,7 +150,7 @@
 </div>
 
 <script src="/js/dialog.js"></script>
-<script src="/js/index-page.js"></script>
+<script src="/js/index-page.js" asp-append-version="true"></script>
 
 <!-- removed devtools cheat warning script for code cleanup -->
 

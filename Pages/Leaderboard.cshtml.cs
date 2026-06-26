@@ -27,7 +27,7 @@ namespace NoodlesSimulator.Pages
                 // Get current logged in user
                 CurrentUsername = HttpContext.Session.GetString("Username") ?? "";
                 
-                SortedUsers = await _authService.GetTopUsers(50); // get top 50 users for leaderboard
+                SortedUsers = await _authService.GetTopUsersAsync(50); // get top 50 users for leaderboard
             }
             catch (Exception ex)
             {

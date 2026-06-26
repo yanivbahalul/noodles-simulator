@@ -61,10 +61,10 @@ namespace NoodlesSimulator.Pages
                 if (_difficultyService != null)
                 {
                     // Auto-recalculate difficulties to ensure they're always up-to-date
-                    await _difficultyService.RecalculateAllDifficulties();
+                    await _difficultyService.RecalculateAllDifficultiesAsync();
                     
                     // Load updated questions
-                    DifficultyQuestions = await _difficultyService.GetAllQuestions(500);
+                    DifficultyQuestions = await _difficultyService.GetAllQuestionsAsync(500);
                     EasyCount = DifficultyQuestions.Count(q => q.Difficulty == "easy");
                     MediumCount = DifficultyQuestions.Count(q => q.Difficulty == "medium");
                     HardCount = DifficultyQuestions.Count(q => q.Difficulty == "hard");
@@ -84,7 +84,7 @@ namespace NoodlesSimulator.Pages
         {
             try
             {
-                AllUsers = await _authService.GetAllUsersLight();
+                AllUsers = await _authService.GetAllUsersLightAsync();
                 Cheaters = AllUsers.Where(u => u.IsCheater).ToList();
                 BannedUsers = AllUsers.Where(u => u.IsBanned).ToList();
                 OnlineUsers = AllUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();

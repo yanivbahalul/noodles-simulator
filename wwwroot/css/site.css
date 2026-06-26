@@ -106,8 +106,18 @@ button,
 }
 
 .difficulty-modal-open {
-    display: block !important;
+    display: flex !important;
     pointer-events: auto;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#difficulty-modal.difficulty-modal-open {
+    z-index: 8000;
+}
+
+.exam-fix-notice-modal.difficulty-modal-open {
+    z-index: 6500;
 }
 
 .footer-stats-toggle-open {
@@ -1568,6 +1578,8 @@ button.answer-btn,
     animation: slideDown 0.3s;
     direction: rtl;
     position: relative;
+    pointer-events: auto;
+    z-index: 1;
 }
 
 .difficulty-modal-title {
@@ -1575,6 +1587,25 @@ button.answer-btn,
     color: #fff;
     margin: 0 0 24px;
     font-size: var(--fs-xl);
+}
+
+.difficulty-modal-message {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 24px;
+    line-height: 1.6;
+    font-size: var(--fs-md);
+    text-align: center;
+}
+
+.difficulty-buttons-single {
+    justify-content: center;
+}
+
+.difficulty-buttons-single .difficulty-btn {
+    min-width: 140px;
+    cursor: pointer;
+    border: none;
+    font: inherit;
 }
 
 /* One-time announcement */
@@ -1705,6 +1736,11 @@ button.answer-btn,
     color: white;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     min-height: 56px;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.15);
+    position: relative;
+    z-index: 2;
 }
 
 .difficulty-btn:hover {

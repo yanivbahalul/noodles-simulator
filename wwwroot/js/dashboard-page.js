@@ -2,6 +2,12 @@
     let updateInterval = null;
     let currentFilter = null;
 
+    const DIFFICULTY_LABELS = {
+        easy: "קלות",
+        medium: "בינוניות",
+        hard: "קשות"
+    };
+
     async function fetchDashboardData() {
         try {
             const response = await fetch(`/api/dashboard-data?_=${Date.now()}`);
@@ -59,6 +65,23 @@
         }
     }
 
+    function showAllDifficultyRows(rows, titleEl, countEl) {
+        rows.forEach((row) => row.classList.remove("difficulty-row-hidden"));
+        titleEl.textContent = "רשימת שאלות (מעודכן אוטומטית)";
+        countEl.textContent = `מציג את כל ${rows.length} השאלות`;
+        updateDifficultyCardStates(null);
+    }
+
+    function filterRowsByDifficulty(rows, difficulty) {
+        let visibleCount = 0;
+        rows.forEach((row) => {
+            const matches = row.getAttribute("data-difficulty") === difficulty;
+            row.classList.toggle("difficulty-row-hidden", !matches);
+            if (matches) visibleCount++;
+        });
+        return visibleCount;
+    }
+
     function filterByDifficulty(difficulty) {
         const rows = document.querySelectorAll(".difficulty-row");
         const titleEl = document.getElementById("difficulty-title");
@@ -67,24 +90,13 @@
 
         if (currentFilter === difficulty) {
             currentFilter = null;
-            rows.forEach((row) => row.classList.remove("difficulty-row-hidden"));
-            titleEl.textContent = "רשימת שאלות (מעודכן אוטומטית)";
-            countEl.textContent = `מציג את כל ${rows.length} השאלות`;
-            updateDifficultyCardStates(null);
+            showAllDifficultyRows(rows, titleEl, countEl);
             return;
         }
 
         currentFilter = difficulty;
-        let visibleCount = 0;
-        rows.forEach((row) => {
-            if (row.getAttribute("data-difficulty") === difficulty) {
-                row.classList.remove("difficulty-row-hidden");
-                visibleCount++;
-            } else {
-                row.classList.add("difficulty-row-hidden");
-            }
-        });
-        const diffText = difficulty === "easy" ? "קלות" : difficulty === "medium" ? "בינוניות" : "קשות";
+        const visibleCount = filterRowsByDifficulty(rows, difficulty);
+        const diffText = DIFFICULTY_LABELS[difficulty] || difficulty;
         titleEl.textContent = `שאלות ${diffText} (${visibleCount} שאלות)`;
         countEl.textContent = `מציג ${visibleCount} שאלות ${diffText}`;
         updateDifficultyCardStates(difficulty);

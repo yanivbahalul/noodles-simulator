@@ -10,22 +10,10 @@ using NoodlesSimulator.Models;
 
 #nullable enable
 
-namespace NoodlesSimulator.Services
-{
-    public class QuestionDifficulty
-    {
-        public string QuestionFile { get; set; } = string.Empty;
-        public string Difficulty { get; set; } = "medium";
-        public decimal SuccessRate { get; set; } = 0;
-        public int TotalAttempts { get; set; } = 0;
-        public int CorrectAttempts { get; set; } = 0;
-        public DateTime LastUpdated { get; set; }
-        public bool ManualOverride { get; set; } = false;
-        public DateTime CreatedAt { get; set; }
-    }
+namespace NoodlesSimulator.Services;
 
-    public class QuestionDifficultyService
-    {
+public class QuestionDifficultyService
+{
         private readonly HttpClient _client;
         private readonly string _url;
         private readonly string _apiKey;
@@ -43,7 +31,7 @@ namespace NoodlesSimulator.Services
                       ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
-                throw new Exception("Missing Supabase ENV vars for QuestionDifficultyService.");
+                throw new InvalidOperationException("Missing Supabase ENV vars for QuestionDifficultyService.");
 
             _client = new HttpClient
             {
@@ -53,7 +41,7 @@ namespace NoodlesSimulator.Services
             _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
         }
 
-        public async Task<List<string>> GetQuestionsByDifficulty(string difficulty)
+        public async Task<List<string>> GetQuestionsByDifficultyAsync(string difficulty)
         {
             try
             {
@@ -82,7 +70,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<Dictionary<string, string>> GetAllDifficultiesMap()
+        public async Task<Dictionary<string, string>> GetAllDifficultiesMapAsync()
         {
             // Check cache first
             if (_difficultyCache != null && DateTime.UtcNow < _cacheExpiry)
@@ -123,12 +111,12 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<bool> UpdateQuestionStats(string questionFile, bool isCorrect)
+        public async Task<bool> UpdateQuestionStatsAsync(string questionFile, bool isCorrect)
         {
             try
             {
                 // Get or create the record
-                var existing = await GetQuestionDifficulty(questionFile);
+                var existing = await GetQuestionDifficultyAsync(questionFile);
                 
                 if (existing == null)
                 {
@@ -145,20 +133,17 @@ namespace NoodlesSimulator.Services
                         LastUpdated = DateTime.UtcNow
                     };
                     
-                    return await CreateQuestionDifficulty(newRecord);
+                    return await CreateQuestionDifficultyAsync(newRecord);
                 }
-                else
-                {
-                    // Update existing record
-                    existing.TotalAttempts++;
-                    if (isCorrect) existing.CorrectAttempts++;
-                    
-                    existing.SuccessRate = existing.TotalAttempts > 0 
-                        ? Math.Round((decimal)existing.CorrectAttempts / existing.TotalAttempts * 100, 2)
-                        : 0;
-                    
-                    return await UpdateQuestionDifficulty(existing);
-                }
+
+                existing.TotalAttempts++;
+                if (isCorrect) existing.CorrectAttempts++;
+
+                existing.SuccessRate = existing.TotalAttempts > 0
+                    ? Math.Round((decimal)existing.CorrectAttempts / existing.TotalAttempts * 100, 2)
+                    : 0;
+
+                return await UpdateQuestionDifficultyAsync(existing);
             }
             catch (Exception ex)
             {
@@ -167,7 +152,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<QuestionDifficulty?> GetQuestionDifficulty(string questionFile)
+        public async Task<QuestionDifficulty?> GetQuestionDifficultyAsync(string questionFile)
         {
             try
             {
@@ -193,7 +178,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        private async Task<bool> CreateQuestionDifficulty(QuestionDifficulty record)
+        private async Task<bool> CreateQuestionDifficultyAsync(QuestionDifficulty record)
         {
             try
             {
@@ -224,7 +209,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        private async Task<bool> UpdateQuestionDifficulty(QuestionDifficulty record)
+        private async Task<bool> UpdateQuestionDifficultyAsync(QuestionDifficulty record)
         {
             try
             {
@@ -261,7 +246,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<bool> SetManualDifficulty(string questionFile, string difficulty)
+        public async Task<bool> SetManualDifficultyAsync(string questionFile, string difficulty)
         {
             try
             {
@@ -297,7 +282,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<int> RecalculateAllDifficulties()
+        public async Task<int> RecalculateAllDifficultiesAsync()
         {
             try
             {
@@ -323,7 +308,7 @@ namespace NoodlesSimulator.Services
             }
         }
 
-        public async Task<List<QuestionDifficulty>> GetAllQuestions(int limit = 1000)
+        public async Task<List<QuestionDifficulty>> GetAllQuestionsAsync(int limit = 1000)
         {
             try
             {
@@ -356,5 +341,4 @@ namespace NoodlesSimulator.Services
             Console.WriteLine("[QuestionDifficultyService] Cache cleared");
         }
     }
-}
 

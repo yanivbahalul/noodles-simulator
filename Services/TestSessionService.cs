@@ -28,7 +28,7 @@ namespace NoodlesSimulator.Services
                       ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
-                throw new Exception("Missing Supabase ENV vars.");
+                throw new InvalidOperationException("Missing Supabase ENV vars.");
 
             _client = new HttpClient
             {
@@ -51,11 +51,11 @@ namespace NoodlesSimulator.Services
                 .Replace("=", "");
         }
 
-        public async Task<TestSession?> CreateSession(string username, string questionsJson)
+        public async Task<TestSession?> CreateSessionAsync(string username, string questionsJson)
         {
             try
             {
-                Console.WriteLine($"[TestSessionService] CreateSession called for user: {username}");
+                Console.WriteLine($"[TestSessionService] CreateSessionAsync called for user: {username}");
                 Console.WriteLine($"[TestSessionService] Questions JSON length: {questionsJson?.Length ?? 0}");
                 
                 var token = GenerateToken();
@@ -105,8 +105,8 @@ namespace NoodlesSimulator.Services
                 if (!res.IsSuccessStatusCode)
                 {
                     var error = await res.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[TestSessionService] CreateSession Error - Status: {res.StatusCode}");
-                    Console.WriteLine($"[TestSessionService] CreateSession Error body length: {error?.Length ?? 0}");
+                    Console.WriteLine($"[TestSessionService] CreateSessionAsync Error - Status: {res.StatusCode}");
+                    Console.WriteLine($"[TestSessionService] CreateSessionAsync Error body length: {error?.Length ?? 0}");
                     return null;
                 }
 
@@ -115,20 +115,20 @@ namespace NoodlesSimulator.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TestSessionService] CreateSession Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService] CreateSessionAsync Exception: {ex.Message}");
                 Console.WriteLine($"[TestSessionService] Stack trace: {ex.StackTrace}");
                 return null;
             }
         }
 
-        public async Task<TestSession?> GetSession(string token)
+        public async Task<TestSession?> GetSessionAsync(string token)
         {
             try
             {
                 var res = await _client.GetAsync($"{_url}/rest/v1/test_sessions?Token=eq.{Uri.EscapeDataString(token)}&select=*");
                 if (!res.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[GetSession Error] {res.StatusCode}");
+                    Console.WriteLine($"[GetSessionAsync Error] {res.StatusCode}");
                     return null;
                 }
 
@@ -142,12 +142,12 @@ namespace NoodlesSimulator.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetSession Exception] {ex}");
+                Console.WriteLine($"[GetSessionAsync Exception] {ex}");
                 return null;
             }
         }
 
-        public async Task<TestSession?> GetActiveSession(string username)
+        public async Task<TestSession?> GetActiveSessionAsync(string username)
         {
             try
             {
@@ -157,7 +157,7 @@ namespace NoodlesSimulator.Services
                 
                 if (!res.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[GetActiveSession Error] {res.StatusCode}");
+                    Console.WriteLine($"[GetActiveSessionAsync Error] {res.StatusCode}");
                     return null;
                 }
 
@@ -172,7 +172,7 @@ namespace NoodlesSimulator.Services
                 // Check if expired
                 if (session != null && IsExpired(session))
                 {
-                    await UpdateSessionStatus(session.Token, "expired");
+                    await UpdateSessionStatusAsync(session.Token, "expired");
                     return null;
                 }
                 
@@ -180,19 +180,19 @@ namespace NoodlesSimulator.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetActiveSession Exception] {ex}");
+                Console.WriteLine($"[GetActiveSessionAsync Exception] {ex}");
                 return null;
             }
         }
 
-        public async Task<bool> UpdateSession(TestSession session)
+        public async Task<bool> UpdateSessionAsync(TestSession session)
         {
             try
             {
                 session.UpdatedAt = DateTime.UtcNow;
                 
-                Console.WriteLine($"[TestSessionService UpdateSession] Token: {session.Token}, Status: {session.Status}");
-                Console.WriteLine($"[TestSessionService UpdateSession] Score: {session.Score}/{session.MaxScore}");
+                Console.WriteLine($"[TestSessionService UpdateSessionAsync] Token: {session.Token}, Status: {session.Status}");
+                Console.WriteLine($"[TestSessionService UpdateSessionAsync] Score: {session.Score}/{session.MaxScore}");
                 
                 var patch = new
                 {
@@ -213,31 +213,31 @@ namespace NoodlesSimulator.Services
                 };
                 request.Headers.Add("Prefer", "return=minimal");
 
-                Console.WriteLine("[TestSessionService UpdateSession] Sending PATCH to Supabase...");
+                Console.WriteLine("[TestSessionService UpdateSessionAsync] Sending PATCH to Supabase...");
                 var response = await _client.SendAsync(request);
                 
-                Console.WriteLine($"[TestSessionService UpdateSession] Response: {response.StatusCode}");
+                Console.WriteLine($"[TestSessionService UpdateSessionAsync] Response: {response.StatusCode}");
                 
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"[TestSessionService UpdateSession] Error - Status: {response.StatusCode}");
-                    Console.WriteLine($"[TestSessionService UpdateSession] Error body length: {error?.Length ?? 0}");
+                    Console.WriteLine($"[TestSessionService UpdateSessionAsync] Error - Status: {response.StatusCode}");
+                    Console.WriteLine($"[TestSessionService UpdateSessionAsync] Error body length: {error?.Length ?? 0}");
                     return false;
                 }
                 
-                Console.WriteLine("[TestSessionService UpdateSession] Session updated successfully!");
+                Console.WriteLine("[TestSessionService UpdateSessionAsync] Session updated successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TestSessionService UpdateSession] Exception: {ex.Message}");
-                Console.WriteLine($"[TestSessionService UpdateSession] Stack trace: {ex.StackTrace}");
+                Console.WriteLine($"[TestSessionService UpdateSessionAsync] Exception: {ex.Message}");
+                Console.WriteLine($"[TestSessionService UpdateSessionAsync] Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
 
-        public async Task<bool> UpdateSessionStatus(string token, string status)
+        public async Task<bool> UpdateSessionStatusAsync(string token, string status)
         {
             try
             {
@@ -261,12 +261,12 @@ namespace NoodlesSimulator.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UpdateSessionStatus Exception] {ex}");
+                Console.WriteLine($"[UpdateSessionStatusAsync Exception] {ex}");
                 return false;
             }
         }
 
-        public async Task<List<TestSession>> GetUserSessions(string username, int limit = 50)
+        public async Task<List<TestSession>> GetUserSessionsAsync(string username, int limit = 50)
         {
             try
             {
@@ -276,7 +276,7 @@ namespace NoodlesSimulator.Services
                 
                 if (!res.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[GetUserSessions Error] {res.StatusCode}");
+                    Console.WriteLine($"[GetUserSessionsAsync Error] {res.StatusCode}");
                     return new List<TestSession>();
                 }
 
@@ -290,7 +290,7 @@ namespace NoodlesSimulator.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GetUserSessions Exception] {ex}");
+                Console.WriteLine($"[GetUserSessionsAsync Exception] {ex}");
                 return new List<TestSession>();
             }
         }

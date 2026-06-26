@@ -378,7 +378,7 @@ api.MapGet("/dashboard-data", async context =>
             return;
         }
 
-        var allUsers = await authService.GetAllUsersLight();
+        var allUsers = await authService.GetAllUsersLightAsync();
         var onlineUsers = allUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();
         var cheaters = allUsers.Where(u => u.IsCheater).ToList();
         var bannedUsers = allUsers.Where(u => u.IsBanned).ToList();
@@ -430,7 +430,7 @@ api.MapGet("/leaderboard-data", async context =>
 
         var currentUsername = context.Session.GetString("Username") ?? "";
 
-        var topUsers = await authService.GetTopUsers(50);
+        var topUsers = await authService.GetTopUsersAsync(50);
         
         if (topUsers == null)
         {
@@ -451,7 +451,7 @@ api.MapGet("/leaderboard-data", async context =>
         var response = new
         {
             users = data,
-            currentUsername = currentUsername,
+            currentUsername,
             timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };
 
@@ -494,7 +494,7 @@ api.MapPost("/notices/dismiss", async context =>
         }
 
         var username = context.Session.GetString("Username")!;
-        var ok = await authService.DismissNotice(username, noticeId);
+        var ok = await authService.DismissNoticeAsync(username, noticeId);
         if (!ok)
         {
             await WritePlainError(context, 500, "Failed to save");
@@ -519,7 +519,7 @@ api.MapGet("/online-count", async context =>
             return;
         }
 
-        var onlineCount = await authService.GetOnlineUserCount();
+        var onlineCount = await authService.GetOnlineUserCountAsync();
         var data = new { online = onlineCount };
 
         await WriteJson(context, data);
