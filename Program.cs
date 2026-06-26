@@ -88,23 +88,53 @@ builder.Services.AddDataProtection()
     .SetApplicationName("NoodlesSimulator");
 
 builder.Services.AddHttpClient();
+var disableRateLimit = !isProd
+    && string.Equals(Environment.GetEnvironmentVariable("LOAD_TEST_DISABLE_RATE_LIMIT"), "true", StringComparison.OrdinalIgnoreCase);
+if (disableRateLimit)
+{
+    Console.WriteLine("[LoadTest] Rate limiter disabled (LOAD_TEST_DISABLE_RATE_LIMIT=true)");
+}
+else
+{
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
     {
+        // Health checks should never be throttled.
+        if (context.Request.Path.StartsWithSegments("/health"))
+            return RateLimitPartition.GetNoLimiter("health");
+
+        // After session middleware: one bucket per login session (not per IP).
+        var username = context.Session.GetString("Username");
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            return RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: $"session:{context.Session.Id}",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 200,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 4,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 8
+                });
+        }
+
         var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        return RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: ip,
-            factory: _ => new FixedWindowRateLimiterOptions
+        return RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: $"ip:{ip}",
+            factory: _ => new SlidingWindowRateLimiterOptions
             {
-                PermitLimit = 120,
+                PermitLimit = 400,
                 Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 4,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
+                QueueLimit = 16
             });
     });
 });
+}
 
 var statsPath = isProd 
     ? Path.Combine("/data-keys", "question_stats.json")
@@ -218,7 +248,6 @@ if (!isProd)
 }
 app.UseStaticFiles();
 app.UseRouting();
-app.UseRateLimiter();
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -244,6 +273,10 @@ app.Use(async (context, next) =>
 app.UseCookiePolicy();
 app.UseSession();
 app.UseMiddleware<SessionRestoreMiddleware>();
+if (!disableRateLimit)
+{
+    app.UseRateLimiter();
+}
 app.UseAuthorization();
 app.MapRazorPages();
 

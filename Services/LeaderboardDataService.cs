@@ -9,11 +9,17 @@ namespace NoodlesSimulator.Services;
 public class LeaderboardDataService
 {
     private const int LeaderboardSize = 50;
+    private static readonly TimeSpan RowsCacheTtl = TimeSpan.FromSeconds(3);
 
     private readonly AuthService _auth;
     private readonly UserProgressService _progress;
     private readonly UserProgressStore _progressStore;
     private readonly TestSessionService _testSessions;
+    private readonly object _cacheLock = new();
+    private string _cachedTab;
+    private List<Row> _cachedRows;
+    private string _cachedHint;
+    private DateTime _cachedAt = DateTime.MinValue;
 
     public LeaderboardDataService(
         AuthService auth,
@@ -36,7 +42,20 @@ public class LeaderboardDataService
 
     public async Task<(List<Row> Rows, string Hint)> GetRowsAsync(string tab)
     {
-        return tab switch
+        tab = string.IsNullOrWhiteSpace(tab) ? "total" : tab;
+        if (tab == "daily") tab = "level";
+
+        lock (_cacheLock)
+        {
+            if (_cachedRows != null &&
+                string.Equals(_cachedTab, tab, StringComparison.OrdinalIgnoreCase) &&
+                DateTime.UtcNow - _cachedAt < RowsCacheTtl)
+            {
+                return (_cachedRows, _cachedHint);
+            }
+        }
+
+        var (rows, hint) = tab switch
         {
             "rate" => (await BuildSuccessRateAsync(), "ממוין לפי אחוז הצלחה — כל המשתמשים בטבלה"),
             "weekly" => (await BuildWeeklyAsync(), "50 המובילים — נכונות מתחילת השבוע הנוכחי"),
@@ -44,6 +63,16 @@ public class LeaderboardDataService
             "level" or "daily" => (await BuildLevelAsync(), "50 המובילים לפי רמה — מתעדכן אוטומטית כל 3 שניות"),
             _ => (await BuildTotalAsync(), "50 המובילים לפי סה\"כ תשובות נכונות")
         };
+
+        lock (_cacheLock)
+        {
+            _cachedTab = tab;
+            _cachedRows = rows;
+            _cachedHint = hint;
+            _cachedAt = DateTime.UtcNow;
+        }
+
+        return (rows, hint);
     }
 
     private bool UserIsOnline(User u) => AuthService.UserIsOnline(u);

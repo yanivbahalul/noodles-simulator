@@ -233,14 +233,15 @@ public class UserProgressStore
         {
             var batch = rows.Skip(i).Take(batchSize).ToList();
             var content = new StringContent(JsonSerializer.Serialize(batch), Encoding.UTF8, "application/json");
-            var request = new HttpRequestMessage(new HttpMethod("POST"), $"{_url}/rest/v1/user_achievements")
+            var request = new HttpRequestMessage(new HttpMethod("POST"),
+                $"{_url}/rest/v1/user_achievements?on_conflict=username,achievement_key")
             {
                 Content = content
             };
             request.Headers.Add("Prefer", "resolution=ignore-duplicates,return=minimal");
 
             var res = await _client.SendAsync(request);
-            if (!res.IsSuccessStatusCode)
+            if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.Conflict)
             {
                 var body = await res.Content.ReadAsStringAsync();
                 throw new InvalidOperationException($"user_achievements sync failed: {res.StatusCode} | {body}");

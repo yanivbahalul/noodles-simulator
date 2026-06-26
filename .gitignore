@@ -9,3 +9,4 @@ data-keys/
 wwwroot/reports/*.json
 wwwroot/progress/*.json
 progress/*.json 
+scripts/load-test-50users.py
