@@ -328,6 +328,7 @@ public class IndexModel : PageModel
     private const string FlashSelectedKey = "AnswerFlash_SelectedAnswer";
     private const string FlashAnswersKey = "AnswerFlash_AnswersJson";
     private const string FlashCorrectKey = "AnswerFlash_IsCorrect";
+    private const string LastSubmittedQuestionKey = "LastSubmittedQuestion";
 
     private void SaveAnswerFlashToSession()
     {
@@ -336,6 +337,7 @@ public class IndexModel : PageModel
         HttpContext.Session.SetString(FlashAnswersKey,
             JsonSerializer.Serialize(ShuffledAnswers ?? new Dictionary<string, string>(), AppJson.Options));
         HttpContext.Session.SetString(FlashCorrectKey, IsCorrect ? "1" : "0");
+        HttpContext.Session.SetString(LastSubmittedQuestionKey, QuestionImage ?? "");
     }
 
     private static bool ShouldClearAnswerFlashOnGet(HttpRequest request)
@@ -474,6 +476,7 @@ public class IndexModel : PageModel
         HttpContext.Session.SetInt32("RapidTotal", 0);
         HttpContext.Session.SetInt32("RapidCorrect", 0);
         HttpContext.Session.SetString("SessionStart", DateTime.UtcNow.ToString("o"));
+        HttpContext.Session.Remove(LastSubmittedQuestionKey);
         ClearAnswerFlash();
     }
 
@@ -741,7 +744,8 @@ public class IndexModel : PageModel
             {
                 var pool = await FilterGroupsAsync(grouped, mode, difficulty, username);
                 if (pool.Count == 0) pool = grouped;
-                chosen = PickFromPool(pool, username, mode != "weak");
+                // Spaced repetition only in review mode — normal practice should advance freely.
+                chosen = PickFromPool(pool, username, useSpaced: mode == "review");
             }
 
             if (chosen == null || chosen.Count < 2)
@@ -770,6 +774,7 @@ public class IndexModel : PageModel
             RecordQuestionShown(QuestionImage);
             IncrementGroupShown(QuestionImage);
             AddRecentQuestionToSession(QuestionImage);
+            HttpContext.Session.Remove(LastSubmittedQuestionKey);
             await PopulateUrlsAsync();
         }
         catch (Exception ex)
@@ -865,6 +870,13 @@ public class IndexModel : PageModel
         if (reviewGroups.Count == 0)
             return PickFromPool(grouped, username, useSpaced: true);
 
+        var lastSubmitted = HttpContext.Session.GetString(LastSubmittedQuestionKey) ?? "";
+        var withoutLast = reviewGroups
+            .Where(g => !string.Equals(g[0], lastSubmitted, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (withoutLast.Count > 0)
+            reviewGroups = withoutLast;
+
         return reviewGroups[RandomNumberGenerator.GetInt32(reviewGroups.Count)];
     }
 
@@ -902,6 +914,7 @@ public class IndexModel : PageModel
         if (pool.Count == 0) return null;
 
         var recent = GetRecentQuestionsFromSession();
+        var lastSubmitted = HttpContext.Session.GetString(LastSubmittedQuestionKey) ?? "";
 
         if (useSpaced && _userProgress != null && !string.IsNullOrEmpty(username))
         {
@@ -915,7 +928,15 @@ public class IndexModel : PageModel
             pool = withPriority.Select(x => x.g).ToList();
         }
 
-        var eligible = pool.Where(g => g.Count > 0 && !IsQuestionThrottled(g[0]) && !recent.Contains(g[0])).ToList();
+        var eligible = pool.Where(g => g.Count > 0
+            && !IsQuestionThrottled(g[0])
+            && !recent.Contains(g[0])
+            && !string.Equals(g[0], lastSubmitted, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (eligible.Count == 0)
+        {
+            eligible = pool.Where(g => g.Count > 0
+                && !string.Equals(g[0], lastSubmitted, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
         if (eligible.Count == 0)
             eligible = pool.Where(g => g.Count > 0).ToList();
 

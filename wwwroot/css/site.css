@@ -2354,6 +2354,7 @@ body.dashboard-modal-open {
     display: flex;
     flex-direction: column;
     align-items: center;
+    direction: rtl;
     text-align: center;
     width: min(700px, calc(100% - 2 * var(--gutter-page)));
     margin: clamp(40px, 12vh, 120px) auto 0;
@@ -2375,7 +2376,15 @@ body.dashboard-modal-open {
 .cheater-container p {
     color: #fff;
     font-size: var(--fs-base);
-    margin-bottom: 10px;
+    line-height: 1.7;
+    margin: 0 0 12px;
+    max-width: 36ch;
+    text-align: center;
+    unicode-bidi: plaintext;
+}
+
+.cheater-container .cheater-lead {
+    max-width: 32ch;
 }
 
 .cheater-container a {

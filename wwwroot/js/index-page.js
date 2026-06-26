@@ -133,11 +133,25 @@
         setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
     }
 
+    function buildNextQuestionUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const next = new URLSearchParams();
+        next.set("next", "1");
+        const mode = params.get("mode");
+        const difficulty = params.get("difficulty");
+        if (mode) next.set("mode", mode);
+        if (difficulty) next.set("difficulty", difficulty);
+        return `/Index?${next.toString()}`;
+    }
+
     function bindAnswerFeedback() {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback) return;
         const isCorrect = feedback.classList.contains("is-correct");
         playFeedbackSound(isCorrect);
+        window.setTimeout(() => {
+            window.location.assign(buildNextQuestionUrl());
+        }, isCorrect ? 1200 : 1600);
     }
 
     function applyOnlineCount(data) {
