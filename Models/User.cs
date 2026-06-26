@@ -14,4 +14,6 @@ public class User
     public bool IsBanned { get; set; }
     public DateTime? LastSeen { get; set; }
     public List<string> DismissedNotices { get; set; }
+    public int Xp { get; set; }
+    public int Level { get; set; }
 }

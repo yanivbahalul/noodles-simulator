@@ -2,29 +2,36 @@
 @model NoodlesSimulator.Pages.LeaderboardModel
 @{
     ViewData["Title"] = "טבלת מובילים";
+    var tab = Model.ActiveTab;
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="utf-8" />
     <title>Noodles Simulator — טבלת מובילים</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <partial name="Shared/_SiteIcons" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#222222">
 </head>
 <body>
 
-<!-- background -->
 <img src="/assets/background.gif" alt="רקע" class="background-gif" />
 
 <partial name="Shared/_TopBar" />
 <partial name="Shared/_LogoHeader" />
 
-<!-- leaderoard -->
 <div class="quiz-container leaderboard-container">
     <h2 class="leaderboard-title">🏆 טבלת המובילים</h2>
     <div id="last-update" class="leaderboard-last-update">(מתעדכן...)</div>
+
+    <div class="leaderboard-tabs" id="leaderboard-tabs">
+        <button type="button" class="leaderboard-tab @(tab == "total" ? "active" : "")" data-tab="total">סה"כ נכונות</button>
+        <button type="button" class="leaderboard-tab @(tab == "rate" ? "active" : "")" data-tab="rate">אחוז הצלחה</button>
+        <button type="button" class="leaderboard-tab @(tab == "weekly" ? "active" : "")" data-tab="weekly">שבועי</button>
+        <button type="button" class="leaderboard-tab @(tab == "exam" ? "active" : "")" data-tab="exam">מבחנים</button>
+        <button type="button" class="leaderboard-tab @(tab == "daily" ? "active" : "")" data-tab="daily">אתגר יומי</button>
+    </div>
 
     <div class="leaderboard-table-shell">
         <table id="leaderboard-table" class="leaderboard-table">
@@ -32,29 +39,26 @@
                 <tr class="leaderboard-header-row">
                     <th class="leaderboard-cell-header">#</th>
                     <th class="leaderboard-cell-header">שם משתמש</th>
-                    <th class="leaderboard-cell-header">תשובות נכונות</th>
+                    <th class="leaderboard-cell-header" id="score-header">@Model.ScoreColumnTitle</th>
                 </tr>
             </thead>
-            <tbody>
-            @for (int i = 0; i < Model.SortedUsers.Count; i++)
+            <tbody id="leaderboard-body">
+            @for (int i = 0; i < Model.Entries.Count; i++)
             {
-                var user = Model.SortedUsers[i];
+                var entry = Model.Entries[i];
                 <tr class="leaderboard-data-row @(i % 2 == 0 ? "leaderboard-row-even" : "leaderboard-row-odd")">
-                    <td class="leaderboard-cell">@(@i + 1)</td>
+                    <td class="leaderboard-cell">@(i + 1)</td>
                     <td class="leaderboard-cell">
-                        @{
-                            var isOnline = user.LastSeen != null && user.LastSeen > DateTime.UtcNow.AddMinutes(-5);
-                        }
-                        @if (isOnline)
+                        @if (entry.IsOnline)
                         {
-                            <strong class="leaderboard-online-user">@user.Username</strong>
+                            <strong class="leaderboard-online-user">@entry.Username</strong>
                         }
                         else
                         {
-                            @user.Username
+                            @entry.Username
                         }
                     </td>
-                    <td class="leaderboard-cell">@user.CorrectAnswers</td>
+                    <td class="leaderboard-cell">@entry.ScoreDisplay</td>
                 </tr>
             }
             </tbody>
@@ -62,7 +66,8 @@
     </div>
 </div>
 
-<script src="/js/leaderboard-page.js"></script>
+<div id="leaderboard-page-data" data-active-tab="@tab"></div>
+<script src="/js/leaderboard-page.js" asp-append-version="true"></script>
 
 <partial name="Shared/_SiteFooter" />
 </body>

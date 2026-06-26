@@ -106,7 +106,9 @@ public class AuthService
                 TotalAnswered = 0,
                 IsCheater = false,
                 IsBanned = false,
-                LastSeen = DateTime.UtcNow
+                LastSeen = DateTime.UtcNow,
+                Xp = 0,
+                Level = 1
             }
         };
 
@@ -149,7 +151,9 @@ public class AuthService
                 ["TotalAnswered"] = updatedUser.TotalAnswered,
                 ["IsCheater"] = updatedUser.IsCheater,
                 ["IsBanned"] = updatedUser.IsBanned,
-                ["LastSeen"] = (updatedUser.LastSeen ?? DateTime.UtcNow).ToString("o")
+                ["LastSeen"] = (updatedUser.LastSeen ?? DateTime.UtcNow).ToString("o"),
+                ["Xp"] = updatedUser.Xp,
+                ["Level"] = updatedUser.Level > 0 ? updatedUser.Level : QuizGamification.LevelFromXp(updatedUser.Xp)
             };
             if (!string.IsNullOrWhiteSpace(updatedUser.Password))
             {
@@ -324,6 +328,27 @@ public class AuthService
         catch (Exception ex)
         {
             Console.WriteLine($"[GetTopUsersAsync Exception] {ex}");
+            return new List<User>();
+        }
+    }
+
+    public async Task<List<User>> GetTopUsersBySuccessRateAsync(int count = 50, int minAnswered = 50)
+    {
+        try
+        {
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit=500");
+            var json = await res.Content.ReadAsStringAsync();
+            var users = JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+            return users
+                .Where(u => u.TotalAnswered >= minAnswered)
+                .OrderByDescending(u => (double)u.CorrectAnswers / u.TotalAnswered)
+                .ThenByDescending(u => u.CorrectAnswers)
+                .Take(count)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[GetTopUsersBySuccessRateAsync Exception] {ex}");
             return new List<User>();
         }
     }

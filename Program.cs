@@ -110,6 +110,12 @@ var statsPath = isProd
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
+var progressDir = isProd
+    ? Path.Combine("/data-keys", "progress")
+    : Path.Combine(Directory.GetCurrentDirectory(), "progress");
+builder.Services.AddSingleton(new UserProgressService(progressDir));
+builder.Services.AddSingleton<AchievementService>();
+
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Lax;
@@ -429,28 +435,83 @@ api.MapGet("/leaderboard-data", async context =>
         }
 
         var currentUsername = context.Session.GetString("Username") ?? "";
+        var tab = context.Request.Query["tab"].ToString();
+        if (string.IsNullOrWhiteSpace(tab)) tab = "total";
 
-        var topUsers = await authService.GetTopUsersAsync(50);
-        
-        if (topUsers == null)
+        var progressService = context.RequestServices.GetService<UserProgressService>();
+
+        List<object> data;
+
+        switch (tab)
         {
-            topUsers = new List<User>();
+            case "rate":
+                var rateUsers = await authService.GetTopUsersBySuccessRateAsync(50, 50);
+                data = rateUsers.Select((u, index) => new
+                {
+                    rank = index + 1,
+                    username = u.Username ?? "",
+                    scoreDisplay = u.TotalAnswered > 0 ? $"{(int)((double)u.CorrectAnswers / u.TotalAnswered * 100)}%" : "0%",
+                    correctAnswers = u.CorrectAnswers,
+                    isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
+                    isCurrentUser = u.Username == currentUsername
+                }).Cast<object>().ToList();
+                break;
+            case "weekly" when progressService != null:
+                data = progressService.GetWeeklyLeaderboard(50).Select((r, index) => new
+                {
+                    rank = index + 1,
+                    username = r.Username,
+                    scoreDisplay = r.WeeklyCorrect.ToString(),
+                    correctAnswers = r.WeeklyCorrect,
+                    isOnline = false,
+                    isCurrentUser = r.Username == currentUsername
+                }).Cast<object>().ToList();
+                break;
+            case "exam" when progressService != null:
+                data = progressService.GetExamLeaderboard(50).Select((r, index) => new
+                {
+                    rank = index + 1,
+                    username = r.Username,
+                    scoreDisplay = $"{r.BestExamScore} ({r.BestExamCorrect}/17)",
+                    correctAnswers = r.BestExamScore,
+                    isOnline = false,
+                    isCurrentUser = r.Username == currentUsername
+                }).Cast<object>().ToList();
+                break;
+            case "daily" when progressService != null:
+                var today = UserProgressService.TodayKey();
+                data = progressService.GetDailyLeaderboard(today, 50).Select((r, index) => new
+                {
+                    rank = index + 1,
+                    username = r.Username,
+                    scoreDisplay = $"{r.Score}/10",
+                    correctAnswers = r.Score,
+                    isOnline = false,
+                    isCurrentUser = r.Username == currentUsername
+                }).Cast<object>().ToList();
+                break;
+            default:
+                var topUsers = await authService.GetTopUsersAsync(50);
+                if (topUsers == null) topUsers = new List<User>();
+                data = topUsers.Select((u, index) => new
+                {
+                    rank = index + 1,
+                    username = u.Username ?? "",
+                    scoreDisplay = u.CorrectAnswers.ToString(),
+                    totalAnswered = u.TotalAnswered,
+                    correctAnswers = u.CorrectAnswers,
+                    successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
+                    isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
+                    isCurrentUser = u.Username == currentUsername
+                }).Cast<object>().ToList();
+                tab = "total";
+                break;
         }
-        
-        var data = topUsers.Select((u, index) => new
-        {
-            rank = index + 1,
-            username = u.Username ?? "",
-            totalAnswered = u.TotalAnswered,
-            correctAnswers = u.CorrectAnswers,
-            successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
-            isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
-            isCurrentUser = u.Username == currentUsername
-        }).ToList();
 
         var response = new
         {
             users = data,
+            tab,
             currentUsername,
             timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };
@@ -568,31 +629,8 @@ var reportsJson = Path.Combine(reportsDir, "reports.json");
 if (!File.Exists(reportsJson))
     File.WriteAllText(reportsJson, "[]");
 
-var progressDir = isProdStart ? "/data-keys/progress" : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);
-
-if (Directory.Exists(progressDir))
-{
-    var files = Directory.GetFiles(progressDir, "*.json");
-    var threshold = DateTime.UtcNow.AddDays(-7);
-
-    foreach (var file in files)
-    {
-        var lastWrite = File.GetLastWriteTimeUtc(file);
-        if (lastWrite < threshold)
-        {
-            try
-            {
-                File.Delete(file);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Progress File Delete Error] {ex}");
-            }
-        }
-    }
-}
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 app.Urls.Add($"http://*:{port}");

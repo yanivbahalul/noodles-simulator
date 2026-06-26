@@ -40,12 +40,19 @@ public class StatsModel : PageModel
                 ? (int)((double)CorrectAnswers / TotalAnswered * 100)
                 : 0;
 
+            var streak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+            var xp = user.Xp;
+            var level = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(xp);
+
             return new JsonResult(new
             {
                 username,
                 correct = CorrectAnswers,
                 total = TotalAnswered,
-                successRate = SuccessRate
+                successRate = SuccessRate,
+                streak,
+                xp,
+                level
             });
         }
         catch (Exception ex)

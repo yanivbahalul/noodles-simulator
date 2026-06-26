@@ -61,7 +61,28 @@
         }
     </div>
 
+    @if (Model.NewAchievements.Count > 0)
+    {
+        <div class="achievement-toast achievement-toast-inline">
+            @foreach (var key in Model.NewAchievements)
+            {
+                var def = NoodlesSimulator.Models.AchievementCatalog.Find(key);
+                if (def != null)
+                {
+                    <p class="achievement-toast-item">@def.Emoji הישג חדש: <strong>@def.Title</strong></p>
+                }
+            }
+        </div>
+    }
+
     <div class="button-row">
+        @if (Model.HasMistakes)
+        {
+            <form method="get" action="/Index">
+                <input type="hidden" name="mode" value="review" />
+                <button class="next-question-btn">🔁 חזור על הטעויות</button>
+            </form>
+        }
         <form method="get" action="/Index">
             <button class="next-question-btn">חזרה לחידון</button>
         </form>

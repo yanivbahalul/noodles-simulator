@@ -61,6 +61,48 @@
         setText("stat-correct", data.correct);
         setText("stat-total", data.total);
         setText("stat-success", `${data.successRate}%`);
+        setText("stat-correct-panel", data.correct);
+        setText("stat-total-panel", data.total);
+        setText("stat-success-panel", `${data.successRate}%`);
+        if (data.streak !== undefined) setText("stat-streak", data.streak);
+        if (data.level !== undefined) setText("stat-level", `${data.level} (${data.xp} XP)`);
+    }
+
+    function playFeedbackSound(isCorrect) {
+        if (localStorage.getItem("quizSounds") === "off") return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = isCorrect ? 880 : 220;
+            gain.gain.value = 0.08;
+            osc.start();
+            osc.stop(ctx.currentTime + (isCorrect ? 0.15 : 0.25));
+        } catch { /* no audio */ }
+    }
+
+    function bindSoundToggle() {
+        const toggle = document.getElementById("sound-toggle");
+        if (!toggle) return;
+        toggle.checked = localStorage.getItem("quizSounds") !== "off";
+        toggle.addEventListener("change", () => {
+            localStorage.setItem("quizSounds", toggle.checked ? "on" : "off");
+        });
+    }
+
+    function bindAchievementToast() {
+        const toast = document.getElementById("achievement-toast");
+        if (!toast) return;
+        setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
+    }
+
+    function bindAnswerFeedback() {
+        const feedback = document.getElementById("answer-feedback");
+        if (!feedback) return;
+        const isCorrect = feedback.classList.contains("is-correct");
+        playFeedbackSound(isCorrect);
     }
 
     function applyOnlineCount(data) {
@@ -213,6 +255,9 @@
         bindReportForm();
         bindExamFixNotice();
         bindDifficultyChoices();
+        bindSoundToggle();
+        bindAchievementToast();
+        bindAnswerFeedback();
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") closeDifficultyModal();

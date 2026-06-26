@@ -33,6 +33,13 @@
             <strong class="test-active-alert-text">⚠️ @TempData["ActiveTestAlert"]</strong>
         </div>
     }
+
+    <div class="test-progress-wrap">
+        <div class="test-progress-track">
+            <div class="test-progress-fill" style="width: @(Model.DisplayQuestionNumber * 100 / 17)%"></div>
+        </div>
+        <p class="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / 17</p>
+    </div>
     
     <p class="test-meta">
         שאלה @Model.DisplayQuestionNumber מתוך 17 · זמן נותר: <span id="countdown">--:--:--</span>

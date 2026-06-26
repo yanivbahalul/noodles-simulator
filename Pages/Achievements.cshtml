@@ -1,0 +1,44 @@
+@page
+@model NoodlesSimulator.Pages.AchievementsModel
+@{
+    ViewData["Title"] = "הישגים";
+}
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — הישגים</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <partial name="Shared/_SiteIcons" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+<partial name="Shared/_TopBar" />
+<partial name="Shared/_LogoHeader" />
+
+<div class="quiz-container leaderboard-container">
+    <h2 class="leaderboard-title">🏅 ההישגים שלי</h2>
+    @if (string.IsNullOrEmpty(Model.Username))
+    {
+        <p>יש להתחבר כדי לראות הישגים.</p>
+    }
+    else
+    {
+        <p class="quiz-meta">👤 @Model.Username — @Model.Items.Count(i => i.Unlocked) / @Model.Items.Count פתוחים</p>
+        <div class="achievements-grid">
+            @foreach (var item in Model.Items)
+            {
+                <div class="achievement-card @(item.Unlocked ? "unlocked" : "locked")">
+                    <span class="achievement-emoji">@item.Def.Emoji</span>
+                    <strong>@item.Def.Title</strong>
+                    <p>@item.Def.Description</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<partial name="Shared/_SiteFooter" />
+</body>
+</html>

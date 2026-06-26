@@ -21,6 +21,9 @@ public class IndexModel : PageModel
     private readonly SupabaseStorageService _storage; // may be null if not configured
     private readonly EmailService _emailService;
     private readonly QuestionStatsService _stats;
+    private readonly UserProgressService _userProgress;
+    private readonly AchievementService _achievements;
+    private readonly QuestionDifficultyService _difficultyService;
 
     private static List<string> _localImagesCache;
     private static DateTime _localImagesCachedAt;
@@ -71,12 +74,15 @@ public class IndexModel : PageModel
         }
     }
 
-    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null)
+    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null, UserProgressService userProgress = null, AchievementService achievements = null, QuestionDifficultyService difficultyService = null)
     {
         _authService = authService;
         _storage = storage;
         _emailService = emailService;
         _stats = stats;
+        _userProgress = userProgress;
+        _achievements = achievements;
+        _difficultyService = difficultyService;
     }
 
     public bool AnswerChecked { get; set; }
@@ -88,6 +94,20 @@ public class IndexModel : PageModel
     public string ConnectionStatus { get; set; }
     public int OnlineCount { get; set; }
     public bool ShowExamFixNotice { get; set; }
+
+    public int CurrentStreak { get; set; }
+    public int UserCorrect { get; set; }
+    public int UserTotal { get; set; }
+    public int UserSuccessRate { get; set; }
+    public int UserXp { get; set; }
+    public int UserLevel { get; set; }
+    public int XpProgressPercent { get; set; }
+    public string PracticeMode { get; set; } = "normal";
+    public string PracticeDifficulty { get; set; } = "";
+    public List<string> NewlyUnlockedAchievements { get; set; } = new();
+    public bool IsDailyComplete { get; set; }
+    public int DailyProgress { get; set; }
+    public int DailyTotal { get; set; } = 10;
 
     // Holds signed URLs for current question and answers for rendering
     public string QuestionImageUrl { get; set; }
@@ -144,6 +164,9 @@ public class IndexModel : PageModel
             catch (HttpRequestException ex) { Console.WriteLine($"[OnGetAsync GetOnlineUserCount Error] {ex.Message}"); OnlineCount = 0; }
 
             // Preload next question faster
+            ApplyPracticeQueryParams();
+            await PopulateUserStatsAsync(user);
+            LoadPendingAchievements();
             try { await LoadRandomQuestionAsync(); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync PreloadQuestion Error] {ex.Message}"); }
             return Page();
         }
@@ -173,8 +196,10 @@ public class IndexModel : PageModel
 
             if (string.IsNullOrEmpty(Request.Form["answersJson"]))
             {
+                ApplyPracticeQueryParams();
                 try { await LoadRandomQuestionAsync(); }
                 catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
+                await PopulateUserStatsAsync(auth.User);
                 return Page();
             }
 
@@ -182,6 +207,8 @@ public class IndexModel : PageModel
             var cheaterRedirect = await TryHandleCheaterDetectionAsync(auth.User);
             if (cheaterRedirect != null)
                 return cheaterRedirect;
+
+            await PopulateUserStatsAsync(auth.User);
 
             _ = Task.Run(async () =>
             {
@@ -229,6 +256,81 @@ public class IndexModel : PageModel
         }
     }
 
+    private Task PopulateUserStatsAsync(User user)
+    {
+        if (user == null) return Task.CompletedTask;
+        UserCorrect = user.CorrectAnswers;
+        UserTotal = user.TotalAnswered;
+        UserSuccessRate = UserTotal > 0 ? (int)((double)UserCorrect / UserTotal * 100) : 0;
+        CurrentStreak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+
+        if (_userProgress != null)
+        {
+            var progress = _userProgress.Load(user.Username);
+            UserXp = Math.Max(user.Xp, progress.Xp);
+            user.Xp = UserXp;
+            user.Level = QuizGamification.LevelFromXp(UserXp);
+            UserLevel = user.Level;
+            XpProgressPercent = QuizGamification.XpProgressPercent(UserXp);
+        }
+        else
+        {
+            UserXp = user.Xp;
+            UserLevel = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(user.Xp);
+            XpProgressPercent = QuizGamification.XpProgressPercent(UserXp);
+        }
+
+        PracticeMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
+        PracticeDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
+
+        if (PracticeMode == "daily")
+        {
+            DailyProgress = HttpContext.Session.GetInt32("DailyQuestionIndex") ?? 0;
+            var dailyDate = HttpContext.Session.GetString("DailyDate") ?? "";
+            IsDailyComplete = dailyDate == UserProgressService.TodayKey() && DailyProgress >= DailyTotal;
+        }
+        return Task.CompletedTask;
+    }
+
+    private void ApplyPracticeQueryParams()
+    {
+        var mode = Request.Query["mode"].ToString();
+        var difficulty = Request.Query["difficulty"].ToString();
+
+        if (!string.IsNullOrWhiteSpace(mode))
+            HttpContext.Session.SetString("PracticeMode", mode);
+
+        if (!string.IsNullOrWhiteSpace(difficulty))
+            HttpContext.Session.SetString("PracticeDifficulty", difficulty);
+
+        if (mode == "daily")
+            EnsureDailyChallengeSession();
+    }
+
+    private void LoadPendingAchievements()
+    {
+        var json = HttpContext.Session.GetString("PendingAchievements");
+        if (string.IsNullOrWhiteSpace(json)) return;
+        try
+        {
+            NewlyUnlockedAchievements = JsonSerializer.Deserialize<List<string>>(json, AppJson.Options) ?? new List<string>();
+            HttpContext.Session.Remove("PendingAchievements");
+        }
+        catch { /* ignore */ }
+    }
+
+    private void EnsureDailyChallengeSession()
+    {
+        var today = UserProgressService.TodayKey();
+        var existingDate = HttpContext.Session.GetString("DailyDate");
+        if (existingDate == today) return;
+
+        HttpContext.Session.SetString("DailyDate", today);
+        HttpContext.Session.SetInt32("DailyQuestionIndex", 0);
+        HttpContext.Session.SetInt32("DailyScore", 0);
+        HttpContext.Session.Remove("DailyQuestions");
+    }
+
     private IActionResult HandleLogoutPost()
     {
         HttpContext.Session.Clear();
@@ -263,6 +365,9 @@ public class IndexModel : PageModel
         user.CorrectAnswers = 0;
         user.TotalAnswered = 0;
         user.IsCheater = false;
+        user.Xp = 0;
+        user.Level = 1;
+        HttpContext.Session.SetInt32("CurrentStreak", 0);
         try { await _authService.UpdateUserAsync(user); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UpdateUserAsync Error] {ex.Message}"); }
         return RedirectToPage("/Index");
@@ -294,6 +399,56 @@ public class IndexModel : PageModel
 
         try { _stats?.Record(QuestionImage, IsCorrect); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync RecordStats Error] {ex.Message}"); }
+
+        var streak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+        if (IsCorrect)
+        {
+            streak++;
+            HttpContext.Session.SetInt32("CurrentStreak", streak);
+        }
+        else
+        {
+            streak = 0;
+            HttpContext.Session.SetInt32("CurrentStreak", 0);
+        }
+        CurrentStreak = streak;
+
+        var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
+        var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
+        var xpGain = IsCorrect ? QuizGamification.XpForDifficulty(practiceDifficulty) : 0;
+
+        if (_userProgress != null)
+        {
+            _userProgress.RecordAnswer(user.Username, QuestionImage, IsCorrect, xpGain);
+            _userProgress.UpdateBestStreak(user.Username, streak);
+
+            if (practiceMode == "daily")
+            {
+                _userProgress.RecordDailyChallengeAnswer(user.Username, IsCorrect);
+                var dailyIdx = (HttpContext.Session.GetInt32("DailyQuestionIndex") ?? 0) + 1;
+                HttpContext.Session.SetInt32("DailyQuestionIndex", dailyIdx);
+                if (IsCorrect)
+                {
+                    var dailyScore = (HttpContext.Session.GetInt32("DailyScore") ?? 0) + 1;
+                    HttpContext.Session.SetInt32("DailyScore", dailyScore);
+                }
+                if (dailyIdx >= DailyTotal && _achievements != null)
+                    NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyChallengeAchievement(user.Username));
+            }
+        }
+
+        if (IsCorrect && _userProgress != null)
+        {
+            var progress = _userProgress.Load(user.Username);
+            user.Xp = progress.Xp;
+            user.Level = QuizGamification.LevelFromXp(user.Xp);
+        }
+
+        if (_achievements != null)
+            NewlyUnlockedAchievements.AddRange(_achievements.CheckPracticeAchievements(user.Username, streak, user.TotalAnswered, user.Xp));
+
+        if (NewlyUnlockedAchievements.Count > 0)
+            HttpContext.Session.SetString("PendingAchievements", JsonSerializer.Serialize(NewlyUnlockedAchievements, AppJson.Options));
 
         try { await _authService.UpdateUserAsync(user); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
@@ -386,46 +541,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            List<string> filtered;
-            if (_storage != null)
-            {
-                var allImages = await _storage.ListFilesAsync("");
-                filtered = allImages
-                    .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                    .OrderBy(name => name)
-                    .ToList();
-            }
-            else
-            {
-                var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-                if (!Directory.Exists(imagesDir))
-                {
-                    QuestionImage = "placeholder.jpg";
-                    ShuffledAnswers = new Dictionary<string, string>();
-                    await PopulateUrlsAsync();
-                    return;
-                }
-
-                if (_localImagesCache != null && (DateTime.UtcNow - _localImagesCachedAt) < _localImagesTtl)
-                {
-                    filtered = _localImagesCache;
-                }
-                else
-                {
-                    filtered = Directory.GetFiles(imagesDir)
-                        .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                        .Select(Path.GetFileName)
-                        .OrderBy(name => name)
-                        .ToList();
-                    _localImagesCache = filtered;
-                    _localImagesCachedAt = DateTime.UtcNow;
-                }
-            }
-
-            var grouped = new List<List<string>>();
-            for (int i = 0; i + 4 < filtered.Count; i += 5)
-                grouped.Add(filtered.GetRange(i, 5));
-
+            var grouped = await LoadAllQuestionGroupsAsync();
             if (grouped.Count == 0)
             {
                 QuestionImage = "placeholder.jpg";
@@ -434,59 +550,35 @@ public class IndexModel : PageModel
                 return;
             }
 
-            // Exclude very recent questions per session to reduce visible repeats
-            var recent = GetRecentQuestionsFromSession();
+            var mode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
+            var difficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
+            var username = HttpContext.Session.GetString("Username") ?? "";
 
-            // Build or reuse a shuffle-bag of group indices to ensure coverage
-            int chosenIdx;
-            lock (_bagLock)
+            List<string> chosen;
+
+            if (mode == "daily")
             {
-                var now = DateTime.UtcNow;
-                var needRebuild = _bagOrder == null || _bagSourceCount != grouped.Count || _bagIndex >= _bagOrder.Count || (now - _bagBuiltAt) > _bagTtl;
-                if (needRebuild)
-                {
-                    var withCounts = new List<(int idx, int count, string key)>();
-                    for (int i = 0; i < grouped.Count; i++)
-                    {
-                        var key = grouped[i].Count > 0 ? grouped[i][0] : $"group-{i}";
-                        var cnt = _groupShownCount.TryGetValue(key, out var c) ? c : 0;
-                        withCounts.Add((i, cnt, key));
-                    }
-                    var buckets = withCounts.GroupBy(x => x.count)
-                        .OrderBy(g => g.Key)
-                        .Select(g => g.ToList()).ToList();
-                    var order = new List<int>();
-                    foreach (var bucket in buckets)
-                    {
-                        var indices = bucket.Select(b => b.idx).ToList();
-                        FisherYatesShuffle(indices);
-                        order.AddRange(indices);
-                    }
-                    _bagOrder = order;
-                    _bagIndex = 0;
-                    _bagSourceCount = grouped.Count;
-                    _bagBuiltAt = now;
-                }
-
-                int attempts = 0;
-                while (attempts < _bagOrder.Count)
-                {
-                    var idx = _bagOrder[_bagIndex % _bagOrder.Count];
-                    _bagIndex++;
-                    attempts++;
-                    var candidate = grouped[idx];
-                    if (candidate.Count > 0 && !IsQuestionThrottled(candidate[0]) && !recent.Contains(candidate[0]))
-                    {
-                        chosenIdx = idx;
-                        goto CHOSEN_FOUND;
-                    }
-                }
-
-                chosenIdx = _bagOrder[_bagIndex % _bagOrder.Count];
-                _bagIndex++;
+                chosen = await PickDailyQuestionAsync(grouped);
             }
-CHOSEN_FOUND:
-            var chosen = grouped[chosenIdx];
+            else if (mode == "review" && _userProgress != null)
+            {
+                chosen = PickReviewQuestion(grouped, username);
+            }
+            else
+            {
+                var pool = await FilterGroupsAsync(grouped, mode, difficulty, username);
+                if (pool.Count == 0) pool = grouped;
+                chosen = PickFromPool(pool, username, mode != "weak");
+            }
+
+            if (chosen == null || chosen.Count < 2)
+            {
+                QuestionImage = "placeholder.jpg";
+                ShuffledAnswers = new Dictionary<string, string>();
+                await PopulateUrlsAsync();
+                return;
+            }
+
             QuestionImage = chosen[0];
             var correct = chosen[1];
             var wrong = chosen.Skip(2).Take(3).ToList();
@@ -511,6 +603,159 @@ CHOSEN_FOUND:
         {
             Console.WriteLine($"[LoadRandomQuestionAsync Error] {ex.Message}");
         }
+    }
+
+    private async Task<List<List<string>>> LoadAllQuestionGroupsAsync()
+    {
+        List<string> filtered;
+        if (_storage != null)
+        {
+            var allImages = await _storage.ListFilesAsync("");
+            filtered = allImages
+                .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
+                .OrderBy(name => name)
+                .ToList();
+        }
+        else
+        {
+            var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            if (!Directory.Exists(imagesDir))
+                return new List<List<string>>();
+
+            if (_localImagesCache != null && (DateTime.UtcNow - _localImagesCachedAt) < _localImagesTtl)
+            {
+                filtered = _localImagesCache;
+            }
+            else
+            {
+                filtered = Directory.GetFiles(imagesDir)
+                    .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
+                    .Select(Path.GetFileName)
+                    .OrderBy(name => name)
+                    .ToList();
+                _localImagesCache = filtered;
+                _localImagesCachedAt = DateTime.UtcNow;
+            }
+        }
+
+        var grouped = new List<List<string>>();
+        for (int i = 0; i + 4 < filtered.Count; i += 5)
+            grouped.Add(filtered.GetRange(i, 5));
+        return grouped;
+    }
+
+    private async Task<List<List<string>>> FilterGroupsAsync(List<List<string>> grouped, string mode, string difficulty, string username)
+    {
+        var pool = grouped;
+
+        if (!string.IsNullOrEmpty(difficulty) && _difficultyService != null)
+        {
+            var allowed = await _difficultyService.GetQuestionsByDifficultyAsync(difficulty);
+            if (allowed.Count > 0)
+            {
+                var allowedSet = new HashSet<string>(allowed, StringComparer.OrdinalIgnoreCase);
+                pool = pool.Where(g => g.Count > 0 && allowedSet.Contains(g[0])).ToList();
+            }
+        }
+
+        if (mode == "weak" && _userProgress != null && !string.IsNullOrEmpty(username))
+        {
+            var weak = new HashSet<string>(_userProgress.GetWeakQuestions(username), StringComparer.OrdinalIgnoreCase);
+            if (weak.Count > 0)
+                pool = pool.Where(g => g.Count > 0 && weak.Contains(g[0])).ToList();
+        }
+
+        return pool;
+    }
+
+    private List<string> PickReviewQuestion(List<List<string>> grouped, string username)
+    {
+        if (_userProgress == null || string.IsNullOrEmpty(username))
+            return grouped[RandomNumberGenerator.GetInt32(grouped.Count)];
+
+        var mistakes = _userProgress.Load(username).SessionMistakes;
+        if (mistakes.Count == 0)
+            return PickFromPool(grouped, username, useSpaced: true);
+
+        var mistakeSet = new HashSet<string>(mistakes, StringComparer.OrdinalIgnoreCase);
+        var reviewGroups = grouped.Where(g => g.Count > 0 && mistakeSet.Contains(g[0])).ToList();
+        if (reviewGroups.Count == 0)
+            return PickFromPool(grouped, username, useSpaced: true);
+
+        return reviewGroups[RandomNumberGenerator.GetInt32(reviewGroups.Count)];
+    }
+
+    private Task<List<string>> PickDailyQuestionAsync(List<List<string>> grouped)
+    {
+        EnsureDailyChallengeSession();
+        var dailyJson = HttpContext.Session.GetString("DailyQuestions");
+        List<string> dailyList;
+
+        if (string.IsNullOrWhiteSpace(dailyJson))
+        {
+            var today = UserProgressService.TodayKey();
+            var seed = today.GetHashCode();
+            var rng = new Random(seed);
+            var indices = Enumerable.Range(0, grouped.Count).OrderBy(_ => rng.Next()).Take(Math.Min(DailyTotal, grouped.Count)).ToList();
+            dailyList = indices.Select(i => grouped[i][0]).ToList();
+            HttpContext.Session.SetString("DailyQuestions", JsonSerializer.Serialize(dailyList, AppJson.Options));
+        }
+        else
+        {
+            dailyList = JsonSerializer.Deserialize<List<string>>(dailyJson, AppJson.Options) ?? new List<string>();
+        }
+
+        var idx = HttpContext.Session.GetInt32("DailyQuestionIndex") ?? 0;
+        if (idx >= dailyList.Count)
+            return Task.FromResult(grouped[0]);
+
+        var questionFile = dailyList[idx];
+        var group = grouped.FirstOrDefault(g => g.Count > 0 && string.Equals(g[0], questionFile, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(group ?? grouped[RandomNumberGenerator.GetInt32(grouped.Count)]);
+    }
+
+    private List<string> PickFromPool(List<List<string>> pool, string username, bool useSpaced)
+    {
+        if (pool.Count == 0) return null;
+
+        var recent = GetRecentQuestionsFromSession();
+
+        if (useSpaced && _userProgress != null && !string.IsNullOrEmpty(username))
+        {
+            var withPriority = pool
+                .Where(g => g.Count > 0)
+                .Select(g => (g, priority: _userProgress.GetSpacedPriority(username, g[0])))
+                .GroupBy(x => x.priority)
+                .OrderByDescending(g => g.Key)
+                .First();
+
+            pool = withPriority.Select(x => x.g).ToList();
+        }
+
+        var eligible = pool.Where(g => g.Count > 0 && !IsQuestionThrottled(g[0]) && !recent.Contains(g[0])).ToList();
+        if (eligible.Count == 0)
+            eligible = pool.Where(g => g.Count > 0).ToList();
+
+        int chosenIdx;
+        lock (_bagLock)
+        {
+            var now = DateTime.UtcNow;
+            var needRebuild = _bagOrder == null || _bagSourceCount != eligible.Count || _bagIndex >= (_bagOrder?.Count ?? 0) || (now - _bagBuiltAt) > _bagTtl;
+            if (needRebuild)
+            {
+                var order = Enumerable.Range(0, eligible.Count).ToList();
+                FisherYatesShuffle(order);
+                _bagOrder = order;
+                _bagIndex = 0;
+                _bagSourceCount = eligible.Count;
+                _bagBuiltAt = now;
+            }
+
+            chosenIdx = _bagOrder[_bagIndex % _bagOrder.Count];
+            _bagIndex++;
+        }
+
+        return eligible[chosenIdx % eligible.Count];
     }
 
     private void ClearImageUrlState()

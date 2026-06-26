@@ -15,11 +15,17 @@ public class TestResultsModel : PageModel
 {
     private readonly SupabaseStorageService _storage;
     private readonly TestSessionService _testSession;
+    private readonly UserProgressService _userProgress;
+    private readonly AchievementService _achievements;
+    private readonly AuthService _authService;
 
-    public TestResultsModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
+    public TestResultsModel(SupabaseStorageService storage = null, TestSessionService testSession = null, UserProgressService userProgress = null, AchievementService achievements = null, AuthService authService = null)
     {
         _storage = storage;
         _testSession = testSession;
+        _userProgress = userProgress;
+        _achievements = achievements;
+        _authService = authService;
     }
 
     public int Score { get; set; }
@@ -28,6 +34,8 @@ public class TestResultsModel : PageModel
     public int Total { get; set; }
     public string ElapsedText { get; set; }
     public string ReviewToken { get; set; } = string.Empty;
+    public bool HasMistakes { get; set; }
+    public List<string> NewAchievements { get; set; } = new();
 
     public class ResultItem
     {
@@ -65,7 +73,62 @@ public class TestResultsModel : PageModel
 
         ReviewToken = token;
         await LoadFromTestSession(session);
+        await ProcessGamificationOnceAsync(username, session, token);
         return Page();
+    }
+
+    private async Task ProcessGamificationOnceAsync(string username, TestSession session, string token)
+    {
+        var processedKey = $"ProcessedExam_{token}";
+        if (HttpContext.Session.GetString(processedKey) == "1")
+        {
+            if (_userProgress != null)
+                HasMistakes = _userProgress.Load(username).SessionMistakes.Count > 0;
+            return;
+        }
+        HttpContext.Session.SetString(processedKey, "1");
+        await ProcessGamificationAsync(username, session);
+    }
+
+    private async Task ProcessGamificationAsync(string username, TestSession session)
+    {
+        if (_userProgress == null || _achievements == null) return;
+
+        var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
+        var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
+        var correctCount = answers.Count(a => a != null && a.IsCorrect);
+        var total = questions.Count;
+        var score = session.Score > 0 ? session.Score : correctCount * 6;
+
+        var progress = _userProgress.Load(username);
+        var isFirstExam = progress.ExamsCompleted == 0;
+        _userProgress.RecordExamComplete(username, correctCount, total, score);
+
+        var wrongQuestions = new List<string>();
+        for (int i = 0; i < questions.Count; i++)
+        {
+            var q = questions[i].Question;
+            var a = i < answers.Count ? answers[i] : null;
+            if (a != null && !a.IsCorrect && !string.IsNullOrEmpty(q))
+                wrongQuestions.Add(q);
+        }
+        if (wrongQuestions.Count > 0)
+            _userProgress.AddSessionMistakes(username, wrongQuestions);
+
+        HasMistakes = _userProgress.Load(username).SessionMistakes.Count > 0;
+        NewAchievements = _achievements.CheckExamAchievements(username, correctCount, total, isFirstExam);
+
+        if (_authService != null)
+        {
+            var user = await _authService.GetUserAsync(username);
+            if (user != null)
+            {
+                var updated = _userProgress.Load(username);
+                user.Xp = updated.Xp;
+                user.Level = QuizGamification.LevelFromXp(user.Xp);
+                await _authService.UpdateUserAsync(user);
+            }
+        }
     }
 
     private async Task LoadFromTestSession(TestSession session)

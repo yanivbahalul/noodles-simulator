@@ -1,14 +1,23 @@
 (function () {
     let updateInterval = null;
     let clockInterval = null;
+    let activeTab = "total";
+
+    const scoreHeaders = {
+        total: "תשובות נכונות",
+        rate: "אחוז הצלחה",
+        weekly: "נכונות השבוע",
+        exam: "ציון מבחן",
+        daily: "נכון באתגר"
+    };
 
     async function fetchLeaderboardData() {
         try {
-            const response = await fetch(`/api/leaderboard-data?_=${Date.now()}`);
+            const response = await fetch(`/api/leaderboard-data?tab=${encodeURIComponent(activeTab)}&_=${Date.now()}`);
             if (!response.ok) throw new Error("leaderboard fetch failed");
             const data = await response.json();
             if (Array.isArray(data?.users)) {
-                updateLeaderboardTable(data.users);
+                updateLeaderboardTable(data.users, data.tab || activeTab);
                 window.__lastUpdateAt = Date.now();
             }
         } catch {
@@ -17,16 +26,19 @@
         }
     }
 
-    function updateLeaderboardTable(data) {
+    function updateLeaderboardTable(data, tab) {
         const table = document.getElementById("leaderboard-table");
         if (!table) return;
         const tbody = table.querySelector("tbody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        data.forEach((user, index) => {
+        const header = document.getElementById("score-header");
+        if (header) header.textContent = scoreHeaders[tab] || scoreHeaders.total;
+
+        data.forEach((user) => {
             const row = tbody.insertRow();
-            row.className = `leaderboard-data-row ${index % 2 === 0 ? "leaderboard-row-even" : "leaderboard-row-odd"}`;
+            row.className = `leaderboard-data-row ${(user.rank - 1) % 2 === 0 ? "leaderboard-row-even" : "leaderboard-row-odd"}`;
 
             const rankCell = row.insertCell();
             rankCell.className = "leaderboard-cell";
@@ -43,9 +55,19 @@
                 usernameCell.textContent = user.username;
             }
 
-            const correctCell = row.insertCell();
-            correctCell.className = "leaderboard-cell";
-            correctCell.textContent = user.correctAnswers;
+            const scoreCell = row.insertCell();
+            scoreCell.className = "leaderboard-cell";
+            scoreCell.textContent = user.scoreDisplay ?? user.correctAnswers;
+        });
+    }
+
+    function bindTabs() {
+        document.querySelectorAll(".leaderboard-tab").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                activeTab = btn.dataset.tab || "total";
+                document.querySelectorAll(".leaderboard-tab").forEach((b) => b.classList.toggle("active", b === btn));
+                fetchLeaderboardData();
+            });
         });
     }
 
@@ -71,6 +93,12 @@
             clockInterval = null;
         }
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const data = document.getElementById("leaderboard-page-data");
+        if (data?.dataset.activeTab) activeTab = data.dataset.activeTab;
+        bindTabs();
+    });
 
     window.addEventListener("load", () => {
         fetchLeaderboardData();
