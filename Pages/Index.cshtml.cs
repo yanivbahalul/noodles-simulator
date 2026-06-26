@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text;
 using System.Security.Cryptography;
-using System.Net;
 using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Pages
@@ -87,6 +86,7 @@ namespace NoodlesSimulator.Pages
         public string Username { get; set; }
         public string ConnectionStatus { get; set; }
         public int OnlineCount { get; set; }
+        public bool ShowExamFixNotice { get; set; }
 
         // Holds signed URLs for current question and answers for rendering
         public string QuestionImageUrl { get; set; }
@@ -133,6 +133,7 @@ namespace NoodlesSimulator.Pages
                         return RedirectToPage("/Login");
                     }
                     try { await _authService.TouchLastSeen(user.Username, DateTime.UtcNow); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync UpdateLastSeen Error] {ex.Message}"); }
+                    ShowExamFixNotice = !_authService.HasDismissedNotice(user, AppNotices.ExamFix);
                 }
 
                 try
@@ -160,127 +161,34 @@ namespace NoodlesSimulator.Pages
             try
             {
                 if (Request.Form.ContainsKey("logout"))
-                {
-                    HttpContext.Session.Clear();
-                    Response.Cookies.Delete("Username");
-                    return RedirectToPage("/Index");
-                }
+                    return HandleLogoutPost();
 
-                Username = HttpContext.Session.GetString("Username");
-                if (string.IsNullOrEmpty(Username))
-                    return RedirectToPage("/Login");
-
-                User user = null;
-                try { user = await _authService.GetUser(Username); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync GetUser Error] {ex.Message}"); }
-                if (user == null)
-                    return RedirectToPage("/Login");
-
-                if (user.IsBanned)
-                {
-                    HttpContext.Session.Clear();
-                    Response.Cookies.Delete("Username");
-                    return RedirectToPage("/Login");
-                }
+                var auth = await TryRequireAuthenticatedUserAsync();
+                if (auth.Redirect != null)
+                    return auth.Redirect;
 
                 if (Request.Form.ContainsKey("reset"))
-                {
-                    user.CorrectAnswers = 0;
-                    user.TotalAnswered = 0;
-                    user.IsCheater = false;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UpdateUser Error] {ex.Message}"); }
-                    return RedirectToPage("/Index");
-                }
+                    return await HandleResetPostAsync(auth.User);
 
-                var answer = Request.Form["answer"];
-                var questionImage = Request.Form["questionImage"];
-                var answersJson = Request.Form["answersJson"];
-
-                if (string.IsNullOrEmpty(answersJson))
+                if (string.IsNullOrEmpty(Request.Form["answersJson"]))
                 {
-                    try { await LoadRandomQuestionAsync(); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
+                    try { await LoadRandomQuestionAsync(); }
+                    catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
                     return Page();
                 }
 
-                SelectedAnswer = answer;
-                AnswerChecked = true;
-                QuestionImage = questionImage;
-                try { ShuffledAnswers = JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options); }
-                catch (Exception) { ShuffledAnswers = new Dictionary<string, string>(); }
-                IsCorrect = answer == "correct";
+                await ProcessSubmittedAnswerAsync(auth.User);
+                var cheaterRedirect = await TryHandleCheaterDetectionAsync(auth.User);
+                if (cheaterRedirect != null)
+                    return cheaterRedirect;
 
-                user.TotalAnswered++;
-                if (IsCorrect)
-                {
-                    user.CorrectAnswers++;
-                    if (_storage == null)
-                    {
-                        try { MoveCorrectImagesLocal(); } catch (Exception ex) { Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}"); }
-                    }
-                }
-
-                try { _stats?.Record(QuestionImage, IsCorrect); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync RecordStats Error] {ex.Message}"); }
-
-                try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUser Error] {ex.Message}"); }
-
-                var sessionStartStr = HttpContext.Session.GetString("SessionStart");
-                DateTime.TryParse(sessionStartStr, out var sessionStart);
-                var now = DateTime.UtcNow;
-                var elapsedSeconds = (now - sessionStart).TotalSeconds;
-
-                var rapidTotal = HttpContext.Session.GetInt32("RapidTotal") ?? 0;
-                var rapidCorrect = HttpContext.Session.GetInt32("RapidCorrect") ?? 0;
-
-                if (elapsedSeconds <= 120)
-                {
-                    HttpContext.Session.SetInt32("RapidTotal", rapidTotal + 1);
-                    if (IsCorrect)
-                        HttpContext.Session.SetInt32("RapidCorrect", rapidCorrect + 1);
-                }
-                else
-                {
-                    HttpContext.Session.SetString("SessionStart", now.ToString());
-                    HttpContext.Session.SetInt32("RapidTotal", 1);
-                    HttpContext.Session.SetInt32("RapidCorrect", IsCorrect ? 1 : 0);
-                }
-
-                rapidTotal = HttpContext.Session.GetInt32("RapidTotal") ?? 0;
-                rapidCorrect = HttpContext.Session.GetInt32("RapidCorrect") ?? 0;
-
-                int cheaterCount = HttpContext.Session.GetInt32("CheaterCount") ?? 0;
-
-                if (rapidTotal >= 20 || rapidCorrect >= 15)
-                {
-                    Console.WriteLine($"[CHEATER DETECTED] User: {user.Username} | RapidTotal: {rapidTotal} | RapidCorrect: {rapidCorrect}");
-                    user.CorrectAnswers = 0;
-                    user.TotalAnswered = 0;
-                    user.IsCheater = true;
-                    try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync CheaterMark UpdateUser Error] {ex.Message}"); }
-
-                    cheaterCount++;
-                    HttpContext.Session.SetInt32("CheaterCount", cheaterCount);
-
-                    if (cheaterCount >= 3)
-                    {
-                        user.IsBanned = true;
-                        try { await _authService.UpdateUser(user); } catch (Exception ex) { Console.WriteLine($"[OnPostAsync Ban UpdateUser Error] {ex.Message}"); }
-                        HttpContext.Session.Clear();
-                        Response.Cookies.Delete("Username");
-                        return RedirectToPage("/Login");
-                    }
-
-                    HttpContext.Session.SetInt32("RapidTotal", 0);
-                    HttpContext.Session.SetInt32("RapidCorrect", 0);
-                    return RedirectToPage("/Cheater");
-                }
-
-                // Do not block response on online count; compute best-effort
                 _ = Task.Run(async () =>
                 {
-                    try { OnlineCount = await _authService.GetOnlineUserCount(); } catch { OnlineCount = 0; }
+                    try { OnlineCount = await _authService.GetOnlineUserCount(); }
+                    catch { OnlineCount = 0; }
                 });
 
                 await PopulateUrlsAsync();
-
                 return Page();
             }
             catch (Exception ex)
@@ -301,211 +209,16 @@ namespace NoodlesSimulator.Pages
                     return new JsonResult(new { error = "Empty body" }) { StatusCode = 400 };
 
                 using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
-                var questionImage = GetJsonString(root, "questionImage");
-                var answers = GetJsonString(root, "answers");
-                var correctAnswer = GetJsonString(root, "correctAnswer");
-                var explanation = GetJsonString(root, "explanation");
-                var selectedAnswer = GetJsonString(root, "selectedAnswer");
-                var username = HttpContext.Session.GetString("Username") ?? "Unknown";
-                var timestamp = DateTime.UtcNow;
+                var payload = ErrorReportBuilder.TryParse(doc, HttpContext.Session.GetString("Username"));
+                if (payload == null)
+                    return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
 
-                username = WebUtility.HtmlEncode(username);
-                explanation = WebUtility.HtmlEncode(explanation ?? string.Empty);
-
-                if (!string.IsNullOrWhiteSpace(questionImage) && questionImage.Contains("token="))
-                {
-                    var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(questionImage);
-                    if (!string.IsNullOrWhiteSpace(extractedName))
-                        questionImage = extractedName;
-                }
-
-                if (!string.IsNullOrWhiteSpace(correctAnswer) && correctAnswer.Contains("token="))
-                {
-                    var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(correctAnswer);
-                    if (!string.IsNullOrWhiteSpace(extractedName))
-                        correctAnswer = extractedName;
-                }
-
-                var reportSubject = $"דיווח טעות חדשה מהמשתמש {username}";
-                var answersDict = new Dictionary<string, string>();
-                try
-                {
-                    if (!string.IsNullOrWhiteSpace(answers))
-                        answersDict = JsonSerializer.Deserialize<Dictionary<string, string>>(answers, AppJson.Options);
-                    
-                    if (answersDict != null)
-                    {
-                        var cleanedAnswers = new Dictionary<string, string>();
-                        foreach (var kv in answersDict)
-                        {
-                            var value = kv.Value;
-                            if (!string.IsNullOrWhiteSpace(value) && value.Contains("token="))
-                            {
-                                var extractedName = SupabaseStorageService.ExtractFileNameFromSignedUrl(value);
-                                if (!string.IsNullOrWhiteSpace(extractedName))
-                                    value = extractedName;
-                            }
-                            cleanedAnswers[kv.Key] = value;
-                        }
-                        answersDict = cleanedAnswers;
-                    }
-                }
-                catch (Exception ex) { Console.WriteLine($"[OnPostReportErrorAsync ParseAnswers Error] {ex.Message}"); }
-
-                var abcd = new[] { "A", "B", "C", "D" };
-                var allAnswers = answersDict.Values.ToList();
-                int correctIdx = allAnswers.IndexOf(correctAnswer);
-                string correctKey = answersDict.ContainsValue(correctAnswer) 
-                    ? answersDict.First(kv => kv.Value == correctAnswer).Key 
-                    : null;
-                
-                string selectedLetter = "לא סומנה תשובה";
-                string selectedAnswerValue = "";
-                if (!string.IsNullOrWhiteSpace(selectedAnswer))
-                {
-                    if (answersDict.ContainsKey(selectedAnswer))
-                    {
-                        selectedAnswerValue = answersDict[selectedAnswer];
-                    }
-                    
-                    if (correctKey != null && selectedAnswer == correctKey)
-                    {
-                        selectedLetter = "A (תשובה נכונה)";
-                    }
-                    else
-                    {
-                        int idx = allAnswers.IndexOf(selectedAnswerValue);
-                        if (idx >= 0 && idx != correctIdx)
-                        {
-                            int distractorIdx = idx < correctIdx ? idx : idx - 1;
-                            if (distractorIdx >= 0 && distractorIdx < 3)
-                                selectedLetter = abcd[distractorIdx + 1];
-                        }
-                    }
-                }
-                
-                var answersList = new StringBuilder();
-                var safeCorrectAnswer = WebUtility.HtmlEncode(correctAnswer ?? string.Empty);
-                answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{safeCorrectAnswer}</span><br/>");
-                var distractors = allAnswers.Where((v, i) => i != correctIdx).ToList();
-                for (int i = 0; i < Math.Min(3, distractors.Count); i++)
-                {
-                    var letter = abcd[i + 1];
-                    var distractor = WebUtility.HtmlEncode(distractors[i] ?? string.Empty);
-                    var isSelected = selectedAnswerValue == distractor;
-                    var style = isSelected ? "font-weight: bold; color: #ffc107;" : "";
-                    answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
-                }
-                
                 var request = HttpContext.Request;
                 var baseUrl = $"{request.Scheme}://{request.Host}";
-                
-                var queryParams = new System.Collections.Specialized.NameValueCollection();
-                queryParams.Add("id", questionImage);
-                if (!string.IsNullOrWhiteSpace(selectedAnswer))
-                {
-                    if (answersDict.ContainsKey(selectedAnswer))
-                    {
-                        queryParams.Add("selected", selectedAnswer);
-                    }
-                }
-                queryParams.Add("correct", "correct"); // Always "correct" is the right answer
-                
-                var queryString = string.Join("&", 
-                    queryParams.AllKeys.Select(key => $"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(queryParams[key])}"));
-                var questionViewUrl = $"{baseUrl}/QuestionView?{queryString}";
+                var htmlBody = ErrorReportBuilder.BuildHtmlBody(payload, baseUrl);
+                var reportSubject = ErrorReportBuilder.BuildSubject(payload.Username);
 
-                var htmlBody = $@"
-<!DOCTYPE html>
-<html dir='rtl' lang='he'>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>דיווח שגיאה</title>
-</head>
-<body style='margin: 0; padding: 0; background-color: #f5f5f5; direction: rtl;'>
-    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; direction: rtl;'>
-        <!-- Header with gradient -->
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0; text-align: center; direction: rtl;'>
-            <h2 style='color: white; margin: 0; direction: rtl; unicode-bidi: embed;'>📩 דיווח חדש התקבל מהמערכת</h2>
-        </div>
-        
-        <!-- Main content -->
-        <div style='background-color: white; padding: 25px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); direction: rtl; text-align: right;'>
-            <!-- User and timestamp -->
-            <p style='font-size: 16px; color: #333; line-height: 1.8; direction: rtl; text-align: right; unicode-bidi: embed;'>
-                <strong>👤 משתמש:</strong> {username}<br/>
-                <strong>🕓 תאריך:</strong> {timestamp:dd/MM/yyyy HH:mm:ss}<br/>
-            </p>
-            
-            <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'/>
-            
-            <!-- Question Info -->
-            <div style='margin: 20px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; direction: rtl; text-align: right;'>
-                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
-                    <strong>❓ שם קובץ השאלה:</strong> {questionImage}
-                </p>
-                <p style='font-size: 16px; color: #333; margin-bottom: 15px; direction: rtl; unicode-bidi: embed;'>
-                    <strong>📝 תשובות אפשריות:</strong><br/>
-                    <span style='font-size: 14px; line-height: 1.8;'>{answersList.ToString()}</span>
-                </p>
-            </div>
-            
-            <!-- Explanation (optional box) -->
-            <div style='background-color: #fff3cd; border-right: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; direction: rtl; text-align: right;'>
-                <strong style='unicode-bidi: embed;'>💬 סיבה:</strong> <span style='unicode-bidi: embed;'>{explanation}</span>
-            </div>
-            
-            <!-- Link to view question -->
-            <div style='margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; text-align: center;'>
-                <a href='{questionViewUrl}' 
-                   target='_blank'
-                   style='display: inline-block; padding: 15px 30px; background-color: white; color: #667eea; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s;'>
-                    🔍 להצגת השאלה לחץ כאן
-                </a>
-                <p style='color: white; margin-top: 15px; font-size: 14px; direction: rtl; unicode-bidi: embed;'>
-                    הקישור יפתח את השאלה עם כל התשובות בעמוד נפרד באתר
-                </p>
-            </div>
-            
-            <hr style='border: none; border-top: 1px solid #eee; margin: 25px 0;'/>
-            
-            <!-- Footer -->
-            <p style='text-align: center; color: #888; font-size: 14px; direction: rtl; unicode-bidi: embed;'>
-                <strong>מערכת: Noodles Simulator</strong><br/>
-                🎮 Find your limits. Or crash into them.
-            </p>
-        </div>
-    </div>
-</body>
-</html>";
-
-                try
-                {
-                    if (_emailService != null && _emailService.IsConfigured)
-                    {
-                        Console.WriteLine($"[Report] Sending error report email...");
-                        var result = _emailService.Send(reportSubject, htmlBody);
-                        if (result)
-                        {
-                            Console.WriteLine($"[Report] Error report email sent successfully");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[Report] Failed to send error report email");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[Report] Email service not configured, skipping email notification");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ReportEmail Dispatch Error] {ex}");
-                }
-
+                await TrySendReportEmailAsync(reportSubject, htmlBody);
                 return new JsonResult(new { success = true });
             }
             catch (Exception ex)
@@ -513,6 +226,159 @@ namespace NoodlesSimulator.Pages
                 Console.WriteLine($"[OnPostReportErrorAsync Error] {ex}");
                 return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
             }
+        }
+
+        private IActionResult HandleLogoutPost()
+        {
+            HttpContext.Session.Clear();
+            Response.Cookies.Delete("Username");
+            return RedirectToPage("/Index");
+        }
+
+        private async Task<(User User, IActionResult Redirect)> TryRequireAuthenticatedUserAsync()
+        {
+            Username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(Username))
+                return (null, RedirectToPage("/Login"));
+
+            User user = null;
+            try { user = await _authService.GetUser(Username); }
+            catch (Exception ex) { Console.WriteLine($"[OnPostAsync GetUser Error] {ex.Message}"); }
+            if (user == null)
+                return (null, RedirectToPage("/Login"));
+
+            if (user.IsBanned)
+            {
+                HttpContext.Session.Clear();
+                Response.Cookies.Delete("Username");
+                return (null, RedirectToPage("/Login"));
+            }
+
+            return (user, null);
+        }
+
+        private async Task<IActionResult> HandleResetPostAsync(User user)
+        {
+            user.CorrectAnswers = 0;
+            user.TotalAnswered = 0;
+            user.IsCheater = false;
+            try { await _authService.UpdateUser(user); }
+            catch (Exception ex) { Console.WriteLine($"[OnPostAsync Reset UpdateUser Error] {ex.Message}"); }
+            return RedirectToPage("/Index");
+        }
+
+        private async Task ProcessSubmittedAnswerAsync(User user)
+        {
+            var answer = Request.Form["answer"];
+            var questionImage = Request.Form["questionImage"];
+            var answersJson = Request.Form["answersJson"];
+
+            SelectedAnswer = answer;
+            AnswerChecked = true;
+            QuestionImage = questionImage;
+            try { ShuffledAnswers = JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options); }
+            catch (Exception) { ShuffledAnswers = new Dictionary<string, string>(); }
+            IsCorrect = answer == "correct";
+
+            user.TotalAnswered++;
+            if (IsCorrect)
+            {
+                user.CorrectAnswers++;
+                if (_storage == null)
+                {
+                    try { MoveCorrectImagesLocal(); }
+                    catch (Exception ex) { Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}"); }
+                }
+            }
+
+            try { _stats?.Record(QuestionImage, IsCorrect); }
+            catch (Exception ex) { Console.WriteLine($"[OnPostAsync RecordStats Error] {ex.Message}"); }
+
+            try { await _authService.UpdateUser(user); }
+            catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUser Error] {ex.Message}"); }
+
+            UpdateRapidAnswerCounters();
+        }
+
+        private void UpdateRapidAnswerCounters()
+        {
+            var sessionStartStr = HttpContext.Session.GetString("SessionStart");
+            DateTime.TryParse(sessionStartStr, out var sessionStart);
+            var now = DateTime.UtcNow;
+            var elapsedSeconds = (now - sessionStart).TotalSeconds;
+
+            var rapidTotal = HttpContext.Session.GetInt32("RapidTotal") ?? 0;
+            var rapidCorrect = HttpContext.Session.GetInt32("RapidCorrect") ?? 0;
+
+            if (elapsedSeconds <= 120)
+            {
+                HttpContext.Session.SetInt32("RapidTotal", rapidTotal + 1);
+                if (IsCorrect)
+                    HttpContext.Session.SetInt32("RapidCorrect", rapidCorrect + 1);
+            }
+            else
+            {
+                HttpContext.Session.SetString("SessionStart", now.ToString());
+                HttpContext.Session.SetInt32("RapidTotal", 1);
+                HttpContext.Session.SetInt32("RapidCorrect", IsCorrect ? 1 : 0);
+            }
+        }
+
+        private async Task<IActionResult> TryHandleCheaterDetectionAsync(User user)
+        {
+            var rapidTotal = HttpContext.Session.GetInt32("RapidTotal") ?? 0;
+            var rapidCorrect = HttpContext.Session.GetInt32("RapidCorrect") ?? 0;
+            if (rapidTotal < 20 && rapidCorrect < 15)
+                return null;
+
+            Console.WriteLine($"[CHEATER DETECTED] User: {user.Username} | RapidTotal: {rapidTotal} | RapidCorrect: {rapidCorrect}");
+            user.CorrectAnswers = 0;
+            user.TotalAnswered = 0;
+            user.IsCheater = true;
+            try { await _authService.UpdateUser(user); }
+            catch (Exception ex) { Console.WriteLine($"[OnPostAsync CheaterMark UpdateUser Error] {ex.Message}"); }
+
+            var cheaterCount = (HttpContext.Session.GetInt32("CheaterCount") ?? 0) + 1;
+            HttpContext.Session.SetInt32("CheaterCount", cheaterCount);
+
+            if (cheaterCount >= 3)
+            {
+                user.IsBanned = true;
+                try { await _authService.UpdateUser(user); }
+                catch (Exception ex) { Console.WriteLine($"[OnPostAsync Ban UpdateUser Error] {ex.Message}"); }
+                HttpContext.Session.Clear();
+                Response.Cookies.Delete("Username");
+                return RedirectToPage("/Login");
+            }
+
+            HttpContext.Session.SetInt32("RapidTotal", 0);
+            HttpContext.Session.SetInt32("RapidCorrect", 0);
+            return RedirectToPage("/Cheater");
+        }
+
+        private Task TrySendReportEmailAsync(string reportSubject, string htmlBody)
+        {
+            try
+            {
+                if (_emailService == null || !_emailService.IsConfigured)
+                {
+                    Console.WriteLine("[Report] Email service not configured, skipping email notification");
+                    return Task.CompletedTask;
+                }
+
+                Console.WriteLine("[Report] Sending error report email...");
+                var result = _emailService.Send(reportSubject, htmlBody);
+                if (result)
+                    Console.WriteLine("[Report] Error report email sent successfully");
+                else
+                    Console.WriteLine("[Report] Failed to send error report email");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ReportEmail Dispatch Error] {ex}");
+            }
+
+            return Task.CompletedTask;
         }
 
         private async Task LoadRandomQuestionAsync()
@@ -830,13 +696,6 @@ CHOSEN_FOUND:
             {
                 Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}");
             }
-        }
-
-        private static string GetJsonString(JsonElement root, string propertyName)
-        {
-            if (!root.TryGetProperty(propertyName, out var value))
-                return null;
-            return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
         }
     }
 }

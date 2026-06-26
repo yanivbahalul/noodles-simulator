@@ -1,10 +1,10 @@
 (function () {
-    let updateInterval;
+    let updateInterval = null;
     let currentFilter = null;
 
     async function fetchDashboardData() {
         try {
-            const response = await fetch("/api/dashboard-data?_=" + new Date().getTime());
+            const response = await fetch(`/api/dashboard-data?_=${Date.now()}`);
             if (!response.ok) throw new Error("dashboard fetch failed");
             const data = await response.json();
 
@@ -12,7 +12,7 @@
             document.getElementById("online-users-count").textContent = data.onlineUsersCount;
             document.getElementById("cheaters-count").textContent = data.cheatersCount;
             document.getElementById("banned-users-count").textContent = data.bannedUsersCount;
-            document.getElementById("average-success-rate").textContent = data.averageSuccessRate + "%";
+            document.getElementById("average-success-rate").textContent = `${data.averageSuccessRate}%`;
 
             updateTable("online-users-table", data.onlineUsersList, ["rank", "username", "totalAnswered", "correctAnswers", "successRate"]);
             updateTable("top-users-table", data.topUsersList, ["rank", "username", "totalAnswered", "correctAnswers", "successRate"]);
@@ -34,7 +34,7 @@
             columns.forEach((column) => {
                 const cell = row.insertCell();
                 if (column === "rank") cell.textContent = index + 1;
-                else if (column === "successRate") cell.textContent = user[column] + "%";
+                else if (column === "successRate") cell.textContent = `${user[column]}%`;
                 else cell.textContent = user[column];
             });
         });

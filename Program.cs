@@ -16,12 +16,42 @@ using Microsoft.Extensions.Logging;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 
+static void LoadDotEnv(string path = ".env")
+{
+    if (!File.Exists(path)) return;
+    foreach (var raw in File.ReadAllLines(path))
+    {
+        var line = raw.Trim();
+        if (line.Length == 0 || line.StartsWith('#')) continue;
+        var eq = line.IndexOf('=');
+        if (eq <= 0) continue;
+        var key = line[..eq].Trim();
+        var val = line[(eq + 1)..].Trim();
+        if (val.Length >= 2 && val.StartsWith('"') && val.EndsWith('"'))
+            val = val[1..^1];
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+            Environment.SetEnvironmentVariable(key, val);
+    }
+}
+
+LoadDotEnv();
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<AuthService>();
-builder.Services.AddSingleton<TestSessionService>();
+var sbUrlForTests = SupabaseConfiguration.Url(builder.Configuration);
+var sbKeyForTests = SupabaseConfiguration.ServiceRoleApiKey(builder.Configuration)
+                    ?? SupabaseConfiguration.AnonApiKey(builder.Configuration);
+if (!string.IsNullOrWhiteSpace(sbUrlForTests) && !string.IsNullOrWhiteSpace(sbKeyForTests))
+{
+    builder.Services.AddSingleton<TestSessionService>();
+}
+else
+{
+    Console.WriteLine("Test session service disabled — missing SUPABASE_URL or API key.");
+}
 builder.Services.AddSingleton<QuestionDifficultyService>();
 
 builder.Services.AddSingleton<EmailService>(provider =>
@@ -433,6 +463,52 @@ api.MapGet("/leaderboard-data", async context =>
     }
 });
 
+api.MapPost("/notices/dismiss", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        if (!doc.RootElement.TryGetProperty("noticeId", out var noticeIdEl))
+        {
+            await WritePlainError(context, 400, "noticeId required");
+            return;
+        }
+
+        var noticeId = noticeIdEl.GetString();
+        if (string.IsNullOrWhiteSpace(noticeId) || noticeId != AppNotices.ExamFix)
+        {
+            await WritePlainError(context, 400, "Invalid noticeId");
+            return;
+        }
+
+        if (!TryResolveAuthService(context, out var authService))
+        {
+            await WritePlainError(context, 503, "AuthService not available");
+            return;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var ok = await authService.DismissNotice(username, noticeId);
+        if (!ok)
+        {
+            await WritePlainError(context, 500, "Failed to save");
+            return;
+        }
+
+        await WriteJson(context, new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dismiss Notice API Error", ex);
+    }
+});
+
 api.MapGet("/online-count", async context =>
 {
     try
@@ -499,11 +575,11 @@ if (!Directory.Exists(progressDir))
 if (Directory.Exists(progressDir))
 {
     var files = Directory.GetFiles(progressDir, "*.json");
-    var threshold = DateTime.Now.AddDays(-7);
+    var threshold = DateTime.UtcNow.AddDays(-7);
 
     foreach (var file in files)
     {
-        var lastWrite = File.GetLastWriteTime(file);
+        var lastWrite = File.GetLastWriteTimeUtc(file);
         if (lastWrite < threshold)
         {
             try

@@ -18,12 +18,12 @@
         function tick() {
             const now = new Date().getTime();
             const diff = Math.max(0, end - now);
-            const h = Math.floor(diff / 3600000);
-            const m = Math.floor((diff % 3600000) / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            const pad = (n) => (n < 10 ? "0" + n : "" + n);
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            const pad = (n) => (n < 10 ? `0${n}` : String(n));
             const el = document.getElementById("countdown");
-            if (el) el.textContent = pad(h) + ":" + pad(m) + ":" + pad(s);
+            if (el) el.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
             if (diff <= 0) {
                 window.location.reload();
                 return;
@@ -55,11 +55,8 @@
         }
 
         const endTestBtn = document.querySelector(".confirm-end-test-btn");
-        if (endTestBtn) {
-            endTestBtn.addEventListener("click", (e) => {
-                const ok = window.confirm("האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.");
-                if (!ok) e.preventDefault();
-            });
+        if (endTestBtn && window.bindConfirmEndTestButtons) {
+            window.bindConfirmEndTestButtons("האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.");
         }
 
         startCountdown(endUtc);

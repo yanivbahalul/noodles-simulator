@@ -90,7 +90,7 @@ namespace NoodlesSimulator.Pages
                 Console.WriteLine($"[Test OnGet] Built state with {state.Questions.Count} questions");
                 
                 var questionsJson = JsonSerializer.Serialize(state.Questions, AppJson.Options);
-                Console.WriteLine($"[Test OnGet] Attempting to create session in database...");
+                Console.WriteLine("[Test OnGet] Attempting to create session in database...");
                 
                 session = await _testSession.CreateSession(username, questionsJson);
                 
@@ -175,12 +175,14 @@ namespace NoodlesSimulator.Pages
 
             var isCorrect = selected == "correct";
 
-            if (answers.Count <= idx)
-            {
-                while (answers.Count < idx)
-                    answers.Add(new TestAnswer());
-                answers.Add(new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect });
-            }
+            while (answers.Count < idx)
+                answers.Add(new TestAnswer());
+
+            var recorded = new TestAnswer { SelectedKey = selected, IsCorrect = isCorrect };
+            if (answers.Count == idx)
+                answers.Add(recorded);
+            else if (idx < answers.Count)
+                answers[idx] = recorded;
 
             try 
             { 
@@ -242,18 +244,18 @@ namespace NoodlesSimulator.Pages
                     Console.WriteLine($"[Test OnPostEndTest] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                     await _testSession.UpdateSession(session);
                     
-                    Console.WriteLine($"[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
+                    Console.WriteLine("[Test OnPostEndTest] Test ended successfully. Redirecting to results...");
                     
                     return RedirectToPage("/TestResults", new { token = token });
                 }
                 else
                 {
-                    Console.WriteLine($"[Test OnPostEndTest] Session not found or username mismatch");
+                    Console.WriteLine("[Test OnPostEndTest] Session not found or username mismatch");
                 }
             }
             else
             {
-                Console.WriteLine($"[Test OnPostEndTest] TestSessionService null or token empty");
+                Console.WriteLine("[Test OnPostEndTest] TestSessionService null or token empty");
             }
             
             return RedirectToPage("/TestResults");

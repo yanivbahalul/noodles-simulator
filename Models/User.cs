@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace NoodlesSimulator.Models
 {
@@ -12,5 +13,6 @@ namespace NoodlesSimulator.Models
         public bool IsCheater { get; set; } = false;
         public bool IsBanned { get; set; } = false;
         public DateTime? LastSeen { get; set; }
+        public List<string> DismissedNotices { get; set; }
     }
 }

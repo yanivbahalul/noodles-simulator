@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace NoodlesSimulator.Services
         private List<string> _listCache;
         private DateTime _listCacheAt;
         private readonly TimeSpan _listTtl = TimeSpan.FromMinutes(5);
-        private readonly Dictionary<string, (string url, DateTime cachedAt)> _signedUrlCache = new();
+        private readonly ConcurrentDictionary<string, (string url, DateTime cachedAt)> _signedUrlCache = new();
         private readonly TimeSpan _signedUrlTtl;
 
         public SupabaseStorageService(string url, string serviceRoleKey, string bucket, int ttlSeconds = 3600)
@@ -46,11 +47,10 @@ namespace NoodlesSimulator.Services
             if (string.IsNullOrWhiteSpace(objectPath))
                 throw new ArgumentException("objectPath is required.", nameof(objectPath));
 
-            // Return cached if fresh
-            if (_signedUrlCache.TryGetValue(objectPath, out var entry))
+            if (_signedUrlCache.TryGetValue(objectPath, out var entry)
+                && DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
             {
-                if (DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
-                    return entry.url;
+                return entry.url;
             }
 
             await EnsureInitAsync();
@@ -65,13 +65,13 @@ namespace NoodlesSimulator.Services
             await EnsureInitAsync();
             var from = _client.Storage.From(_bucket);
 
-            var dict = new Dictionary<string, string>();
+            var dict = new ConcurrentDictionary<string, string>();
             var tasks = new List<Task>();
             foreach (var p in objectPaths)
             {
                 if (string.IsNullOrWhiteSpace(p)) continue;
 
-                if (_signedUrlCache.TryGetValue(p, out var entry) && (DateTime.UtcNow - entry.cachedAt < _signedUrlTtl))
+                if (_signedUrlCache.TryGetValue(p, out var entry) && DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
                 {
                     dict[p] = entry.url;
                     continue;
@@ -81,14 +81,11 @@ namespace NoodlesSimulator.Services
                 {
                     var url = await from.CreateSignedUrl(p, _ttlSeconds);
                     _signedUrlCache[p] = (url, DateTime.UtcNow);
-                    lock (dict)
-                    {
-                        dict[p] = url;
-                    }
+                    dict[p] = url;
                 }));
             }
             await Task.WhenAll(tasks);
-            return dict;
+            return new Dictionary<string, string>(dict);
         }
 
         public async Task UploadAsync(Stream fileStream, string objectPath, string contentType = "application/octet-stream", bool overwrite = false)

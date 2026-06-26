@@ -213,6 +213,69 @@ namespace NoodlesSimulator.Models
             }
         }
 
+        public bool HasDismissedNotice(User? user, string noticeId)
+        {
+            if (user?.DismissedNotices == null || string.IsNullOrWhiteSpace(noticeId))
+            {
+                return false;
+            }
+
+            return user.DismissedNotices.Contains(noticeId, StringComparer.Ordinal);
+        }
+
+        public async Task<bool> DismissNotice(string username, string noticeId)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(noticeId))
+            {
+                return false;
+            }
+
+            var user = await GetUser(username);
+            if (user == null)
+            {
+                return false;
+            }
+
+            var notices = user.DismissedNotices ?? new List<string>();
+            if (notices.Contains(noticeId, StringComparer.Ordinal))
+            {
+                return true;
+            }
+
+            notices = new List<string>(notices) { noticeId };
+            var safeUsername = Uri.EscapeDataString(username);
+            var candidateColumns = new[] { "DismissedNotices", "dismissed_notices" };
+
+            foreach (var col in candidateColumns)
+            {
+                try
+                {
+                    var patch = new Dictionary<string, object> { [col] = notices };
+                    var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
+                    var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{safeUsername}")
+                    {
+                        Content = content
+                    };
+                    request.Headers.Add("Prefer", "return=minimal");
+
+                    var response = await _client.SendAsync(request);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return true;
+                    }
+
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[DismissNotice] PATCH with '{col}' failed for {username}: {response.StatusCode} | {errorBody}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DismissNotice] Exception with '{col}' for {username}: {ex.Message}");
+                }
+            }
+
+            return false;
+        }
+
         public async Task<bool> TouchLastSeen(string username, DateTime? at = null)
         {
             if (string.IsNullOrWhiteSpace(username))

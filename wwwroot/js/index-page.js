@@ -1,5 +1,5 @@
 (function () {
-    let updateInterval;
+    let updateInterval = null;
 
     function openImageModal() {
         const modal = document.getElementById("image-modal");
@@ -27,13 +27,13 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch("/Stats?_=" + new Date().getTime());
+            const res = await fetch(`/Stats?_=${Date.now()}`);
             if (!res.ok) throw new Error("stats fetch failed");
             const data = await res.json();
             if (data && data.correct !== undefined) {
                 document.getElementById("stat-correct").innerText = data.correct;
                 document.getElementById("stat-total").innerText = data.total;
-                document.getElementById("stat-success").innerText = data.successRate + "%";
+                document.getElementById("stat-success").innerText = `${data.successRate}%`;
             }
             if (data && data.online !== undefined && data.online !== null) {
                 document.getElementById("online-count").innerText = data.online;
@@ -45,7 +45,7 @@
 
     async function fetchOnlineCount() {
         try {
-            const res = await fetch("/api/online-count?_=" + new Date().getTime());
+            const res = await fetch(`/api/online-count?_=${Date.now()}`);
             if (!res.ok) throw new Error("online fetch failed");
             const data = await res.json();
             if (data && data.online !== undefined && data.online !== null) {
@@ -86,6 +86,38 @@
         }
     }
 
+    function bindExamFixNotice() {
+        const prompt = document.getElementById("exam-fix-notice-prompt");
+        if (!prompt) return;
+
+        const noticeId = prompt.dataset.noticeId;
+        const modal = document.getElementById("exam-fix-notice-modal");
+        if (!modal || !noticeId) return;
+
+        const dismiss = async () => {
+            modal.classList.remove("notice-modal-open");
+            try {
+                await fetch("/api/notices/dismiss", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ noticeId })
+                });
+            } catch {
+                // modal already closed
+            }
+        };
+
+        const dismissBtn = document.getElementById("exam-fix-notice-dismiss-btn");
+        if (dismissBtn) dismissBtn.addEventListener("click", dismiss);
+
+        const closeBtn = document.getElementById("close-exam-fix-notice-btn");
+        if (closeBtn) closeBtn.addEventListener("click", dismiss);
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) dismiss();
+        });
+    }
+
     function bindReportForm() {
         const form = document.getElementById("report-form");
         if (!form) return;
@@ -109,13 +141,13 @@
                     body: JSON.stringify(data)
                 });
                 if (res.ok) {
-                    alert("הדיווח נשלח בהצלחה!");
+                    await window.showAppAlert("הדיווח נשלח בהצלחה!");
                     form.reset();
                 } else {
-                    alert("אירעה שגיאה בשליחת הדיווח.");
+                    await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
                 }
             } catch {
-                alert("אירעה שגיאה בשליחת הדיווח.");
+                await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
             }
         });
     }
@@ -151,6 +183,7 @@
         if (footerStatsToggle) footerStatsToggle.addEventListener("click", toggleStats);
 
         bindReportForm();
+        bindExamFixNotice();
     });
 
     window.addEventListener("load", () => {

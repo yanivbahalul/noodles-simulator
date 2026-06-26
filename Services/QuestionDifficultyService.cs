@@ -353,7 +353,7 @@ namespace NoodlesSimulator.Services
         public void ClearCache()
         {
             _difficultyCache = null;
-            Console.WriteLine($"[QuestionDifficultyService] Cache cleared");
+            Console.WriteLine("[QuestionDifficultyService] Cache cleared");
         }
     }
 }

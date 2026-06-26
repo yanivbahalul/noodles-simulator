@@ -51,7 +51,7 @@ namespace NoodlesSimulator.Models
             IsConfigured = brevoConfigured || smtpConfigured;
 
             // DEBUG: Print configuration status
-            Console.WriteLine($"[EmailService] Configuration loaded:");
+            Console.WriteLine("[EmailService] Configuration loaded:");
             Console.WriteLine($"  - SmtpHost: {(_smtpHost ?? "NULL")}");
             Console.WriteLine($"  - SmtpPort: {_smtpPort}");
             Console.WriteLine($"  - SmtpUser: {(string.IsNullOrWhiteSpace(_smtpUser) ? "NULL" : "***SET***")}");
@@ -80,7 +80,7 @@ namespace NoodlesSimulator.Models
 
         public bool Send(string subject, string htmlBody)
         {
-            Console.WriteLine($"[EmailService] Send() called");
+            Console.WriteLine("[EmailService] Send() called");
             Console.WriteLine($"  - Subject: {subject}");
             Console.WriteLine($"  - Body length: {htmlBody?.Length ?? 0} chars");
             Console.WriteLine($"  - IsConfigured: {IsConfigured}");
@@ -118,7 +118,7 @@ namespace NoodlesSimulator.Models
                     return false;
                 }
 
-                Console.WriteLine($"[EmailService] Creating mail message (Gmail SMTP)...");
+                Console.WriteLine("[EmailService] Creating mail message (Gmail SMTP)...");
                 Console.WriteLine($"  - From: {_emailFrom}");
                 Console.WriteLine($"  - To: {_emailTo}");
 
@@ -129,7 +129,7 @@ namespace NoodlesSimulator.Models
                 message.Body = htmlBody;
                 message.IsBodyHtml = true;
 
-                Console.WriteLine($"[EmailService] Connecting to SMTP server...");
+                Console.WriteLine("[EmailService] Connecting to SMTP server...");
                 Console.WriteLine($"  - Host: {_smtpHost}");
                 Console.WriteLine($"  - Port: {_smtpPort}");
                 Console.WriteLine($"  - SSL: {_useSsl}");
@@ -146,12 +146,12 @@ namespace NoodlesSimulator.Models
 
                 Console.WriteLine($"[EmailService] SMTP client configured (Timeout: {client.Timeout}ms). Sending email...");
                 client.Send(message);
-                Console.WriteLine($"[EmailService] Email sent successfully via Gmail SMTP!");
+                Console.WriteLine("[EmailService] Email sent successfully via Gmail SMTP!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] Send failed!");
+                Console.WriteLine("[EmailService] Send failed!");
                 Console.WriteLine($"  - Exception type: {ex.GetType().Name}");
                 Console.WriteLine($"  - Message: {ex.Message}");
                 Console.WriteLine($"  - StackTrace: {ex.StackTrace}");

@@ -110,7 +110,7 @@ namespace NoodlesSimulator.Services
                     return null;
                 }
 
-                Console.WriteLine($"[TestSessionService] Session created in database successfully!");
+                Console.WriteLine("[TestSessionService] Session created in database successfully!");
                 return session;
             }
             catch (Exception ex)
@@ -213,7 +213,7 @@ namespace NoodlesSimulator.Services
                 };
                 request.Headers.Add("Prefer", "return=minimal");
 
-                Console.WriteLine($"[TestSessionService UpdateSession] Sending PATCH to Supabase...");
+                Console.WriteLine("[TestSessionService UpdateSession] Sending PATCH to Supabase...");
                 var response = await _client.SendAsync(request);
                 
                 Console.WriteLine($"[TestSessionService UpdateSession] Response: {response.StatusCode}");
@@ -226,7 +226,7 @@ namespace NoodlesSimulator.Services
                     return false;
                 }
                 
-                Console.WriteLine($"[TestSessionService UpdateSession] Session updated successfully!");
+                Console.WriteLine("[TestSessionService UpdateSession] Session updated successfully!");
                 return true;
             }
             catch (Exception ex)

@@ -1,13 +1,13 @@
 (function () {
-    let updateInterval;
-    let clockInterval;
+    let updateInterval = null;
+    let clockInterval = null;
 
     async function fetchLeaderboardData() {
         try {
-            const response = await fetch("/api/leaderboard-data?_=" + new Date().getTime());
+            const response = await fetch(`/api/leaderboard-data?_=${Date.now()}`);
             if (!response.ok) throw new Error("leaderboard fetch failed");
             const data = await response.json();
-            if (data && data.users && Array.isArray(data.users)) {
+            if (Array.isArray(data?.users)) {
                 updateLeaderboardTable(data.users);
                 window.__lastUpdateAt = Date.now();
             }

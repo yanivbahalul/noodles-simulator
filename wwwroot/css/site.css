@@ -1577,6 +1577,111 @@ button.answer-btn,
     font-size: var(--fs-xl);
 }
 
+/* One-time announcement */
+.notice-modal {
+    display: none;
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 6000;
+    overflow: auto;
+    padding: clamp(16px, 4vw, 32px);
+    animation: fadeIn 0.3s;
+}
+
+.notice-modal.notice-modal-open {
+    display: flex;
+    pointer-events: auto;
+    justify-content: center;
+    align-items: center;
+}
+
+.notice-modal-content {
+    background: rgba(30, 30, 30, 0.95);
+    border: 2px solid rgba(76, 175, 80, 0.45);
+    width: min(480px, 100%);
+    margin: auto;
+    padding: clamp(24px, 4vw, 40px);
+    border-radius: 15px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    animation: slideDown 0.3s;
+    direction: rtl;
+    position: relative;
+    text-align: center;
+}
+
+.notice-modal-title {
+    color: #fff;
+    margin: 0 0 16px;
+    font-size: var(--fs-xl);
+}
+
+.notice-modal-text {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 24px;
+    line-height: 1.6;
+    font-size: var(--fs-md);
+}
+
+.notice-modal-btn {
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 32px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.notice-modal-btn:hover {
+    background: #43a047;
+}
+
+.app-dialog-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.app-dialog-btn-secondary {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    padding: 12px 32px;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.app-dialog-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.55);
+}
+
+.close-notice-modal {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-notice-modal:hover {
+    color: #ff4c4c;
+}
+
 .difficulty-buttons {
     display: flex;
     flex-direction: column;

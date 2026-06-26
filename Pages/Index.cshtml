@@ -83,6 +83,21 @@
     </div>
 </div>
 
+@if (Model.ShowExamFixNotice)
+{
+    <div id="exam-fix-notice-prompt" data-notice-id="@AppNotices.ExamFix" hidden></div>
+    <div id="exam-fix-notice-modal" class="notice-modal notice-modal-open">
+        <div class="notice-modal-content">
+            <span class="close-notice-modal" id="close-exam-fix-notice-btn">&times;</span>
+            <h2 class="notice-modal-title">מצב המבחן תוקן</h2>
+            <p class="notice-modal-text">
+                תיקנו בעיה במצב המבחן. אפשר להתחיל מבחן חדש בלחיצה על «מצב מבחן» בדף הבית.
+            </p>
+            <button type="button" class="notice-modal-btn" id="exam-fix-notice-dismiss-btn">הבנתי</button>
+        </div>
+    </div>
+}
+
 <!-- Difficulty Selection Modal -->
 <div id="difficulty-modal" class="difficulty-modal">
     <div class="difficulty-modal-content">
@@ -134,6 +149,7 @@
     </ul>
 </div>
 
+<script src="/js/dialog.js"></script>
 <script src="/js/index-page.js"></script>
 
 <!-- removed devtools cheat warning script for code cleanup -->
