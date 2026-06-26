@@ -81,18 +81,22 @@
         if (data.xp !== undefined) setText("stat-xp-value", data.xp);
     }
 
+    function playTone(ctx, frequency, duration) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = frequency;
+        gain.gain.value = 0.08;
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    }
+
     function playFeedbackSound(isCorrect) {
         if (localStorage.getItem("quizSounds") === "off") return;
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = isCorrect ? 880 : 220;
-            gain.gain.value = 0.08;
-            osc.start();
-            osc.stop(ctx.currentTime + (isCorrect ? 0.15 : 0.25));
+            playTone(ctx, isCorrect ? 880 : 220, isCorrect ? 0.15 : 0.25);
         } catch { /* no audio */ }
     }
 
@@ -143,18 +147,21 @@
         }
     }
 
+    function setStatsPanelOpen(panel, toggle, willOpen) {
+        panel.classList.toggle("is-open", willOpen);
+        panel.setAttribute("aria-hidden", willOpen ? "false" : "true");
+        if (!toggle) return;
+        toggle.classList.toggle("footer-stats-toggle-open", willOpen);
+        toggle.classList.toggle("footer-stats-toggle-closed", !willOpen);
+        toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    }
+
     function toggleStats() {
         const panel = document.getElementById("stats-panel");
         const toggle = document.getElementById("footer-stats-toggle");
         if (!panel) return;
         const willOpen = !panel.classList.contains("is-open");
-        panel.classList.toggle("is-open", willOpen);
-        panel.setAttribute("aria-hidden", willOpen ? "false" : "true");
-        if (toggle) {
-            toggle.classList.toggle("footer-stats-toggle-open", willOpen);
-            toggle.classList.toggle("footer-stats-toggle-closed", !willOpen);
-            toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
-        }
+        setStatsPanelOpen(panel, toggle, willOpen);
         if (willOpen) {
             fetchStats();
             fetchOnlineCount();

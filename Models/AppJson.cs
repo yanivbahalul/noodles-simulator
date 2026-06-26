@@ -1,12 +1,11 @@
 using System.Text.Json;
 
-namespace NoodlesSimulator.Models
+namespace NoodlesSimulator.Models;
+
+internal static class AppJson
 {
-    internal static class AppJson
+    public static readonly JsonSerializerOptions Options = new()
     {
-        public static readonly JsonSerializerOptions Options = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-    }
+        PropertyNameCaseInsensitive = true
+    };
 }

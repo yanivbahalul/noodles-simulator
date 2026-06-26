@@ -12,9 +12,7 @@
         if (modal) modal.classList.remove("modal-open");
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const data = document.getElementById("question-view-data");
-        const imageUrl = data ? data.dataset.questionImageUrl || "" : "";
+    function bindImageModal(imageUrl) {
         const mainImage = document.getElementById("main-question-image");
         if (mainImage) {
             mainImage.addEventListener("click", () => openImageModal(imageUrl));
@@ -28,5 +26,11 @@
                 if (e.target === modal) closeImageModal();
             });
         }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const data = document.getElementById("question-view-data");
+        const imageUrl = data?.dataset.questionImageUrl || "";
+        bindImageModal(imageUrl);
     });
 })();

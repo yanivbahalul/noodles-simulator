@@ -438,7 +438,7 @@ public class UserProgressService
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data != null && data.WeekKey == weekKey && data.WeeklyCorrect > 0)
+                if (data is { WeekKey: var wk, WeeklyCorrect: > 0 } && wk == weekKey)
                 {
                     var username = System.IO.Path.GetFileNameWithoutExtension(file);
                     results.Add((username, data.WeeklyCorrect));
@@ -461,7 +461,7 @@ public class UserProgressService
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data != null && data.ExamsCompleted > 0)
+                if (data is { ExamsCompleted: > 0 })
                 {
                     var username = System.IO.Path.GetFileNameWithoutExtension(file);
                     results.Add((username, data.ExamsCompleted));

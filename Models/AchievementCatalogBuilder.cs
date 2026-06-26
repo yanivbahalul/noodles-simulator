@@ -238,50 +238,28 @@ public static class AchievementCatalogBuilder
         return list;
     }
 
-    public static IReadOnlyList<(int Value, string Key)> StreakKeys =>
-        StreakTiers.Select(t => (t.Value, t.Key)).ToList();
+    private static IReadOnlyList<(int Value, string Key)> MapTierKeys(IEnumerable<(int Value, string Key, string Title)> tiers) =>
+        tiers.Select(t => (t.Value, t.Key)).ToList();
 
-    public static IReadOnlyList<(int Value, string Key)> QuestionKeys =>
-        QuestionTiers.Select(t => (t.Value, t.Key)).ToList();
+    private static IReadOnlyList<(int MinQuestions, double MinAccuracy, string Key)> MapAccuracyKeys(
+        IEnumerable<(int MinQuestions, double MinAccuracy, string Key, string Title)> tiers) =>
+        tiers.Select(t => (t.MinQuestions, t.MinAccuracy, t.Key)).ToList();
 
-    public static IReadOnlyList<(int Value, string Key)> LevelKeys =>
-        LevelTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> ExamCountKeys =>
-        ExamCountTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> ExamBestKeys =>
-        ExamBestTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> PerfectExamKeys =>
-        PerfectExamTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> ExamImproveKeys =>
-        ExamImproveTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> DailyCompletionKeys =>
-        DailyCompletionTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> DailyStreakKeys =>
-        DailyStreakTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> DailyPerfectKeys =>
-        DailyPerfectTiers.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> WeeklyKeys =>
-        PracticeWeekly.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> HardKeys =>
-        PracticeHard.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> WeakKeys =>
-        PracticeWeak.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int Value, string Key)> ReviewKeys =>
-        PracticeReview.Select(t => (t.Value, t.Key)).ToList();
-
-    public static IReadOnlyList<(int MinQuestions, double MinAccuracy, string Key)> AccuracyKeys =>
-        AccuracyTiers.Select(t => (t.MinQuestions, t.MinAccuracy, t.Key)).ToList();
+    public static IReadOnlyList<(int Value, string Key)> StreakKeys { get; } = MapTierKeys(StreakTiers);
+    public static IReadOnlyList<(int Value, string Key)> QuestionKeys { get; } = MapTierKeys(QuestionTiers);
+    public static IReadOnlyList<(int Value, string Key)> LevelKeys { get; } = MapTierKeys(LevelTiers);
+    public static IReadOnlyList<(int Value, string Key)> ExamCountKeys { get; } = MapTierKeys(ExamCountTiers);
+    public static IReadOnlyList<(int Value, string Key)> ExamBestKeys { get; } = MapTierKeys(ExamBestTiers);
+    public static IReadOnlyList<(int Value, string Key)> PerfectExamKeys { get; } = MapTierKeys(PerfectExamTiers);
+    public static IReadOnlyList<(int Value, string Key)> ExamImproveKeys { get; } = MapTierKeys(ExamImproveTiers);
+    public static IReadOnlyList<(int Value, string Key)> DailyCompletionKeys { get; } = MapTierKeys(DailyCompletionTiers);
+    public static IReadOnlyList<(int Value, string Key)> DailyStreakKeys { get; } = MapTierKeys(DailyStreakTiers);
+    public static IReadOnlyList<(int Value, string Key)> DailyPerfectKeys { get; } = MapTierKeys(DailyPerfectTiers);
+    public static IReadOnlyList<(int Value, string Key)> WeeklyKeys { get; } = MapTierKeys(PracticeWeekly);
+    public static IReadOnlyList<(int Value, string Key)> HardKeys { get; } = MapTierKeys(PracticeHard);
+    public static IReadOnlyList<(int Value, string Key)> WeakKeys { get; } = MapTierKeys(PracticeWeak);
+    public static IReadOnlyList<(int Value, string Key)> ReviewKeys { get; } = MapTierKeys(PracticeReview);
+    public static IReadOnlyList<(int MinQuestions, double MinAccuracy, string Key)> AccuracyKeys { get; } = MapAccuracyKeys(AccuracyTiers);
 
     private static IEnumerable<AchievementDefinition> BuildStreak()
     {

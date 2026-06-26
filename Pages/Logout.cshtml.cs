@@ -4,28 +4,27 @@ using Microsoft.AspNetCore.Http;
 using NoodlesSimulator.Services;
 using System;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class LogoutModel : PageModel
 {
-    public class LogoutModel : PageModel
+    public IActionResult OnGet()
     {
-        public IActionResult OnGet()
+        return RedirectToPage("/Login");
+    }
+
+    public IActionResult OnPost()
+    {
+        try
         {
+            HttpContext.Session.Clear();
+            RememberMeService.Clear(Response);
             return RedirectToPage("/Login");
         }
-
-        public IActionResult OnPost()
+        catch (Exception ex)
         {
-            try
-            {
-                HttpContext.Session.Clear();
-                RememberMeService.Clear(Response);
-                return RedirectToPage("/Login");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Logout OnPost Error] {ex}");
-                return StatusCode(500, "Server error");
-            }
+            Console.WriteLine($"[Logout OnPost Error] {ex}");
+            return StatusCode(500, "Server error");
         }
     }
 }

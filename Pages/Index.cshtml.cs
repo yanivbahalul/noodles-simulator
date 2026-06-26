@@ -414,11 +414,7 @@ public class IndexModel : PageModel
 
         var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
-        var xpGain = IsCorrect
-            ? (practiceMode == "daily"
-                ? QuizGamification.DailyChallengeXpPerCorrect
-                : QuizGamification.XpForDifficulty(practiceDifficulty))
-            : 0;
+        var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
 
         if (_userProgress != null)
         {
@@ -431,13 +427,11 @@ public class IndexModel : PageModel
                     _userProgress.IncrementWeakCorrect(user.Username);
                 if (practiceDifficulty == "hard")
                     _userProgress.IncrementHardCorrect(user.Username);
-                if (practiceMode == "review" && _achievements != null)
+                if (practiceMode == "review" && _achievements != null
+                    && _userProgress.RemoveSessionMistake(user.Username, QuestionImage))
                 {
-                    if (_userProgress.RemoveSessionMistake(user.Username, QuestionImage))
-                    {
-                        _userProgress.IncrementReviewClear(user.Username);
-                        NewlyUnlockedAchievements.AddRange(_achievements.CheckReviewClear(user.Username));
-                    }
+                    _userProgress.IncrementReviewClear(user.Username);
+                    NewlyUnlockedAchievements.AddRange(_achievements.CheckReviewClear(user.Username));
                 }
             }
 
@@ -478,6 +472,11 @@ public class IndexModel : PageModel
 
         UpdateRapidAnswerCounters();
     }
+
+    private static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty) =>
+        practiceMode == "daily"
+            ? QuizGamification.DailyChallengeXpPerCorrect
+            : QuizGamification.XpForDifficulty(practiceDifficulty);
 
     private void UpdateRapidAnswerCounters()
     {

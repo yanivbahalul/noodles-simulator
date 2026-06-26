@@ -11,19 +11,21 @@
         level: "רמה"
     };
 
+    function applyLeaderboardResponse(data) {
+        if (!Array.isArray(data?.users)) return;
+        updateLeaderboardTable(data.users, data.tab || activeTab);
+        const hintEl = document.getElementById("leaderboard-tab-hint");
+        if (hintEl && data.hint) hintEl.textContent = data.hint;
+        const emptyEl = document.getElementById("leaderboard-empty");
+        if (emptyEl) emptyEl.style.display = data.users.length === 0 ? "block" : "none";
+        window.__lastUpdateAt = Date.now();
+    }
+
     async function fetchLeaderboardData() {
         try {
             const response = await fetch(`/api/leaderboard-data?tab=${encodeURIComponent(activeTab)}&_=${Date.now()}`);
             if (!response.ok) throw new Error("leaderboard fetch failed");
-            const data = await response.json();
-            if (Array.isArray(data?.users)) {
-                updateLeaderboardTable(data.users, data.tab || activeTab);
-                const hintEl = document.getElementById("leaderboard-tab-hint");
-                if (hintEl && data.hint) hintEl.textContent = data.hint;
-                const emptyEl = document.getElementById("leaderboard-empty");
-                if (emptyEl) emptyEl.style.display = data.users.length === 0 ? "block" : "none";
-                window.__lastUpdateAt = Date.now();
-            }
+            applyLeaderboardResponse(await response.json());
         } catch {
             const lastUpdate = document.getElementById("last-update");
             if (lastUpdate) lastUpdate.textContent = "(שגיאה בעדכון - מחכה...)";
