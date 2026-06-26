@@ -95,7 +95,7 @@ public class IndexModel : PageModel
     public Dictionary<string, string> ShuffledAnswers { get; set; }
     public string Username { get; set; }
     public int OnlineCount { get; set; }
-    public bool ShowExamFixNotice { get; set; }
+    public string ActiveNoticeId { get; set; } = "";
 
     public int CurrentStreak { get; set; }
     public int UserCorrect { get; set; }
@@ -154,7 +154,7 @@ public class IndexModel : PageModel
                     return RedirectToPage("/Login");
                 }
                 _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
-                ShowExamFixNotice = !_authService.HasDismissedNotice(user, AppNotices.ExamFix);
+                ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
             }
 
             ApplyPracticeQueryParams();

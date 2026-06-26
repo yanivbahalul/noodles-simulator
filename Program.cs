@@ -525,7 +525,7 @@ api.MapPost("/notices/dismiss", async context =>
         }
 
         var noticeId = noticeIdEl.GetString();
-        if (string.IsNullOrWhiteSpace(noticeId) || noticeId != AppNotices.ExamFix)
+        if (!AppNotices.IsValid(noticeId))
         {
             await WritePlainError(context, 400, "Invalid noticeId");
             return;

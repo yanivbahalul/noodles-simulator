@@ -120,8 +120,37 @@ button,
     z-index: 7500;
 }
 
-.exam-fix-notice-modal.difficulty-modal-open {
+.app-notice-modal.difficulty-modal-open {
     z-index: 6500;
+}
+
+.app-notice-content {
+    max-width: 520px;
+    max-height: min(85vh, 640px);
+    overflow-y: auto;
+}
+
+.app-notice-list {
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0 0 20px;
+    padding: 0 1.2em 0 0;
+    line-height: 1.65;
+    font-size: var(--fs-md);
+    text-align: right;
+    list-style: disc;
+}
+
+.app-notice-list li {
+    margin-bottom: 0.55em;
+}
+
+.app-notice-list li:last-child {
+    margin-bottom: 0;
+}
+
+.app-notice-footer {
+    margin-bottom: 16px !important;
+    font-size: var(--fs-sm);
 }
 
 .footer-stats-toggle-open {

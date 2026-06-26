@@ -20,9 +20,9 @@
         if (dialog) dialog.classList.remove("notice-modal-open");
     }
 
-    function dismissExamFixNotice() {
-        const modal = document.getElementById("exam-fix-notice-modal");
-        const prompt = document.getElementById("exam-fix-notice-prompt");
+    function dismissAppNotice() {
+        const modal = document.getElementById("app-notice-modal");
+        const prompt = document.getElementById("app-notice-prompt");
         if (!modal) return;
         modal.classList.remove("difficulty-modal-open");
         const noticeId = prompt?.dataset.noticeId;
@@ -42,7 +42,7 @@
         closeImageModal();
         closeAppDialog();
         closePracticeOptionsModal();
-        dismissExamFixNotice();
+        dismissAppNotice();
         const modal = document.getElementById("difficulty-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
     }
@@ -56,7 +56,7 @@
         closeImageModal();
         closeAppDialog();
         closeDifficultyModal();
-        dismissExamFixNotice();
+        dismissAppNotice();
         const modal = document.getElementById("practice-options-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
     }
@@ -204,20 +204,20 @@
         if (element) element.addEventListener("click", dismiss);
     }
 
-    function bindExamFixNotice() {
-        const prompt = document.getElementById("exam-fix-notice-prompt");
+    function bindAppNotice() {
+        const prompt = document.getElementById("app-notice-prompt");
         if (!prompt) return;
 
         const noticeId = prompt.dataset.noticeId;
-        const modal = document.getElementById("exam-fix-notice-modal");
+        const modal = document.getElementById("app-notice-modal");
         if (!modal || !noticeId) return;
 
         modal.classList.add("difficulty-modal-open");
 
-        const dismiss = () => dismissExamFixNotice();
+        const dismiss = () => dismissAppNotice();
 
-        bindDismissHandler(document.getElementById("exam-fix-notice-dismiss-btn"), dismiss);
-        bindDismissHandler(document.getElementById("close-exam-fix-notice-btn"), dismiss);
+        bindDismissHandler(document.getElementById("app-notice-dismiss-btn"), dismiss);
+        bindDismissHandler(document.getElementById("close-app-notice-btn"), dismiss);
         modal.addEventListener("click", (e) => {
             if (e.target === modal) dismiss();
         });
@@ -299,7 +299,7 @@
         bindModalDismiss("practice-options-modal", closePracticeOptionsModal);
         bindClick("footer-stats-toggle", toggleStats);
         bindReportForm();
-        bindExamFixNotice();
+        bindAppNotice();
         bindDifficultyChoices();
         bindSoundToggle();
         bindAchievementToast();
