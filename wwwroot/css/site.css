@@ -2374,7 +2374,7 @@ body.dashboard-modal-open {
 }
 
 .cheater-container p {
-    color: #fff;
+    color: #1a1a1a;
     font-size: var(--fs-base);
     line-height: 1.7;
     margin: 0 0 12px;
