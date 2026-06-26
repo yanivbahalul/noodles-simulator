@@ -8,77 +8,74 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class TestReviewModel : PageModel
 {
-    public class TestReviewModel : PageModel
+    private readonly SupabaseStorageService _storage;
+    private readonly TestSessionService _testSession;
+
+    public TestReviewModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
     {
-        private readonly SupabaseStorageService _storage;
-        private readonly TestSessionService _testSession;
+        _storage = storage;
+        _testSession = testSession;
+    }
 
-        public TestReviewModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
+    public string QuestionImageUrl { get; set; }
+    public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
+    public string SelectedKey { get; set; }
+    public string ReviewToken { get; set; } = string.Empty;
+
+    public async Task<IActionResult> OnGet()
+    {
+        var username = HttpContext.Session.GetString("Username");
+        if (string.IsNullOrEmpty(username))
         {
-            _storage = storage;
-            _testSession = testSession;
+            return RedirectToPage("/Login");
         }
 
-        public string QuestionImageUrl { get; set; }
-        public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
-        public string SelectedKey { get; set; }
-        public string ReviewToken { get; set; } = string.Empty;
-
-        public async Task<IActionResult> OnGet()
+        int i = 0;
+        int.TryParse(Request.Query["i"], out i);
+        ReviewToken = Request.Query["token"].ToString();
+        var state = await GetStateAsync(username);
+        if (state == null || state.Questions == null || i < 0 || i >= state.Questions.Count)
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (string.IsNullOrEmpty(username))
-            {
-                return RedirectToPage("/Login");
-            }
-
-            int i = 0;
-            int.TryParse(Request.Query["i"], out i);
-            ReviewToken = Request.Query["token"].ToString();
-            var state = await GetStateAsync(username);
-            if (state == null || state.Questions == null || i < 0 || i >= state.Questions.Count)
-            {
-                return RedirectToPage("/MyExams");
-            }
-
-            var q = state.Questions[i];
-            var a = (state.Answers != null && i < state.Answers.Count) ? state.Answers[i] : null;
-            SelectedKey = a?.SelectedKey;
-
-            var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
-            QuestionImageUrl = resolved.QuestionUrl;
-            AnswerImageUrls = resolved.AnswerUrls;
-            return Page();
+            return RedirectToPage("/MyExams");
         }
 
-        private async Task<TestState> GetStateAsync(string username)
+        var q = state.Questions[i];
+        var a = (state.Answers != null && i < state.Answers.Count) ? state.Answers[i] : null;
+        SelectedKey = a?.SelectedKey;
+
+        var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
+        QuestionImageUrl = resolved.QuestionUrl;
+        AnswerImageUrls = resolved.AnswerUrls;
+        return Page();
+    }
+
+    private async Task<TestState> GetStateAsync(string username)
+    {
+        if (_testSession == null)
         {
-            if (_testSession == null)
-            {
-                return null;
-            }
-
-            var token = Request.Query["token"].ToString();
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                var session = await _testSession.GetSessionAsync(token);
-                if (session != null && session.Username == username)
-                {
-                    return new TestState
-                    {
-                        StartedUtc = session.StartedUtc,
-                        CurrentIndex = session.CurrentIndex,
-                        Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
-                        Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>()
-                    };
-                }
-            }
-
             return null;
         }
+
+        var token = Request.Query["token"].ToString();
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            var session = await _testSession.GetSessionAsync(token);
+            if (session?.Username == username)
+            {
+                return new TestState
+                {
+                    StartedUtc = session.StartedUtc,
+                    CurrentIndex = session.CurrentIndex,
+                    Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
+                    Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>()
+                };
+            }
+        }
+
+        return null;
     }
 }
-
-

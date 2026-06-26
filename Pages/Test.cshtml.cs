@@ -10,10 +10,10 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class TestModel : PageModel
 {
-    public class TestModel : PageModel
-    {
         private const int TotalQuestions = 17;
         private static readonly TimeSpan TestDuration = TimeSpan.FromHours(2);
 
@@ -439,7 +439,4 @@ namespace NoodlesSimulator.Pages
             }
         }
 
-    }
 }
-
-

@@ -31,7 +31,11 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
-        }).catch(() => {});
+        }).catch(ignoreDismissError);
+    }
+
+    function ignoreDismissError() {
+        // Best-effort dismiss after the modal is already closed.
     }
 
     function openDifficultyModal() {

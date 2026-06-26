@@ -9,137 +9,135 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace NoodlesSimulator.Pages
-{
-    public class MyExamsModel : PageModel
-    {
-        private readonly TestSessionService _testSession;
+namespace NoodlesSimulator.Pages;
 
-        public MyExamsModel(TestSessionService testSession = null)
+public class MyExamsModel : PageModel
+{
+    private readonly TestSessionService _testSession;
+
+    public MyExamsModel(TestSessionService testSession = null)
+    {
+        _testSession = testSession;
+    }
+
+    public List<TestSession> Sessions { get; set; } = new List<TestSession>();
+    public TestSession ActiveSession { get; set; }
+    public bool CanReviewTest { get; set; } = true;
+
+    public async Task<IActionResult> OnGet()
+    {
+        var username = HttpContext.Session.GetString("Username");
+        if (string.IsNullOrEmpty(username))
         {
-            _testSession = testSession;
+            return RedirectToPage("/Login");
         }
 
-        public List<TestSession> Sessions { get; set; } = new List<TestSession>();
-        public TestSession ActiveSession { get; set; }
-        public bool CanReviewTest { get; set; } = true;
-
-        public async Task<IActionResult> OnGet()
+        if (_testSession == null)
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (string.IsNullOrEmpty(username))
-            {
-                return RedirectToPage("/Login");
-            }
-
-            if (_testSession == null)
-            {
-                Sessions = new List<TestSession>();
-                return Page();
-            }
-
-            Sessions = await _testSession.GetUserSessionsAsync(username, 50);
-            
-            ActiveSession = Sessions.FirstOrDefault(s => s.Status == "active");
-            
-            foreach (var session in Sessions.Where(s => s.Status == "active"))
-            {
-                if (_testSession.IsExpired(session))
-                {
-                    await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
-                    session.Status = "expired";
-                }
-            }
-
+            Sessions = new List<TestSession>();
             return Page();
         }
 
-        public async Task<IActionResult> OnPost()
+        Sessions = await _testSession.GetUserSessionsAsync(username, 50);
+
+        ActiveSession = Sessions.FirstOrDefault(s => s.Status == "active");
+
+        foreach (var session in Sessions.Where(s => s.Status == "active"))
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (string.IsNullOrEmpty(username))
+            if (_testSession.IsExpired(session))
             {
-                return RedirectToPage("/Login");
+                await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
+                session.Status = "expired";
             }
+        }
 
-            var token = Request.Form["token"].ToString();
-            Console.WriteLine($"[MyExams OnPost] Called with token: {token}");
-            
-            if (_testSession != null && !string.IsNullOrEmpty(token))
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPost()
+    {
+        var username = HttpContext.Session.GetString("Username");
+        if (string.IsNullOrEmpty(username))
+        {
+            return RedirectToPage("/Login");
+        }
+
+        var token = Request.Form["token"].ToString();
+        Console.WriteLine($"[MyExams OnPost] Called with token: {token}");
+
+        if (_testSession != null && !string.IsNullOrEmpty(token))
+        {
+            var session = await _testSession.GetSessionAsync(token);
+            Console.WriteLine($"[MyExams OnPost] Session found: {session != null}, Status: {session?.Status}");
+
+            if (session?.Username == username && session.Status == "active")
             {
-                var session = await _testSession.GetSessionAsync(token);
-                Console.WriteLine($"[MyExams OnPost] Session found: {session != null}, Status: {session?.Status}");
-                
-                if (session?.Username == username && session.Status == "active")
-                {
-                    var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options)
-                                    ?? new List<TestQuestion>();
-                    var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options)
-                                  ?? new List<TestAnswer>();
+                var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options)
+                                ?? new List<TestQuestion>();
+                var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options)
+                              ?? new List<TestAnswer>();
 
-                    var correctCount = answers.Count(a => a != null && a.IsCorrect);
+                var correctCount = answers.Count(a => a != null && a.IsCorrect);
 
-                    session.Status = "completed";
-                    session.CompletedUtc = DateTime.UtcNow;
-                    session.Score = correctCount * 6;
-                    session.MaxScore = questions.Count * 6;
-                    
-                    Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
-                    await _testSession.UpdateSessionAsync(session);
-                    
-                    Console.WriteLine("[MyExams OnPost] Test ended successfully");
-                    TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";
-                }
-                else
-                {
-                    Console.WriteLine("[MyExams OnPost] Cannot end test - session not found, wrong user, or already completed");
-                }
+                session.Status = "completed";
+                session.CompletedUtc = DateTime.UtcNow;
+                session.Score = correctCount * 6;
+                session.MaxScore = questions.Count * 6;
+
+                Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
+                await _testSession.UpdateSessionAsync(session);
+
+                Console.WriteLine("[MyExams OnPost] Test ended successfully");
+                TempData["TestEndedMessage"] = "המבחן הסתיים! התוצאות נשמרו.";
             }
             else
             {
-                Console.WriteLine("[MyExams OnPost] TestSessionService null or token empty");
+                Console.WriteLine("[MyExams OnPost] Cannot end test - session not found, wrong user, or already completed");
             }
-            
-            return RedirectToPage("/MyExams");
+        }
+        else
+        {
+            Console.WriteLine("[MyExams OnPost] TestSessionService null or token empty");
         }
 
-        public int GetQuestionCount(TestSession session)
+        return RedirectToPage("/MyExams");
+    }
+
+    public int GetQuestionCount(TestSession session)
+    {
+        try
         {
-            try
-            {
-                if (string.IsNullOrEmpty(session.QuestionsJson))
-                    return 0;
-                
-                var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options);
-                return questions?.Count ?? 0;
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(session.QuestionsJson))
                 return 0;
-            }
+
+            var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options);
+            return questions?.Count ?? 0;
         }
-
-        public string GetRemainingTime(TestSession session)
+        catch
         {
-            if (_testSession == null || session == null || session.Status != "active")
-                return null;
+            return 0;
+        }
+    }
 
-            try
-            {
-                var remaining = _testSession.GetRemainingTime(session);
-                if (remaining <= TimeSpan.Zero)
-                    return "פג תוקף";
+    public string GetRemainingTime(TestSession session)
+    {
+        if (_testSession == null || session == null || session.Status != "active")
+            return null;
 
-                return string.Format("{0:D2}:{1:D2}:{2:D2}", 
-                    (int)remaining.TotalHours, 
-                    remaining.Minutes, 
-                    remaining.Seconds);
-            }
-            catch
-            {
-                return null;
-            }
+        try
+        {
+            var remaining = _testSession.GetRemainingTime(session);
+            if (remaining <= TimeSpan.Zero)
+                return "פג תוקף";
+
+            return string.Format("{0:D2}:{1:D2}:{2:D2}",
+                (int)remaining.TotalHours,
+                remaining.Minutes,
+                remaining.Seconds);
+        }
+        catch
+        {
+            return null;
         }
     }
 }
-

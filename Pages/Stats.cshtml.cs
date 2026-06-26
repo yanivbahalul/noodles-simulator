@@ -5,55 +5,53 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using NoodlesSimulator.Models;
 using Microsoft.AspNetCore.Http;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class StatsModel : PageModel
 {
-    public class StatsModel : PageModel
+    private readonly AuthService _authService;
+
+    public StatsModel(AuthService authService)
     {
-        private readonly AuthService _authService;
+        _authService = authService;
+    }
 
-        public StatsModel(AuthService authService)
+    public string Username { get; set; } = "";
+    public int CorrectAnswers { get; set; }
+    public int TotalAnswered { get; set; }
+    public int SuccessRate { get; set; }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        try
         {
-            _authService = authService;
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+                return new JsonResult(new { error = "No session" });
+
+            var user = await _authService.GetUserAsync(username);
+            if (user == null)
+                return new JsonResult(new { error = "User not found" });
+
+            Username = user.Username;
+            CorrectAnswers = user.CorrectAnswers;
+            TotalAnswered = user.TotalAnswered;
+            SuccessRate = (TotalAnswered > 0)
+                ? (int)((double)CorrectAnswers / TotalAnswered * 100)
+                : 0;
+
+            return new JsonResult(new
+            {
+                username,
+                correct = CorrectAnswers,
+                total = TotalAnswered,
+                successRate = SuccessRate
+            });
         }
-
-        public string Username { get; set; } = "";
-        public int CorrectAnswers { get; set; }
-        public int TotalAnswered { get; set; }
-        public int SuccessRate { get; set; }
-
-        public async Task<IActionResult> OnGetAsync()
+        catch (Exception ex)
         {
-            try
-            {
-                var username = HttpContext.Session.GetString("Username");
-                if (string.IsNullOrEmpty(username))
-                    return new JsonResult(new { error = "No session" });
-
-                User user = null;
-                try { user = await _authService.GetUserAsync(username); } catch (Exception) { /* ignore get user errors for log clarity */ }
-                if (user == null)
-                    return new JsonResult(new { error = "User not found" });
-
-                Username = user.Username;
-                CorrectAnswers = user.CorrectAnswers;
-                TotalAnswered = user.TotalAnswered;
-                SuccessRate = (TotalAnswered > 0)
-                    ? (int)((double)CorrectAnswers / TotalAnswered * 100)
-                    : 0;
-
-                return new JsonResult(new
-                {
-                    username,
-                    correct = CorrectAnswers,
-                    total = TotalAnswered,
-                    successRate = SuccessRate
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Stats OnGetAsync Error] {ex}");
-                return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
-            }
+            Console.WriteLine($"[Stats OnGetAsync Error] {ex}");
+            return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
         }
     }
 }

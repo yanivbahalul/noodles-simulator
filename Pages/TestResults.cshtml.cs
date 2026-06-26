@@ -9,116 +9,112 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class TestResultsModel : PageModel
 {
-    public class TestResultsModel : PageModel
+    private readonly SupabaseStorageService _storage;
+    private readonly TestSessionService _testSession;
+
+    public TestResultsModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
     {
-        private readonly SupabaseStorageService _storage;
-        private readonly TestSessionService _testSession;
+        _storage = storage;
+        _testSession = testSession;
+    }
 
-        public TestResultsModel(SupabaseStorageService storage = null, TestSessionService testSession = null)
+    public int Score { get; set; }
+    public int MaxScore { get; set; }
+    public int CorrectCount { get; set; }
+    public int Total { get; set; }
+    public string ElapsedText { get; set; }
+    public string ReviewToken { get; set; } = string.Empty;
+
+    public class ResultItem
+    {
+        public string QuestionUrl { get; set; }
+        public string SelectedUrl { get; set; }
+        public string CorrectUrl { get; set; }
+        public bool IsCorrect { get; set; }
+    }
+
+    public List<ResultItem> Items { get; set; } = new List<ResultItem>();
+
+    public async Task<IActionResult> OnGet()
+    {
+        var username = HttpContext.Session.GetString("Username");
+        if (string.IsNullOrEmpty(username))
         {
-            _storage = storage;
-            _testSession = testSession;
+            return RedirectToPage("/Login");
         }
 
-        public int Score { get; set; }
-        public int MaxScore { get; set; }
-        public int CorrectCount { get; set; }
-        public int Total { get; set; }
-        public string ElapsedText { get; set; }
-        public string ReviewToken { get; set; } = string.Empty;
-
-        public class ResultItem
+        var token = Request.Query["token"].ToString();
+        if (_testSession == null)
         {
-            public string QuestionUrl { get; set; }
-            public string SelectedUrl { get; set; }
-            public string CorrectUrl { get; set; }
-            public bool IsCorrect { get; set; }
+            return StatusCode(503, "Test session service is not available.");
+        }
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return RedirectToPage("/MyExams");
         }
 
-        public List<ResultItem> Items { get; set; } = new List<ResultItem>();
-
-        public async Task<IActionResult> OnGet()
+        var session = await _testSession.GetSessionAsync(token);
+        if (session == null || session.Username != username)
         {
-            var username = HttpContext.Session.GetString("Username");
-            if (string.IsNullOrEmpty(username))
-            {
-                return RedirectToPage("/Login");
-            }
-
-            var token = Request.Query["token"].ToString();
-            if (_testSession == null)
-            {
-                return StatusCode(503, "Test session service is not available.");
-            }
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return RedirectToPage("/MyExams");
-            }
-
-            var session = await _testSession.GetSessionAsync(token);
-            if (session == null || session.Username != username)
-            {
-                return RedirectToPage("/MyExams");
-            }
-
-            ReviewToken = token;
-            await LoadFromTestSession(session);
-            return Page();
+            return RedirectToPage("/MyExams");
         }
 
-        private async Task LoadFromTestSession(TestSession session)
+        ReviewToken = token;
+        await LoadFromTestSession(session);
+        return Page();
+    }
+
+    private async Task LoadFromTestSession(TestSession session)
+    {
+        var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
+        var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
+
+        Total = questions.Count;
+        CorrectCount = answers.Count(a => a != null && a.IsCorrect);
+        MaxScore = session.MaxScore > 0 ? session.MaxScore : Total * 6;
+        Score = session.Score > 0 ? session.Score : CorrectCount * 6;
+
+        var elapsed = (session.CompletedUtc ?? DateTime.UtcNow) - session.StartedUtc;
+        if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+        ElapsedText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)elapsed.TotalHours, elapsed.Minutes, elapsed.Seconds);
+
+        var state = new TestState
         {
-            var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>();
-            var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
+            StartedUtc = session.StartedUtc,
+            Questions = questions,
+            Answers = answers,
+            CurrentIndex = session.CurrentIndex
+        };
 
-            Total = questions.Count;
-            CorrectCount = answers.Count(a => a != null && a.IsCorrect);
-            MaxScore = session.MaxScore > 0 ? session.MaxScore : Total * 6;
-            Score = session.Score > 0 ? session.Score : CorrectCount * 6;
+        await BuildItemsAsync(state);
+    }
 
-            var elapsed = (session.CompletedUtc ?? DateTime.UtcNow) - session.StartedUtc;
-            if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
-            ElapsedText = string.Format("{0:D2}:{1:D2}:{2:D2}", (int)elapsed.TotalHours, elapsed.Minutes, elapsed.Seconds);
+    private async Task BuildItemsAsync(TestState state)
+    {
+        var qList = state.Questions ?? new List<TestQuestion>();
+        var aList = state.Answers ?? new List<TestAnswer>();
 
-            var state = new TestState
-            {
-                StartedUtc = session.StartedUtc,
-                Questions = questions,
-                Answers = answers,
-                CurrentIndex = session.CurrentIndex
-            };
-
-            await BuildItemsAsync(state);
-        }
-
-        private async Task BuildItemsAsync(TestState state)
+        for (int i = 0; i < qList.Count; i++)
         {
-            var qList = state.Questions ?? new List<TestQuestion>();
-            var aList = state.Answers ?? new List<TestAnswer>();
+            var q = qList[i];
+            var a = i < aList.Count ? aList[i] : null;
+            var correctKey = "correct";
 
-            for (int i = 0; i < qList.Count; i++)
+            var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
+            var qUrl = resolved.QuestionUrl;
+            var answerUrls = resolved.AnswerUrls;
+
+            Items.Add(new ResultItem
             {
-                var q = qList[i];
-                var a = i < aList.Count ? aList[i] : null;
-                var correctKey = "correct";
-
-                var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
-                var qUrl = resolved.QuestionUrl;
-                var answerUrls = resolved.AnswerUrls;
-
-                Items.Add(new ResultItem
-                {
-                    QuestionUrl = qUrl,
-                    CorrectUrl = answerUrls.TryGetValue(correctKey, out var cu) ? cu : string.Empty,
-                    SelectedUrl = (a != null && !string.IsNullOrWhiteSpace(a.SelectedKey) && answerUrls.ContainsKey(a.SelectedKey)) ? answerUrls[a.SelectedKey] : string.Empty,
-                    IsCorrect = a?.IsCorrect == true
-                });
-            }
+                QuestionUrl = qUrl,
+                CorrectUrl = answerUrls.TryGetValue(correctKey, out var cu) ? cu : string.Empty,
+                SelectedUrl = (a != null && !string.IsNullOrWhiteSpace(a.SelectedKey) && answerUrls.ContainsKey(a.SelectedKey)) ? answerUrls[a.SelectedKey] : string.Empty,
+                IsCorrect = a?.IsCorrect == true
+            });
         }
-
     }
 }
-
-

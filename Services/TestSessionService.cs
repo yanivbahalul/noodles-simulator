@@ -11,10 +11,10 @@ using NoodlesSimulator.Models;
 
 #nullable enable
 
-namespace NoodlesSimulator.Services
+namespace NoodlesSimulator.Services;
+
+public class TestSessionService
 {
-    public class TestSessionService
-    {
         private readonly HttpClient _client;
         private readonly string _url;
         private readonly string _apiKey;
@@ -309,6 +309,5 @@ namespace NoodlesSimulator.Services
             var remaining = end - DateTime.UtcNow;
             return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
         }
-    }
 }
 

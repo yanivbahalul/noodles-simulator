@@ -6,34 +6,31 @@ using System.Linq;
 using System.Threading.Tasks;
 using System;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class LeaderboardModel : PageModel
 {
-    public class LeaderboardModel : PageModel
+    private readonly AuthService _authService;
+
+    public LeaderboardModel(AuthService authService)
     {
-        private readonly AuthService _authService;
+        _authService = authService;
+    }
 
-        public LeaderboardModel(AuthService authService)
+    public List<User> SortedUsers { get; set; } = new();
+    public string CurrentUsername { get; set; } = "";
+
+    public async Task OnGetAsync()
+    {
+        try
         {
-            _authService = authService;
+            CurrentUsername = HttpContext.Session.GetString("Username") ?? "";
+            SortedUsers = await _authService.GetTopUsersAsync(50);
         }
-
-        public List<User> SortedUsers { get; set; } = new();
-        public string CurrentUsername { get; set; } = "";
-
-        public async Task OnGetAsync()
+        catch (Exception ex)
         {
-            try
-            {
-                // Get current logged in user
-                CurrentUsername = HttpContext.Session.GetString("Username") ?? "";
-                
-                SortedUsers = await _authService.GetTopUsersAsync(50); // get top 50 users for leaderboard
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Leaderboard OnGetAsync Error] {ex}");
-                SortedUsers = new List<User>();
-            }
+            Console.WriteLine($"[Leaderboard OnGetAsync Error] {ex}");
+            SortedUsers = new List<User>();
         }
     }
 }

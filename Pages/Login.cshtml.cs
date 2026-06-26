@@ -9,10 +9,10 @@ using System.Threading.Tasks;
 using System;
 using System.Collections.Concurrent;
 
-namespace NoodlesSimulator.Pages
+namespace NoodlesSimulator.Pages;
+
+public class LoginModel : PageModel
 {
-    public class LoginModel : PageModel
-    {
         private class LoginAttemptState
         {
             public int Failures { get; set; }
@@ -290,5 +290,4 @@ namespace NoodlesSimulator.Pages
                 return Page();
             }
         }
-    }
 }

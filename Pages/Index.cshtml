@@ -133,7 +133,7 @@
         <input type="hidden" name="answersJson" value='@System.Text.Json.JsonSerializer.Serialize(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers, NoodlesSimulator.Models.AppJson.Options)' />
         <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
-        <label for="explanation" class="report-label">יש טעות בשאלה? דווח לנו</label>
+        <label for="explanation" class="report-label">יש טעות בשאלה?, תקלה באתר? דווח לנו!</label>
         <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>
         <button type="submit" class="next-question-btn report-submit-btn">דווח על טעות בשאלה</button>
     </form>
