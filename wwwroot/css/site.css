@@ -311,7 +311,8 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: clamp(8px, 2vw, 16px);
+    margin-top: clamp(4px, 1vw, 10px);
+    margin-bottom: 0;
     padding: 0 var(--gutter-page);
     z-index: 0;
     position: relative;
@@ -339,7 +340,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
     flex-direction: column;
     align-items: center;
     width: min(var(--quiz-max), calc(100% - 2 * var(--gutter-page)));
-    margin: clamp(16px, 3vh, 40px) auto;
+    margin: clamp(8px, 1.5vh, 16px) auto clamp(16px, 3vh, 40px);
     padding: clamp(14px, 3vw, 24px);
     border-radius: var(--radius-lg);
     background-color: rgba(0, 0, 0, 0.4);
@@ -457,21 +458,37 @@ button.answer-btn,
 }
 
 .streak-badge {
-    display: inline-block;
-    margin-right: 10px;
-    padding: 4px 10px;
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+    padding: 2px 8px;
     background: rgba(255, 120, 0, 0.25);
     border: 1px solid rgba(255, 160, 0, 0.5);
-    border-radius: 20px;
-    font-size: 0.9em;
+    border-radius: 12px;
+    font-size: 0.65em;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.9);
     animation: answerPulse 1s ease infinite;
+}
+
+.practice-mode-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.practice-mode-stack .practice-mode-badge {
+    margin: 0 auto;
 }
 
 .practice-mode-badge {
     display: block;
     width: fit-content;
-    margin: 0 auto 8px;
+    margin: 0 auto;
     padding: 3px 10px;
+    line-height: 1.2;
     background: rgba(0, 0, 0, 0.45);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 14px;
@@ -901,17 +918,18 @@ button.answer-btn,
 .quiz-meta {
     color: #111;
     text-align: center;
-    line-height: 1.4;
+    line-height: 1.35;
     padding: 0 var(--gutter-page);
+    margin: 0;
 }
 
 .quiz-meta-user {
-    margin: clamp(20px, 5vw, 60px) 0 8px;
+    margin: clamp(6px, 1.5vw, 14px) 0 2px;
     font-size: var(--fs-md);
 }
 
 .quiz-meta-online {
-    margin: 0 0 10px;
+    margin: 0 0 4px;
     font-size: var(--fs-sm);
 }
 

@@ -158,9 +158,16 @@ public class IndexModel : PageModel
             }
 
             ApplyPracticeQueryParams();
+            if (ShouldClearAnswerFlashOnGet())
+                ClearAnswerFlash();
+
             await PopulateUserStatsAsync(user);
             LoadPendingAchievements();
-            try { await LoadRandomQuestionAsync(); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync PreloadQuestion Error] {ex.Message}"); }
+            if (!await TryRestoreAnswerFlashAsync())
+            {
+                try { await LoadRandomQuestionAsync(); }
+                catch (Exception ex) { Console.WriteLine($"[OnGetAsync PreloadQuestion Error] {ex.Message}"); }
+            }
             return Page();
         }
         catch (Exception ex)
@@ -186,6 +193,7 @@ public class IndexModel : PageModel
 
             if (string.IsNullOrEmpty(Request.Form["answersJson"]))
             {
+                ClearAnswerFlash();
                 ApplyPracticeQueryParams();
                 try { await LoadRandomQuestionAsync(); }
                 catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
@@ -198,16 +206,8 @@ public class IndexModel : PageModel
             if (cheaterRedirect != null)
                 return cheaterRedirect;
 
-            await PopulateUserStatsAsync(auth.User);
-
-            _ = Task.Run(async () =>
-            {
-                try { OnlineCount = await _authService.GetOnlineUserCountAsync(); }
-                catch { OnlineCount = 0; }
-            });
-
-            await PopulateUrlsAsync();
-            return Page();
+            SaveAnswerFlashToSession();
+            return RedirectToPage("/Index");
         }
         catch (Exception ex)
         {
@@ -316,6 +316,67 @@ public class IndexModel : PageModel
             HttpContext.Session.Remove("PendingAchievements");
         }
         catch { /* ignore */ }
+    }
+
+    private const string FlashQuestionKey = "AnswerFlash_QuestionImage";
+    private const string FlashSelectedKey = "AnswerFlash_SelectedAnswer";
+    private const string FlashAnswersKey = "AnswerFlash_AnswersJson";
+    private const string FlashCorrectKey = "AnswerFlash_IsCorrect";
+
+    private void SaveAnswerFlashToSession()
+    {
+        HttpContext.Session.SetString(FlashQuestionKey, QuestionImage ?? "");
+        HttpContext.Session.SetString(FlashSelectedKey, SelectedAnswer ?? "");
+        HttpContext.Session.SetString(FlashAnswersKey,
+            JsonSerializer.Serialize(ShuffledAnswers ?? new Dictionary<string, string>(), AppJson.Options));
+        HttpContext.Session.SetString(FlashCorrectKey, IsCorrect ? "1" : "0");
+    }
+
+    private static bool ShouldClearAnswerFlashOnGet(HttpRequest request)
+    {
+        if (request.Query.ContainsKey("next"))
+            return true;
+        if (!string.IsNullOrEmpty(request.Query["mode"]))
+            return true;
+        return !string.IsNullOrEmpty(request.Query["difficulty"]);
+    }
+
+    private bool ShouldClearAnswerFlashOnGet() => ShouldClearAnswerFlashOnGet(Request);
+
+    private void ClearAnswerFlash()
+    {
+        HttpContext.Session.Remove(FlashQuestionKey);
+        HttpContext.Session.Remove(FlashSelectedKey);
+        HttpContext.Session.Remove(FlashAnswersKey);
+        HttpContext.Session.Remove(FlashCorrectKey);
+    }
+
+    private async Task<bool> TryRestoreAnswerFlashAsync()
+    {
+        var questionImage = HttpContext.Session.GetString(FlashQuestionKey);
+        if (string.IsNullOrWhiteSpace(questionImage))
+            return false;
+
+        QuestionImage = questionImage;
+        SelectedAnswer = HttpContext.Session.GetString(FlashSelectedKey) ?? "";
+        IsCorrect = HttpContext.Session.GetString(FlashCorrectKey) == "1";
+        AnswerChecked = true;
+
+        var answersJson = HttpContext.Session.GetString(FlashAnswersKey);
+        try
+        {
+            ShuffledAnswers = string.IsNullOrWhiteSpace(answersJson)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options)
+                  ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            ShuffledAnswers = new Dictionary<string, string>();
+        }
+
+        await PopulateUrlsAsync();
+        return true;
     }
 
     private void EnsureDailyChallengeSession()

@@ -44,23 +44,25 @@
 
 <p class="quiz-meta quiz-meta-user">
     👤 Logged in as <strong>@Model.Username</strong>
-    @if (Model.CurrentStreak > 0)
-    {
-        <span class="streak-badge" id="streak-badge">🔥 @Model.CurrentStreak ברצף</span>
-    }
 </p>
 
 <p class="quiz-meta quiz-meta-online">
     🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
 </p>
 
-<p class="practice-mode-badge" id="practice-mode-badge">
-    @modeLabel
-    @if (Model.PracticeMode == "daily")
+<div class="practice-mode-stack">
+    <p class="practice-mode-badge" id="practice-mode-badge">
+        @modeLabel
+        @if (Model.PracticeMode == "daily")
+        {
+            <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
+        }
+    </p>
+    @if (Model.CurrentStreak > 0)
     {
-        <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
+        <span class="streak-badge" id="streak-badge">@Model.CurrentStreak 🔥</span>
     }
-</p>
+</div>
 
 @if (Model.NewlyUnlockedAchievements.Count > 0)
 {
@@ -132,6 +134,7 @@
             <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
         </form>
         <form method="get">
+            <input type="hidden" name="next" value="1" />
             @if (!string.IsNullOrEmpty(Model.PracticeMode) && Model.PracticeMode != "normal")
             {
                 <input type="hidden" name="mode" value="@Model.PracticeMode" />
