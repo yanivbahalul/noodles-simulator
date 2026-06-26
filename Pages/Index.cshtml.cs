@@ -1525,7 +1525,7 @@ public class IndexModel : PageModel
                 .Select(kv => new
                 {
                     key = kv.Key,
-                    fileName = AnswerImageOriginalNames != null && AnswerImageOriginalNames.TryGetValue(kv.Key, out var fn)
+                    fileName = AnswerImageOriginalNames?.TryGetValue(kv.Key, out var fn) == true
                         ? fn
                         : kv.Value
                 })
@@ -1555,8 +1555,8 @@ public class IndexModel : PageModel
                 .Select(kv => new
                 {
                     key = kv.Key,
-                    imageUrl = AnswerImageUrls != null && AnswerImageUrls.TryGetValue(kv.Key, out var url) ? url : "",
-                    fileName = AnswerImageOriginalNames != null && AnswerImageOriginalNames.TryGetValue(kv.Key, out var fn)
+                    imageUrl = AnswerImageUrls?.TryGetValue(kv.Key, out var url) == true ? url : "",
+                    fileName = AnswerImageOriginalNames?.TryGetValue(kv.Key, out var fn) == true
                         ? fn
                         : kv.Value
                 })

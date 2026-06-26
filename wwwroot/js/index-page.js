@@ -152,9 +152,9 @@
     }
 
     function escapeHtml(text) {
-        const d = document.createElement("div");
-        d.textContent = text ?? "";
-        return d.innerHTML;
+        const container = document.createElement("div");
+        container.textContent = text ?? "";
+        return container.innerHTML;
     }
 
     function getAntiForgeryToken() {
@@ -221,33 +221,33 @@
         prefetchPromise = null;
     }
 
-    async function fetchPrefetchNextQuestion() {
+    async function loadPrefetchNextQuestion() {
+        try {
+            const anchor = document.getElementById("quiz-question-image")?.value ?? "";
+            if (!anchor) return null;
+
+            const res = await fetch("/Index?handler=PrefetchNextQuestion");
+            if (res.status === 204 || !res.ok) return null;
+
+            const data = await res.json();
+            if (!data?.questionImage) return null;
+
+            await preloadQuestionImages(data);
+            if (document.getElementById("quiz-question-image")?.value !== anchor) return null;
+
+            prefetchAnchor = anchor;
+            prefetchedQuestion = data;
+            return data;
+        } catch {
+            return null;
+        } finally {
+            prefetchPromise = null;
+        }
+    }
+
+    function fetchPrefetchNextQuestion() {
         if (prefetchPromise) return prefetchPromise;
-
-        prefetchPromise = (async () => {
-            try {
-                const anchor = document.getElementById("quiz-question-image")?.value ?? "";
-                if (!anchor) return null;
-
-                const res = await fetch("/Index?handler=PrefetchNextQuestion");
-                if (res.status === 204 || !res.ok) return null;
-
-                const data = await res.json();
-                if (!data?.questionImage) return null;
-
-                await preloadQuestionImages(data);
-                if (document.getElementById("quiz-question-image")?.value !== anchor) return null;
-
-                prefetchAnchor = anchor;
-                prefetchedQuestion = data;
-                return data;
-            } catch {
-                return null;
-            } finally {
-                prefetchPromise = null;
-            }
-        })();
-
+        prefetchPromise = loadPrefetchNextQuestion();
         return prefetchPromise;
     }
 
@@ -270,6 +270,25 @@
 
     let viewportAdjustTimer = null;
 
+    function computeQuizScrollDelta(rect, viewportH) {
+        const marginTop = 8;
+        const marginBottom = 16;
+        const minTop = marginTop;
+        const maxBottom = viewportH - marginBottom;
+        const available = viewportH - marginTop - marginBottom;
+
+        const topVisible = rect.top >= minTop - 3;
+        const bottomVisible = rect.bottom <= maxBottom + 3;
+        if (topVisible && bottomVisible) return 0;
+
+        if (rect.height <= available) {
+            if (rect.top < minTop) return rect.top - minTop;
+            if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
+            return 0;
+        }
+        return rect.top - minTop;
+    }
+
     function scrollQuizIntoView() {
         const container = document.querySelector(".quiz-container");
         if (!container) return;
@@ -277,29 +296,7 @@
         const rect = container.getBoundingClientRect();
         if (rect.height <= 0) return;
 
-        const marginTop = 8;
-        const marginBottom = 16;
-        const viewportH = window.innerHeight;
-        const minTop = marginTop;
-        const maxBottom = viewportH - marginBottom;
-        const available = viewportH - marginTop - marginBottom;
-
-        const topVisible = rect.top >= minTop - 3;
-        const bottomVisible = rect.bottom <= maxBottom + 3;
-        if (topVisible && bottomVisible) return;
-
-        let deltaY = 0;
-
-        if (rect.height <= available) {
-            if (rect.top < minTop) {
-                deltaY = rect.top - minTop;
-            } else if (rect.bottom > maxBottom) {
-                deltaY = rect.bottom - maxBottom;
-            }
-        } else {
-            deltaY = rect.top - minTop;
-        }
-
+        const deltaY = computeQuizScrollDelta(rect, window.innerHeight);
         if (Math.abs(deltaY) <= 3) return;
         window.scrollTo({
             top: Math.max(0, window.scrollY + deltaY),
@@ -315,6 +312,23 @@
         }, 150);
     }
 
+    function getReservedBelowQuestion(answers, buttonRow, feedback) {
+        const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
+        return (answers?.offsetHeight ?? 0) +
+            (buttonRow?.offsetHeight ?? 0) +
+            feedbackHeight +
+            32;
+    }
+
+    function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
+        if (availableForQuestion <= 96) return;
+        const cssCap = viewportH * 0.4;
+        const newMax = `${Math.floor(Math.min(cssCap, availableForQuestion))}px`;
+        if (mainImg.style.maxHeight !== newMax) {
+            mainImg.style.maxHeight = newMax;
+        }
+    }
+
     function adjustQuizViewport() {
         const container = document.querySelector(".quiz-container");
         const mainImg = document.getElementById("main-question-image");
@@ -325,22 +339,9 @@
 
         const marginTop = 8;
         const viewportH = window.innerHeight;
-
-        const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
-        const reservedBelowQuestion =
-            (answers?.offsetHeight ?? 0) +
-            (buttonRow?.offsetHeight ?? 0) +
-            feedbackHeight +
-            32;
-
+        const reservedBelowQuestion = getReservedBelowQuestion(answers, buttonRow, feedback);
         const availableForQuestion = viewportH - marginTop - reservedBelowQuestion;
-        if (availableForQuestion > 96) {
-            const cssCap = viewportH * 0.4;
-            const newMax = `${Math.floor(Math.min(cssCap, availableForQuestion))}px`;
-            if (mainImg.style.maxHeight !== newMax) {
-                mainImg.style.maxHeight = newMax;
-            }
-        }
+        applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH);
 
         requestAnimationFrame(scrollQuizIntoView);
     }
@@ -355,23 +356,28 @@
         img.addEventListener("error", onLoad, { once: true });
     }
 
+    function ensureStreakBadgeElement(stack) {
+        const existing = document.getElementById("streak-badge");
+        if (existing) return existing;
+        if (!stack) return null;
+        const badge = document.createElement("span");
+        badge.id = "streak-badge";
+        badge.className = "streak-badge";
+        stack.appendChild(badge);
+        return badge;
+    }
+
     function updateStreakBadge(streak) {
-        let badge = document.getElementById("streak-badge");
-        const stack = document.querySelector(".practice-mode-stack");
+        const badge = document.getElementById("streak-badge");
         if (streak > 0) {
-            if (!badge && stack) {
-                badge = document.createElement("span");
-                badge.id = "streak-badge";
-                badge.className = "streak-badge";
-                stack.appendChild(badge);
+            const activeBadge = ensureStreakBadgeElement(document.querySelector(".practice-mode-stack"));
+            if (activeBadge) {
+                activeBadge.hidden = false;
+                activeBadge.textContent = `${streak} 🔥`;
             }
-            if (badge) {
-                badge.hidden = false;
-                badge.textContent = `${streak} 🔥`;
-            }
-        } else if (badge) {
-            badge.hidden = true;
+            return;
         }
+        if (badge) badge.hidden = true;
     }
 
     function updatePracticeModeBadge(data) {
@@ -411,6 +417,19 @@
         }
     }
 
+    function filesMatchCorrectAnswer(file, imgFile, correctAnswerFile) {
+        if (!correctAnswerFile) return false;
+        return (file && file === correctAnswerFile) ||
+            (imgFile && imgFile === correctAnswerFile);
+    }
+
+    function matchesCorrectAnswerFromList(file, imgFile, data) {
+        if (!data.answers?.length || !data.correctKey) return false;
+        const correct = data.answers.find((a) => a.key === data.correctKey);
+        if (!correct?.fileName) return false;
+        return file === correct.fileName || imgFile === correct.fileName;
+    }
+
     function isAnswerButtonCorrect(btn, data) {
         const key = btn.value;
         const img = btn.querySelector("img");
@@ -418,43 +437,42 @@
         const imgFile = answerFileFromUrl(img?.src ?? "");
 
         if (data.correctKey && key === data.correctKey) return true;
-        if (data.correctAnswerFile && file && file === data.correctAnswerFile) return true;
-        if (data.correctAnswerFile && imgFile && imgFile === data.correctAnswerFile) return true;
+        if (filesMatchCorrectAnswer(file, imgFile, data.correctAnswerFile)) return true;
+
         if (data.correctAnswerUrl) {
             const correctFile = answerFileFromUrl(data.correctAnswerUrl);
             if (correctFile && imgFile && correctFile === imgFile) return true;
         }
 
-        if (data.answers?.length) {
-            const correct = data.answers.find((a) => a.key === data.correctKey);
-            if (correct?.fileName && (file === correct.fileName || imgFile === correct.fileName)) return true;
-        }
+        return matchesCorrectAnswerFromList(file, imgFile, data);
+    }
 
-        return false;
+    function styleAnswerButtons(grid, data) {
+        if (!grid) return;
+        grid.querySelectorAll(".answer-btn").forEach((btn) => {
+            btn.disabled = true;
+            btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct");
+
+            if (isAnswerButtonCorrect(btn, data)) {
+                btn.classList.add("correct", data.isCorrect ? "answer-pulse" : "answer-reveal-correct");
+            } else if (btn.value === data.selectedKey) {
+                btn.classList.add("incorrect", "answer-shake");
+            }
+        });
+    }
+
+    function showAnswerFeedback(data) {
+        const feedback = document.getElementById("answer-feedback");
+        if (!feedback) return;
+        feedback.hidden = false;
+        feedback.classList.toggle("is-correct", data.isCorrect);
+        feedback.classList.toggle("is-incorrect", !data.isCorrect);
+        feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
     }
 
     function applyAnswerResult(data) {
-        const grid = document.getElementById("answers-grid");
-        if (grid) {
-            grid.querySelectorAll(".answer-btn").forEach((btn) => {
-                btn.disabled = true;
-                btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct");
-
-                if (isAnswerButtonCorrect(btn, data)) {
-                    btn.classList.add("correct", data.isCorrect ? "answer-pulse" : "answer-reveal-correct");
-                } else if (btn.value === data.selectedKey) {
-                    btn.classList.add("incorrect", "answer-shake");
-                }
-            });
-        }
-
-        const feedback = document.getElementById("answer-feedback");
-        if (feedback) {
-            feedback.hidden = false;
-            feedback.classList.toggle("is-correct", data.isCorrect);
-            feedback.classList.toggle("is-incorrect", !data.isCorrect);
-            feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
-        }
+        styleAnswerButtons(document.getElementById("answers-grid"), data);
+        showAnswerFeedback(data);
 
         playFeedbackSound(data.isCorrect);
         if (data.stats) applyStatsData(data.stats);
@@ -467,52 +485,65 @@
         schedulePrefetchNextQuestion();
     }
 
+    function updateQuestionImages(mainImg, modalImg, data) {
+        if (mainImg) mainImg.style.maxHeight = "";
+        if (mainImg && data.questionImageUrl) mainImg.src = data.questionImageUrl;
+        if (modalImg && data.questionImageUrl) modalImg.src = data.questionImageUrl;
+    }
+
+    function renderAnswerButtons(grid, answers) {
+        grid.innerHTML = "";
+        answers.forEach((a) => {
+            const btn = document.createElement("button");
+            btn.type = "submit";
+            btn.name = "answer";
+            btn.value = a.key;
+            btn.className = "answer-btn";
+            const img = document.createElement("img");
+            img.src = a.imageUrl;
+            img.alt = "תשובה";
+            if (a.fileName) img.dataset.answerFile = a.fileName;
+            btn.appendChild(img);
+            grid.appendChild(btn);
+        });
+    }
+
+    function clearAnswerFeedback(feedback) {
+        if (!feedback) return;
+        feedback.hidden = true;
+        feedback.classList.remove("is-correct", "is-incorrect");
+        feedback.textContent = "";
+    }
+
+    function syncReportFormForQuestion(data) {
+        const qInput = document.querySelector('#report-form input[name="questionImage"]');
+        const sInput = document.querySelector('#report-form input[name="selectedAnswer"]');
+        if (qInput) qInput.value = data.questionImageOriginalName ?? data.questionImage ?? "";
+        if (sInput) sInput.value = "";
+    }
+
     async function renderQuestion(data, seq, options = {}) {
         if (!options.imagesPreloaded) {
             await preloadQuestionImages(data);
         }
         if (seq !== questionRenderSeq) return;
 
-        const mainImg = document.getElementById("main-question-image");
-        const modalImg = document.getElementById("modal-img");
-        if (mainImg) mainImg.style.maxHeight = "";
-        if (mainImg && data.questionImageUrl) {
-            mainImg.src = data.questionImageUrl;
-        }
-        if (modalImg && data.questionImageUrl) modalImg.src = data.questionImageUrl;
+        updateQuestionImages(
+            document.getElementById("main-question-image"),
+            document.getElementById("modal-img"),
+            data
+        );
 
         const hidden = document.getElementById("quiz-question-image");
         if (hidden) hidden.value = data.questionImage ?? "";
 
         const grid = document.getElementById("answers-grid");
         if (grid && data.answers?.length) {
-            grid.innerHTML = "";
-            data.answers.forEach((a) => {
-                const btn = document.createElement("button");
-                btn.type = "submit";
-                btn.name = "answer";
-                btn.value = a.key;
-                btn.className = "answer-btn";
-                const img = document.createElement("img");
-                img.src = a.imageUrl;
-                img.alt = "תשובה";
-                if (a.fileName) img.dataset.answerFile = a.fileName;
-                btn.appendChild(img);
-                grid.appendChild(btn);
-            });
+            renderAnswerButtons(grid, data.answers);
         }
 
-        const feedback = document.getElementById("answer-feedback");
-        if (feedback) {
-            feedback.hidden = true;
-            feedback.classList.remove("is-correct", "is-incorrect");
-            feedback.textContent = "";
-        }
-
-        const qInput = document.querySelector('#report-form input[name="questionImage"]');
-        const sInput = document.querySelector('#report-form input[name="selectedAnswer"]');
-        if (qInput) qInput.value = data.questionImageOriginalName ?? data.questionImage ?? "";
-        if (sInput) sInput.value = "";
+        clearAnswerFeedback(document.getElementById("answer-feedback"));
+        syncReportFormForQuestion(data);
 
         if (data.practiceMode === "daily") {
             updatePracticeModeBadge(data);
@@ -521,105 +552,111 @@
         schedulePrefetchNextQuestion();
     }
 
+    async function handleQuizAnswerSubmit(e, form) {
+        e.preventDefault();
+        if (answerChecked || quizBusy) return;
+
+        const submitter = e.submitter;
+        if (!submitter || submitter.name !== "answer") return;
+
+        const questionImage = form.querySelector('input[name="questionImage"]')?.value;
+        const answer = submitter.value;
+        const token = getAntiForgeryToken();
+
+        if (!questionImage) {
+            if (window.showAppAlert) await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
+            return;
+        }
+
+        setQuizBusy(true);
+        let responseReceived = false;
+        try {
+            const res = await fetch("/Index?handler=SubmitAnswer", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    RequestVerificationToken: token
+                },
+                body: JSON.stringify({ questionImage, answer })
+            });
+            responseReceived = true;
+            const data = await res.json();
+            if (data.redirect) {
+                window.location.assign(data.redirect);
+                return;
+            }
+            if (!res.ok) throw new Error("submit failed");
+            applyAnswerResult(data);
+            answerChecked = true;
+        } catch {
+            if (!responseReceived) {
+                form.requestSubmit(submitter);
+            } else if (window.showAppAlert) {
+                await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
+            }
+        } finally {
+            setQuizBusy(false);
+            if (answerChecked) {
+                document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
+                    btn.disabled = true;
+                });
+            }
+        }
+    }
+
     function bindQuizAnswerForm() {
         const form = document.getElementById("quiz-answer-form");
         if (!form) return;
+        form.addEventListener("submit", (e) => {
+            handleQuizAnswerSubmit(e, form);
+        });
+    }
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (answerChecked || quizBusy) return;
+    async function handleNextQuestionSubmit(e, form) {
+        e.preventDefault();
+        if (quizBusy) return;
 
-            const submitter = e.submitter;
-            if (!submitter || submitter.name !== "answer") return;
-
-            const questionImage = form.querySelector('input[name="questionImage"]')?.value;
-            const answer = submitter.value;
-            const token = getAntiForgeryToken();
-
-            if (!questionImage) {
-                if (window.showAppAlert) await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
+        const mySeq = ++questionRenderSeq;
+        const cached = getCachedNextQuestion();
+        setQuizSwapping(true);
+        setQuizBusy(true);
+        let responseReceived = false;
+        try {
+            const res = await fetch("/Index?handler=NextQuestion");
+            responseReceived = true;
+            const data = await res.json();
+            if (data.redirect) {
+                window.location.assign(data.redirect);
                 return;
             }
+            if (!res.ok) throw new Error("next failed");
 
-            setQuizBusy(true);
-            let responseReceived = false;
-            try {
-                const res = await fetch("/Index?handler=SubmitAnswer", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        RequestVerificationToken: token
-                    },
-                    body: JSON.stringify({ questionImage, answer })
-                });
-                responseReceived = true;
-                const data = await res.json();
-                if (data.redirect) {
-                    window.location.assign(data.redirect);
-                    return;
-                }
-                if (!res.ok) throw new Error("submit failed");
-                applyAnswerResult(data);
-                answerChecked = true;
-            } catch {
-                if (!responseReceived) {
-                    form.requestSubmit(submitter);
-                } else if (window.showAppAlert) {
-                    await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
-                }
-            } finally {
-                setQuizBusy(false);
-                if (answerChecked) {
-                    document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
-                        btn.disabled = true;
-                    });
-                }
+            const imagesPreloaded = cached && cached.questionImage === data.questionImage;
+            await renderQuestion(data, mySeq, { imagesPreloaded });
+            invalidatePrefetchCache();
+
+            if (mySeq === questionRenderSeq) {
+                answerChecked = false;
             }
-        });
+        } catch {
+            if (!responseReceived) {
+                form.submit();
+            } else if (window.showAppAlert) {
+                await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
+            }
+        } finally {
+            if (mySeq === questionRenderSeq) {
+                setQuizSwapping(false);
+            }
+            setQuizBusy(false);
+        }
     }
 
     function bindNextQuestion() {
         const form = document.getElementById("next-question-form");
         if (!form) return;
-
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (quizBusy) return;
-
-            const mySeq = ++questionRenderSeq;
-            const cached = getCachedNextQuestion();
-            setQuizSwapping(true);
-            setQuizBusy(true);
-            let responseReceived = false;
-            try {
-                const res = await fetch("/Index?handler=NextQuestion");
-                responseReceived = true;
-                const data = await res.json();
-                if (data.redirect) {
-                    window.location.assign(data.redirect);
-                    return;
-                }
-                if (!res.ok) throw new Error("next failed");
-
-                const imagesPreloaded = cached && cached.questionImage === data.questionImage;
-                await renderQuestion(data, mySeq, { imagesPreloaded });
-                invalidatePrefetchCache();
-
-                if (mySeq === questionRenderSeq) {
-                    answerChecked = false;
-                }
-            } catch {
-                if (!responseReceived) {
-                    form.submit();
-                } else if (window.showAppAlert) {
-                    await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
-                }
-            } finally {
-                if (mySeq === questionRenderSeq) {
-                    setQuizSwapping(false);
-                }
-                setQuizBusy(false);
-            }
+        form.addEventListener("submit", (e) => {
+            handleNextQuestionSubmit(e, form);
         });
     }
 
@@ -754,13 +791,14 @@
             statsPanel?.classList.toggle("is-advanced-open", willOpen);
         });
 
-        resetForm?.addEventListener("submit", (e) => {
-            const ok = window.confirm(
+        resetForm?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const confirmed = await window.showAppConfirm(
                 "לאפס את כל ההתקדמות?\n\n" +
                 "יסיר: סטטיסטיקה, XP, רמה, רצף, הישגים ונתוני תרגול.\n" +
                 "לא ניתן לבטל."
             );
-            if (!ok) e.preventDefault();
+            if (confirmed) resetForm.submit();
         });
     }
 
