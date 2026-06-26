@@ -546,27 +546,28 @@
         if (sInput) sInput.value = "";
     }
 
+    function setHiddenQuestionImage(questionImage) {
+        const hidden = document.getElementById("quiz-question-image");
+        if (hidden) hidden.value = questionImage ?? "";
+    }
+
+    function renderQuestionAnswersGrid(data) {
+        const grid = document.getElementById("answers-grid");
+        if (!grid || !data.answers?.length) return;
+        renderAnswerButtons(grid, data.answers);
+    }
+
     function applyRenderedQuestionDom(data) {
         updateQuestionImages(
             document.getElementById("main-question-image"),
             document.getElementById("modal-img"),
             data
         );
-
-        const hidden = document.getElementById("quiz-question-image");
-        if (hidden) hidden.value = data.questionImage ?? "";
-
-        const grid = document.getElementById("answers-grid");
-        if (grid && data.answers?.length) {
-            renderAnswerButtons(grid, data.answers);
-        }
-
+        setHiddenQuestionImage(data.questionImage);
+        renderQuestionAnswersGrid(data);
         clearAnswerFeedback(document.getElementById("answer-feedback"));
         syncReportFormForQuestion(data);
-
-        if (data.practiceMode === "daily") {
-            updatePracticeModeBadge(data);
-        }
+        if (data.practiceMode === "daily") updatePracticeModeBadge(data);
     }
 
     async function renderQuestion(data, seq, options = {}) {
@@ -607,7 +608,7 @@
         });
     }
 
-    async function processQuizAnswerResponse(res, data) {
+    function processQuizAnswerResponse(res, data) {
         if (data.redirect) {
             window.location.assign(data.redirect);
             return;
@@ -627,18 +628,13 @@
         }
     }
 
-    async function handleQuizAnswerSubmit(e, form) {
-        e.preventDefault();
-        if (answerChecked || quizBusy) return;
-
-        const payload = getQuizAnswerPayload(e, form);
-        if (!payload) return;
-        if (payload.missingQuestion) {
-            if (window.showAppAlert) await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
-            return;
+    async function alertMissingQuestionImage() {
+        if (window.showAppAlert) {
+            await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
         }
+    }
 
-        setQuizBusy(true);
+    async function runQuizAnswerRequest(payload, form) {
         let responseReceived = false;
         try {
             const { res, data } = await submitQuizAnswer(
@@ -647,9 +643,26 @@
                 getAntiForgeryToken()
             );
             responseReceived = true;
-            await processQuizAnswerResponse(res, data);
+            processQuizAnswerResponse(res, data);
         } catch {
             await recoverQuizAnswerSubmitError(responseReceived, form, payload.submitter);
+        }
+    }
+
+    async function handleQuizAnswerSubmit(e, form) {
+        e.preventDefault();
+        if (answerChecked || quizBusy) return;
+
+        const payload = getQuizAnswerPayload(e, form);
+        if (!payload) return;
+        if (payload.missingQuestion) {
+            await alertMissingQuestionImage();
+            return;
+        }
+
+        setQuizBusy(true);
+        try {
+            await runQuizAnswerRequest(payload, form);
         } finally {
             setQuizBusy(false);
             if (answerChecked) lockAnswerButtonsAfterCheck();
