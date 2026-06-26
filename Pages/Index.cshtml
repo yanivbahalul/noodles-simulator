@@ -58,10 +58,7 @@
             <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
         }
     </p>
-    @if (Model.CurrentStreak > 0)
-    {
-        <span class="streak-badge" id="streak-badge">@Model.CurrentStreak 🔥</span>
-    }
+    <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden")>@Model.CurrentStreak 🔥</span>
 </div>
 
 @if (Model.NewlyUnlockedAchievements.Count > 0)
@@ -78,12 +75,14 @@
     </div>
 }
 
+<div id="quiz-page-data" data-answer-checked="@(Model.AnswerChecked ? "1" : "0")" hidden></div>
+
 <div class="quiz-container">
     <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
 
-    <form method="post">
+    <form method="post" id="quiz-answer-form">
         @Html.AntiForgeryToken()
-        <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
+        <input type="hidden" name="questionImage" id="quiz-question-image" value="@Model.QuestionImage" />
 
         <div class="answers" id="answers-grid">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
@@ -102,7 +101,7 @@
                         value="@answer.Key"
                         class="answer-btn @answerClass"
                         @(Model.AnswerChecked ? "disabled" : "")>
-                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
+                    <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" data-answer-file="@answer.Value" />
                 </button>
             }
         </div>
@@ -113,6 +112,10 @@
         <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")" id="answer-feedback">
             @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
         </p>
+    }
+    else
+    {
+        <p class="quiz-answer-feedback" id="answer-feedback" hidden></p>
     }
 
     <div class="button-row">
@@ -132,7 +135,7 @@
         <form class="inline-form-reset">
             <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
         </form>
-        <form method="get">
+        <form method="get" id="next-question-form">
             <input type="hidden" name="next" value="1" />
             @if (!string.IsNullOrEmpty(Model.PracticeMode) && Model.PracticeMode != "normal")
             {
@@ -142,7 +145,7 @@
             {
                 <input type="hidden" name="difficulty" value="@Model.PracticeDifficulty" />
             }
-            <button class="next-question-btn">שאלה הבאה</button>
+            <button type="submit" class="next-question-btn" id="next-question-btn">שאלה הבאה</button>
         </form>
     </div>
 </div>
@@ -230,7 +233,7 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
-        <label for="explanation" class="report-label">יש טעות בשאלה?, תקלה באתר? דווח לנו!</label>
+        <label for="explanation" class="report-label">יש טעות בשאלה? תקלה באתר? דווח לנו!</label>
         <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>
         <button type="submit" class="next-question-btn report-submit-btn">דווח על טעות בשאלה</button>
     </form>

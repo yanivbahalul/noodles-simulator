@@ -252,6 +252,114 @@ public class IndexModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnPostSubmitAnswerAsync()
+    {
+        try
+        {
+            var auth = await TryRequireAuthenticatedUserAsync();
+            if (auth.Redirect != null)
+                return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
+
+            string body;
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
+                body = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(body))
+                return new JsonResult(new { error = "Empty body" }) { StatusCode = 400 };
+
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("questionImage", out var qEl) || !root.TryGetProperty("answer", out var aEl))
+                return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+            var questionImage = qEl.GetString();
+            var answer = aEl.GetString();
+            if (string.IsNullOrWhiteSpace(questionImage) || string.IsNullOrWhiteSpace(answer))
+                return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+            var lastSubmitted = HttpContext.Session.GetString(LastSubmittedQuestionKey);
+            if (!string.IsNullOrEmpty(lastSubmitted)
+                && string.Equals(lastSubmitted, questionImage, StringComparison.Ordinal)
+                && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(FlashQuestionKey)))
+            {
+                await TryRestoreAnswerFlashAsync();
+                await PopulateUserStatsAsync(auth.User);
+                NewlyUnlockedAchievements = new List<string>();
+                return new JsonResult(BuildSubmitAnswerResponse());
+            }
+
+            ParseSubmittedAnswer(questionImage, answer);
+            if (string.IsNullOrEmpty(CorrectAnswerKey) || ShuffledAnswers == null || ShuffledAnswers.Count == 0)
+            {
+                await LoadPracticeQuestionFromSessionAsync();
+                if (string.Equals(HttpContext.Session.GetString(PracticeQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase))
+                    TryHydrateModelFromPracticeSession();
+            }
+
+            await ProcessSubmittedAnswerCoreAsync(auth.User);
+
+            var cheaterRedirect = await TryHandleCheaterDetectionAsync(auth.User);
+            var redirectPath = GetRedirectPath(cheaterRedirect);
+            if (redirectPath != null)
+                return new JsonResult(new { redirect = redirectPath });
+
+            SaveAnswerFlashToSession();
+            ClearPrefetch();
+            await PopulateUserStatsAsync(auth.User);
+            await PopulateUrlsAsync();
+            return new JsonResult(BuildSubmitAnswerResponse());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[OnPostSubmitAnswerAsync Error] {ex}");
+            return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
+        }
+    }
+
+    public async Task<IActionResult> OnGetNextQuestionAsync()
+    {
+        try
+        {
+            var auth = await TryRequireAuthenticatedUserAsync();
+            if (auth.Redirect != null)
+                return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
+
+            ClearAnswerFlash();
+            if (!await TryPromotePrefetchAsync())
+                await LoadRandomQuestionAsync();
+            else
+                SavePracticeQuestionState();
+            await PopulateUserStatsAsync(auth.User);
+            return new JsonResult(BuildNextQuestionResponse());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[OnGetNextQuestionAsync Error] {ex}");
+            return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
+        }
+    }
+
+    public async Task<IActionResult> OnGetPrefetchNextQuestionAsync()
+    {
+        try
+        {
+            var auth = await TryRequireAuthenticatedUserAsync();
+            if (auth.Redirect != null)
+                return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
+
+            await BuildPrefetchIfNeededAsync();
+            if (!HasValidPrefetch())
+                return new StatusCodeResult(204);
+
+            await PopulateUserStatsAsync(auth.User);
+            return new JsonResult(await BuildPrefetchResponseAsync());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[OnGetPrefetchNextQuestionAsync Error] {ex}");
+            return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
+        }
+    }
+
     private Task PopulateUserStatsAsync(User user)
     {
         if (user == null) return Task.CompletedTask;
@@ -336,6 +444,10 @@ public class IndexModel : PageModel
     private const string PracticeQuestionKey = "Practice_QuestionImage";
     private const string PracticeOptionsKey = "Practice_OptionsJson";
     private const string PracticeCorrectKey = "Practice_CorrectKey";
+    private const string PrefetchQuestionKey = "Practice_Prefetch_QuestionImage";
+    private const string PrefetchOptionsKey = "Practice_Prefetch_OptionsJson";
+    private const string PrefetchCorrectKey = "Practice_Prefetch_CorrectKey";
+    private const string PrefetchAnchorKey = "Practice_Prefetch_Anchor";
     private const string LastSubmittedQuestionKey = "LastSubmittedQuestion";
 
     private void SaveAnswerFlashToSession()
@@ -383,10 +495,7 @@ public class IndexModel : PageModel
         var answersJson = HttpContext.Session.GetString(FlashAnswersKey);
         try
         {
-            ShuffledAnswers = string.IsNullOrWhiteSpace(answersJson)
-                ? new Dictionary<string, string>()
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(answersJson, AppJson.Options)
-                  ?? new Dictionary<string, string>();
+            ShuffledAnswers = DeserializeAnswerOptions(answersJson);
         }
         catch (JsonException)
         {
@@ -396,6 +505,7 @@ public class IndexModel : PageModel
         CorrectAnswerKey = HttpContext.Session.GetString(FlashCorrectKeyKey) ?? "";
 
         await PopulateUrlsAsync();
+        SavePracticeQuestionState();
         return true;
     }
 
@@ -495,6 +605,11 @@ public class IndexModel : PageModel
     private async Task ProcessSubmittedAnswerAsync(User user)
     {
         ParseSubmittedAnswerForm();
+        await ProcessSubmittedAnswerCoreAsync(user);
+    }
+
+    private async Task ProcessSubmittedAnswerCoreAsync(User user)
+    {
         ApplyAnswerToUserStats(user);
 
         var streak = UpdateAnswerStreak();
@@ -509,40 +624,100 @@ public class IndexModel : PageModel
 
     private void ParseSubmittedAnswerForm()
     {
-        var answer = Request.Form["answer"].ToString();
-        var questionImage = Request.Form["questionImage"].ToString();
+        ParseSubmittedAnswer(
+            Request.Form["questionImage"].ToString(),
+            Request.Form["answer"].ToString());
+    }
 
+    private void ParseSubmittedAnswer(string questionImage, string answer)
+    {
         SelectedAnswer = answer;
         AnswerChecked = true;
         QuestionImage = questionImage;
 
-        var sessionQuestion = HttpContext.Session.GetString(PracticeQuestionKey);
-        var sessionCorrectKey = HttpContext.Session.GetString(PracticeCorrectKey);
-        var optionsJson = HttpContext.Session.GetString(PracticeOptionsKey);
-
-        try
+        if (!TryLoadQuestionStateForSubmit(questionImage))
         {
-            ShuffledAnswers = string.IsNullOrWhiteSpace(optionsJson)
-                ? new Dictionary<string, string>()
-                : JsonSerializer.Deserialize<Dictionary<string, string>>(optionsJson, AppJson.Options)
-                  ?? new Dictionary<string, string>();
-        }
-        catch (JsonException)
-        {
+            IsCorrect = false;
+            CorrectAnswerKey = "";
             ShuffledAnswers = new Dictionary<string, string>();
+            return;
         }
 
-        CorrectAnswerKey = sessionCorrectKey ?? "";
+        SavePracticeQuestionState();
 
-        if (!string.Equals(sessionQuestion, questionImage, StringComparison.Ordinal)
-            || string.IsNullOrEmpty(sessionCorrectKey)
-            || !ShuffledAnswers.ContainsKey(answer))
+        if (string.IsNullOrEmpty(CorrectAnswerKey) || !ShuffledAnswers.ContainsKey(answer))
         {
             IsCorrect = false;
             return;
         }
 
-        IsCorrect = answer == sessionCorrectKey;
+        IsCorrect = string.Equals(answer, CorrectAnswerKey, StringComparison.Ordinal);
+    }
+
+    private bool TryLoadQuestionStateForSubmit(string questionImage)
+    {
+        EnsurePracticeHydratedForQuestion(questionImage);
+
+        var sessionQuestion = HttpContext.Session.GetString(PracticeQuestionKey);
+        if (string.Equals(sessionQuestion, questionImage, StringComparison.OrdinalIgnoreCase)
+            && TryHydrateModelFromPracticeSession())
+            return true;
+
+        return string.Equals(HttpContext.Session.GetString(FlashQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
+               && TryHydrateModelFromFlash(persistToPractice: true);
+    }
+
+    private void EnsurePracticeHydratedForQuestion(string questionImage)
+    {
+        var sessionQuestion = HttpContext.Session.GetString(PracticeQuestionKey);
+        if (string.Equals(sessionQuestion, questionImage, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        TryHydrateModelFromFlash(persistToPractice: true);
+    }
+
+    private bool TryHydrateModelFromPracticeSession()
+    {
+        var optionsJson = HttpContext.Session.GetString(PracticeOptionsKey);
+        CorrectAnswerKey = HttpContext.Session.GetString(PracticeCorrectKey) ?? "";
+        ShuffledAnswers = DeserializeAnswerOptions(optionsJson);
+        return !string.IsNullOrEmpty(CorrectAnswerKey) && ShuffledAnswers.Count > 0;
+    }
+
+    private bool TryHydrateModelFromFlash(bool persistToPractice)
+    {
+        var optionsJson = HttpContext.Session.GetString(FlashAnswersKey);
+        var correctKey = HttpContext.Session.GetString(FlashCorrectKeyKey);
+        if (string.IsNullOrWhiteSpace(optionsJson) || string.IsNullOrWhiteSpace(correctKey))
+            return false;
+
+        ShuffledAnswers = DeserializeAnswerOptions(optionsJson);
+        CorrectAnswerKey = correctKey;
+
+        if (persistToPractice)
+        {
+            HttpContext.Session.SetString(PracticeQuestionKey, HttpContext.Session.GetString(FlashQuestionKey) ?? "");
+            HttpContext.Session.SetString(PracticeOptionsKey, optionsJson);
+            HttpContext.Session.SetString(PracticeCorrectKey, correctKey);
+        }
+
+        return ShuffledAnswers.Count > 0;
+    }
+
+    private static Dictionary<string, string> DeserializeAnswerOptions(string optionsJson)
+    {
+        if (string.IsNullOrWhiteSpace(optionsJson))
+            return new Dictionary<string, string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(optionsJson, AppJson.Options)
+                   ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            return new Dictionary<string, string>();
+        }
     }
 
     private void SavePracticeQuestionState()
@@ -787,51 +962,15 @@ public class IndexModel : PageModel
     {
         try
         {
-            var grouped = await LoadAllQuestionGroupsAsync();
-            if (grouped.Count == 0)
+            if (!await PickQuestionIntoModelAsync())
             {
                 QuestionImage = "placeholder.jpg";
                 ShuffledAnswers = new Dictionary<string, string>();
+                CorrectAnswerKey = "";
+                SavePracticeQuestionState();
                 await PopulateUrlsAsync();
                 return;
             }
-
-            var mode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
-            var difficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
-            var username = HttpContext.Session.GetString("Username") ?? "";
-
-            List<string> chosen;
-
-            if (mode == "daily")
-            {
-                chosen = await PickDailyQuestionAsync(grouped);
-            }
-            else if (mode == "review" && _userProgress != null)
-            {
-                chosen = PickReviewQuestion(grouped, username);
-            }
-            else
-            {
-                var pool = await FilterGroupsAsync(grouped, mode, difficulty, username);
-                if (pool.Count == 0) pool = grouped;
-                // Spaced repetition only in review mode — normal practice should advance freely.
-                chosen = PickFromPool(pool, username, useSpaced: mode == "review");
-            }
-
-            if (chosen == null || chosen.Count < 2)
-            {
-                QuestionImage = "placeholder.jpg";
-                ShuffledAnswers = new Dictionary<string, string>();
-                await PopulateUrlsAsync();
-                return;
-            }
-
-            QuestionImage = chosen[0];
-            var correct = chosen[1];
-            var wrong = chosen.Skip(2).Take(3).ToList();
-            var shuffled = AnswerOptionShuffle.Create(correct, wrong);
-            ShuffledAnswers = shuffled.Options;
-            CorrectAnswerKey = shuffled.CorrectKey;
 
             RecordQuestionShown(QuestionImage);
             IncrementGroupShown(QuestionImage);
@@ -844,6 +983,148 @@ public class IndexModel : PageModel
         {
             Console.WriteLine($"[LoadRandomQuestionAsync Error] {ex.Message}");
         }
+    }
+
+    private async Task<bool> PickQuestionIntoModelAsync()
+    {
+        var grouped = await LoadAllQuestionGroupsAsync();
+        if (grouped.Count == 0)
+            return false;
+
+        var mode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
+        var difficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
+        var username = HttpContext.Session.GetString("Username") ?? "";
+
+        List<string> chosen;
+
+        if (mode == "daily")
+        {
+            chosen = await PickDailyQuestionAsync(grouped);
+        }
+        else if (mode == "review" && _userProgress != null)
+        {
+            chosen = PickReviewQuestion(grouped, username);
+        }
+        else
+        {
+            var pool = await FilterGroupsAsync(grouped, mode, difficulty, username);
+            if (pool.Count == 0) pool = grouped;
+            chosen = PickFromPool(pool, username, useSpaced: mode == "review");
+        }
+
+        if (chosen == null || chosen.Count < 2)
+            return false;
+
+        QuestionImage = chosen[0];
+        var correct = chosen[1];
+        var wrong = chosen.Skip(2).Take(3).ToList();
+        var shuffled = AnswerOptionShuffle.Create(correct, wrong);
+        ShuffledAnswers = shuffled.Options;
+        CorrectAnswerKey = shuffled.CorrectKey;
+        return true;
+    }
+
+    private bool HasValidPrefetch()
+    {
+        var anchor = HttpContext.Session.GetString(PrefetchAnchorKey);
+        var current = HttpContext.Session.GetString(PracticeQuestionKey);
+        var prefetchQuestion = HttpContext.Session.GetString(PrefetchQuestionKey);
+        return !string.IsNullOrWhiteSpace(prefetchQuestion)
+               && !string.IsNullOrWhiteSpace(anchor)
+               && string.Equals(anchor, current, StringComparison.Ordinal);
+    }
+
+    private void ClearPrefetch()
+    {
+        HttpContext.Session.Remove(PrefetchQuestionKey);
+        HttpContext.Session.Remove(PrefetchOptionsKey);
+        HttpContext.Session.Remove(PrefetchCorrectKey);
+        HttpContext.Session.Remove(PrefetchAnchorKey);
+    }
+
+    private async Task LoadPracticeQuestionFromSessionAsync()
+    {
+        QuestionImage = HttpContext.Session.GetString(PracticeQuestionKey) ?? "";
+        CorrectAnswerKey = HttpContext.Session.GetString(PracticeCorrectKey) ?? "";
+        var optionsJson = HttpContext.Session.GetString(PracticeOptionsKey);
+        try
+        {
+            ShuffledAnswers = string.IsNullOrWhiteSpace(optionsJson)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(optionsJson, AppJson.Options)
+                  ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            ShuffledAnswers = new Dictionary<string, string>();
+        }
+
+        await PopulateUrlsAsync();
+    }
+
+    private void ApplyPrefetchToModel()
+    {
+        QuestionImage = HttpContext.Session.GetString(PrefetchQuestionKey) ?? "";
+        CorrectAnswerKey = HttpContext.Session.GetString(PrefetchCorrectKey) ?? "";
+        var optionsJson = HttpContext.Session.GetString(PrefetchOptionsKey);
+        try
+        {
+            ShuffledAnswers = string.IsNullOrWhiteSpace(optionsJson)
+                ? new Dictionary<string, string>()
+                : JsonSerializer.Deserialize<Dictionary<string, string>>(optionsJson, AppJson.Options)
+                  ?? new Dictionary<string, string>();
+        }
+        catch (JsonException)
+        {
+            ShuffledAnswers = new Dictionary<string, string>();
+        }
+    }
+
+    private async Task BuildPrefetchIfNeededAsync()
+    {
+        if (HasValidPrefetch())
+            return;
+
+        ClearPrefetch();
+        var anchor = HttpContext.Session.GetString(PracticeQuestionKey);
+        if (string.IsNullOrWhiteSpace(anchor))
+            return;
+
+        if (!await PickQuestionIntoModelAsync())
+            return;
+
+        HttpContext.Session.SetString(PrefetchQuestionKey, QuestionImage ?? "");
+        HttpContext.Session.SetString(PrefetchOptionsKey,
+            JsonSerializer.Serialize(ShuffledAnswers ?? new Dictionary<string, string>(), AppJson.Options));
+        HttpContext.Session.SetString(PrefetchCorrectKey, CorrectAnswerKey ?? "");
+        HttpContext.Session.SetString(PrefetchAnchorKey, anchor);
+
+        await LoadPracticeQuestionFromSessionAsync();
+    }
+
+    private async Task<bool> TryPromotePrefetchAsync()
+    {
+        if (!HasValidPrefetch())
+            return false;
+
+        ApplyPrefetchToModel();
+        RecordQuestionShown(QuestionImage);
+        IncrementGroupShown(QuestionImage);
+        AddRecentQuestionToSession(QuestionImage);
+        HttpContext.Session.Remove(LastSubmittedQuestionKey);
+        SavePracticeQuestionState();
+        ClearPrefetch();
+        await PopulateUrlsAsync();
+        return true;
+    }
+
+    private async Task<object> BuildPrefetchResponseAsync()
+    {
+        ApplyPrefetchToModel();
+        await PopulateUrlsAsync();
+        var response = BuildNextQuestionResponse();
+        await LoadPracticeQuestionFromSessionAsync();
+        return response;
     }
 
     private async Task<List<List<string>>> LoadAllQuestionGroupsAsync()
@@ -1210,5 +1491,116 @@ public class IndexModel : PageModel
         {
             Console.WriteLine($"[MoveCorrectImagesLocal Error] {ex}");
         }
+    }
+
+    private object BuildSubmitAnswerResponse()
+    {
+        var achievements = NewlyUnlockedAchievements
+            .Select(key =>
+            {
+                var def = AchievementCatalog.Find(key);
+                return def == null
+                    ? null
+                    : new { emoji = def.Emoji, title = def.Title, description = def.Description };
+            })
+            .Where(x => x != null)
+            .ToList();
+
+        return new
+        {
+            isCorrect = IsCorrect,
+            selectedKey = SelectedAnswer,
+            correctKey = CorrectAnswerKey,
+            correctAnswerFile = !string.IsNullOrEmpty(CorrectAnswerKey)
+                && ShuffledAnswers != null
+                && ShuffledAnswers.TryGetValue(CorrectAnswerKey, out var correctFile)
+                ? correctFile
+                : "",
+            correctAnswerUrl = !string.IsNullOrEmpty(CorrectAnswerKey)
+                && AnswerImageUrls != null
+                && AnswerImageUrls.TryGetValue(CorrectAnswerKey, out var correctUrl)
+                ? correctUrl
+                : "",
+            answers = (ShuffledAnswers ?? new Dictionary<string, string>())
+                .Select(kv => new
+                {
+                    key = kv.Key,
+                    fileName = AnswerImageOriginalNames != null && AnswerImageOriginalNames.TryGetValue(kv.Key, out var fn)
+                        ? fn
+                        : kv.Value
+                })
+                .ToList(),
+            stats = new
+            {
+                correct = UserCorrect,
+                total = UserTotal,
+                successRate = UserSuccessRate,
+                streak = CurrentStreak,
+                xp = UserXp,
+                level = UserLevel
+            },
+            achievements,
+            redirect = (string)null
+        };
+    }
+
+    private object BuildNextQuestionResponse()
+    {
+        return new
+        {
+            questionImage = QuestionImage,
+            questionImageUrl = QuestionImageUrl,
+            questionImageOriginalName = QuestionImageOriginalName ?? QuestionImage,
+            answers = (ShuffledAnswers ?? new Dictionary<string, string>())
+                .Select(kv => new
+                {
+                    key = kv.Key,
+                    imageUrl = AnswerImageUrls != null && AnswerImageUrls.TryGetValue(kv.Key, out var url) ? url : "",
+                    fileName = AnswerImageOriginalNames != null && AnswerImageOriginalNames.TryGetValue(kv.Key, out var fn)
+                        ? fn
+                        : kv.Value
+                })
+                .ToList(),
+            practiceModeLabel = GetPracticeModeLabel(),
+            practiceMode = PracticeMode,
+            dailyProgress = DailyProgress,
+            dailyTotal = DailyTotal,
+            streak = CurrentStreak
+        };
+    }
+
+    private string GetPracticeModeLabel()
+    {
+        return PracticeMode switch
+        {
+            "weak" => "תרגול חולשות",
+            "review" => "סקירת טעויות",
+            "daily" => "אתגר יומי",
+            "normal" => PracticeDifficulty switch
+            {
+                "easy" => "תרגול — קל",
+                "medium" => "תרגול — בינוני",
+                "hard" => "תרגול — קשה",
+                _ => "תרגול חופשי"
+            },
+            _ => PracticeDifficulty switch
+            {
+                "easy" => "תרגול — קל",
+                "medium" => "תרגול — בינוני",
+                "hard" => "תרגול — קשה",
+                _ => "תרגול חופשי"
+            }
+        };
+    }
+
+    private static string GetRedirectPath(IActionResult result)
+    {
+        if (result is RedirectToPageResult redirect)
+        {
+            var page = redirect.PageName ?? "";
+            return page.StartsWith("/") ? page : "/" + page;
+        }
+
+        return null;
     }
 }

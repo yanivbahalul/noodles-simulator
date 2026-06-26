@@ -356,7 +356,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
 
 .quiz-container > img {
     max-width: 100%;
-    max-height: 40vh;
+    max-height: min(40vh, calc(100dvh - 22rem));
     width: auto;
     height: auto;
     border-radius: var(--radius-md);
@@ -935,6 +935,19 @@ button.answer-btn,
 
 .quiz-main-image {
     cursor: pointer;
+}
+
+.quiz-container.quiz-loading .quiz-main-image,
+.quiz-container.quiz-loading .answers {
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.quiz-container.quiz-swapping .quiz-main-image,
+.quiz-container.quiz-swapping #quiz-answer-form,
+.quiz-container.quiz-swapping #answer-feedback {
+    visibility: hidden;
 }
 
 .quiz-answer-feedback {
