@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
-using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,17 +10,16 @@ namespace NoodlesSimulator.Pages;
 
 public class LeaderboardModel : PageModel
 {
-    private readonly AuthService _authService;
-    private readonly UserProgressService _progress;
+    private readonly LeaderboardDataService _leaderboard;
 
-    public LeaderboardModel(AuthService authService, UserProgressService progress = null)
+    public LeaderboardModel(LeaderboardDataService leaderboard)
     {
-        _authService = authService;
-        _progress = progress;
+        _leaderboard = leaderboard;
     }
 
     public string ActiveTab { get; set; } = "total";
     public string ScoreColumnTitle { get; set; } = "תשובות נכונות";
+    public string TabHint { get; set; } = "";
     public List<LeaderboardEntry> Entries { get; set; } = new();
     public string CurrentUsername { get; set; } = "";
 
@@ -35,18 +33,19 @@ public class LeaderboardModel : PageModel
     public async Task OnGetAsync(string tab = "total")
     {
         ActiveTab = string.IsNullOrWhiteSpace(tab) ? "total" : tab;
+        if (ActiveTab == "daily") ActiveTab = "level";
         CurrentUsername = HttpContext.Session.GetString("Username") ?? "";
 
         try
         {
-            Entries = ActiveTab switch
+            var (rows, hint) = await _leaderboard.GetRowsAsync(ActiveTab);
+            TabHint = hint;
+            Entries = rows.Select(r => new LeaderboardEntry
             {
-                "rate" => await BuildSuccessRateEntriesAsync(),
-                "weekly" => BuildWeeklyEntries(),
-                "exam" => BuildExamEntries(),
-                "daily" => BuildDailyEntries(),
-                _ => await BuildTotalEntriesAsync()
-            };
+                Username = r.Username,
+                ScoreDisplay = r.ScoreDisplay,
+                IsOnline = r.IsOnline
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -58,67 +57,9 @@ public class LeaderboardModel : PageModel
         {
             "rate" => "אחוז הצלחה",
             "weekly" => "נכונות השבוע",
-            "exam" => "ציון מבחן",
-            "daily" => "נכון באתגר",
+            "exam" => "מבחנים שהושלמו",
+            "level" => "רמה",
             _ => "תשובות נכונות"
         };
-    }
-
-    private async Task<List<LeaderboardEntry>> BuildTotalEntriesAsync()
-    {
-        var users = await _authService.GetTopUsersAsync(50);
-        return users.Select(u => new LeaderboardEntry
-        {
-            Username = u.Username,
-            ScoreDisplay = u.CorrectAnswers.ToString(),
-            IsOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)
-        }).ToList();
-    }
-
-    private async Task<List<LeaderboardEntry>> BuildSuccessRateEntriesAsync()
-    {
-        var users = await _authService.GetTopUsersBySuccessRateAsync(50, 50);
-        return users.Select(u => new LeaderboardEntry
-        {
-            Username = u.Username,
-            ScoreDisplay = u.TotalAnswered > 0
-                ? $"{(int)((double)u.CorrectAnswers / u.TotalAnswered * 100)}%"
-                : "0%",
-            IsOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)
-        }).ToList();
-    }
-
-    private List<LeaderboardEntry> BuildWeeklyEntries()
-    {
-        if (_progress == null) return new List<LeaderboardEntry>();
-        return _progress.GetWeeklyLeaderboard(50).Select(r => new LeaderboardEntry
-        {
-            Username = r.Username,
-            ScoreDisplay = r.WeeklyCorrect.ToString(),
-            IsOnline = false
-        }).ToList();
-    }
-
-    private List<LeaderboardEntry> BuildExamEntries()
-    {
-        if (_progress == null) return new List<LeaderboardEntry>();
-        return _progress.GetExamLeaderboard(50).Select(r => new LeaderboardEntry
-        {
-            Username = r.Username,
-            ScoreDisplay = $"{r.BestExamScore} ({r.BestExamCorrect}/17)",
-            IsOnline = false
-        }).ToList();
-    }
-
-    private List<LeaderboardEntry> BuildDailyEntries()
-    {
-        if (_progress == null) return new List<LeaderboardEntry>();
-        var today = UserProgressService.TodayKey();
-        return _progress.GetDailyLeaderboard(today, 50).Select(r => new LeaderboardEntry
-        {
-            Username = r.Username,
-            ScoreDisplay = $"{r.Score}/10",
-            IsOnline = false
-        }).ToList();
     }
 }

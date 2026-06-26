@@ -7,8 +7,8 @@
         total: "תשובות נכונות",
         rate: "אחוז הצלחה",
         weekly: "נכונות השבוע",
-        exam: "ציון מבחן",
-        daily: "נכון באתגר"
+        exam: "מבחנים שהושלמו",
+        level: "רמה"
     };
 
     async function fetchLeaderboardData() {
@@ -18,6 +18,10 @@
             const data = await response.json();
             if (Array.isArray(data?.users)) {
                 updateLeaderboardTable(data.users, data.tab || activeTab);
+                const hintEl = document.getElementById("leaderboard-tab-hint");
+                if (hintEl && data.hint) hintEl.textContent = data.hint;
+                const emptyEl = document.getElementById("leaderboard-empty");
+                if (emptyEl) emptyEl.style.display = data.users.length === 0 ? "block" : "none";
                 window.__lastUpdateAt = Date.now();
             }
         } catch {

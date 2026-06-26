@@ -25,17 +25,31 @@
     }
     else
     {
-        <p class="quiz-meta">👤 @Model.Username — @Model.Items.Count(i => i.Unlocked) / @Model.Items.Count פתוחים</p>
-        <div class="achievements-grid">
-            @foreach (var item in Model.Items)
-            {
-                <div class="achievement-card @(item.Unlocked ? "unlocked" : "locked")">
-                    <span class="achievement-emoji">@item.Def.Emoji</span>
-                    <strong>@item.Def.Title</strong>
-                    <p>@item.Def.Description</p>
+        <p class="quiz-meta">👤 @Model.Username — @Model.UnlockedCount / @Model.TotalCount פתוחים</p>
+        @foreach (var group in Model.Groups)
+        {
+            <section class="achievement-category">
+                <h3 class="achievement-category-title">@group.Title</h3>
+                @if (group.Title == "אתגר יומי")
+                {
+                    <p class="daily-achievement-stats">
+                        רצף נוכחי: <strong>@Model.DailyStreakDays</strong> ימים
+                        · הושלמו: <strong>@Model.DailyChallengesCompleted</strong>
+                        · מושלמים 10/10: <strong>@Model.DailyPerfectCount</strong>
+                    </p>
+                }
+                <div class="achievements-grid">
+                    @foreach (var item in group.Items)
+                    {
+                        <div class="achievement-card @(item.Unlocked ? "unlocked" : "locked")">
+                            <span class="achievement-emoji">@item.Def.Emoji</span>
+                            <strong>@item.Def.Title</strong>
+                            <p>@item.Def.Description</p>
+                        </div>
+                    }
                 </div>
-            }
-        </div>
+            </section>
+        }
     }
 </div>
 

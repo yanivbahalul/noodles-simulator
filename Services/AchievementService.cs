@@ -15,26 +15,57 @@ public class AchievementService
 
     public List<string> CheckPracticeAchievements(string username, int streak, int totalAnswered, int xp)
     {
+        var data = _progress.Load(username);
         var candidates = new List<string>();
-        if (streak >= 5) candidates.Add("streak_5");
-        if (streak >= 10) candidates.Add("streak_10");
-        if (totalAnswered >= 100) candidates.Add("questions_100");
-        if (totalAnswered >= 500) candidates.Add("questions_500");
-        if (QuizGamification.LevelFromXp(xp) >= 5) candidates.Add("level_5");
+        candidates.AddRange(CollectStreakCandidates(data, streak));
+        candidates.AddRange(CollectVolumeCandidates(totalAnswered, xp));
+        candidates.AddRange(CollectWeeklyCandidates(data));
+        candidates.AddRange(CollectModeCandidates(data));
+        candidates.AddRange(CollectAccuracyCandidates(username));
         return _progress.UnlockAchievements(username, candidates);
     }
 
-    public List<string> CheckExamAchievements(string username, int correctCount, int totalQuestions, bool isFirstExam)
+    public List<string> CheckExamAchievements(string username, int correctCount, int totalQuestions, bool isFirstExam, int previousExamCorrect)
     {
+        var data = _progress.Load(username);
         var candidates = new List<string>();
-        if (isFirstExam) candidates.Add("first_exam");
-        if (correctCount >= totalQuestions && totalQuestions > 0) candidates.Add("perfect_exam");
+        candidates.AddRange(CollectExamCountCandidates(data.ExamsCompleted));
+        candidates.AddRange(CollectExamBestCandidates(data.BestExamCorrect));
+        candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
+        if (!isFirstExam)
+            candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
         return _progress.UnlockAchievements(username, candidates);
     }
 
-    public List<string> CheckDailyChallengeAchievement(string username)
+    public List<string> CheckDailyAchievements(string username)
     {
-        return _progress.UnlockAchievements(username, new[] { "daily_complete" });
+        var data = _progress.Load(username);
+        return _progress.UnlockAchievements(username, CollectDailyCandidates(data, forCompletion: true));
+    }
+
+    public List<string> CheckReviewClear(string username)
+    {
+        var data = _progress.Load(username);
+        return _progress.UnlockAchievements(username, CollectReviewCandidates(data.ReviewClearCount));
+    }
+
+    public List<string> CheckAllAchievements(string username, User user)
+    {
+        var data = _progress.Load(username);
+        var totalAnswered = user?.TotalAnswered ?? 0;
+        var candidates = new List<string>();
+        candidates.AddRange(CollectStreakCandidates(data, data.BestStreak));
+        candidates.AddRange(CollectVolumeCandidates(totalAnswered, data.Xp));
+        candidates.AddRange(CollectWeeklyCandidates(data));
+        candidates.AddRange(CollectModeCandidates(data));
+        candidates.AddRange(CollectAccuracyCandidates(username));
+        candidates.AddRange(CollectDailyCandidates(data, forCompletion: false));
+        candidates.AddRange(CollectExamCountCandidates(data.ExamsCompleted));
+        candidates.AddRange(CollectExamBestCandidates(data.BestExamCorrect));
+        candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
+        candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
+        candidates.AddRange(CollectReviewCandidates(data.ReviewClearCount));
+        return _progress.UnlockAchievements(username, candidates);
     }
 
     public List<AchievementDefinition> GetUnlocked(string username)
@@ -45,14 +76,81 @@ public class AchievementService
             .ToList();
     }
 
-    public List<AchievementDefinition> GetAllWithStatus(string username)
-    {
-        var data = _progress.Load(username);
-        return AchievementCatalog.All
-            .Select(a => a)
-            .ToList();
-    }
+    public List<AchievementDefinition> GetAllWithStatus(string username) =>
+        AchievementCatalog.All.ToList();
 
     public bool IsUnlocked(string username, string key) =>
         _progress.HasAchievement(username, key);
+
+    private static List<string> CollectStreakCandidates(UserProgressService.UserProgressData data, int streak)
+    {
+        var best = System.Math.Max(data.BestStreak, streak);
+        return ThresholdKeys(AchievementCatalogBuilder.StreakKeys, best);
+    }
+
+    private static List<string> CollectVolumeCandidates(int totalAnswered, int xp)
+    {
+        var candidates = ThresholdKeys(AchievementCatalogBuilder.QuestionKeys, totalAnswered);
+        candidates.AddRange(ThresholdKeys(AchievementCatalogBuilder.LevelKeys, QuizGamification.LevelFromXp(xp)));
+        return candidates;
+    }
+
+    private static List<string> CollectWeeklyCandidates(UserProgressService.UserProgressData data) =>
+        ThresholdKeys(AchievementCatalogBuilder.WeeklyKeys, data.WeeklyCorrect);
+
+    private static List<string> CollectModeCandidates(UserProgressService.UserProgressData data)
+    {
+        var candidates = ThresholdKeys(AchievementCatalogBuilder.HardKeys, data.HardCorrectCount);
+        candidates.AddRange(ThresholdKeys(AchievementCatalogBuilder.WeakKeys, data.WeakModeCorrectCount));
+        return candidates;
+    }
+
+    private static List<string> CollectReviewCandidates(int reviewClearCount) =>
+        ThresholdKeys(AchievementCatalogBuilder.ReviewKeys, reviewClearCount);
+
+    private List<string> CollectAccuracyCandidates(string username)
+    {
+        var (accuracy, distinct) = _progress.GetOverallAccuracyStats(username);
+        var candidates = new List<string>();
+        foreach (var tier in AchievementCatalogBuilder.AccuracyKeys)
+        {
+            if (distinct >= tier.MinQuestions && accuracy >= tier.MinAccuracy)
+                candidates.Add(tier.Key);
+        }
+        return candidates;
+    }
+
+    private static List<string> CollectDailyCandidates(UserProgressService.UserProgressData data, bool forCompletion)
+    {
+        var candidates = new List<string>();
+        if (forCompletion || data.DailyChallengesCompleted > 0)
+            candidates.AddRange(ThresholdKeys(AchievementCatalogBuilder.DailyCompletionKeys, data.DailyChallengesCompleted));
+        candidates.AddRange(ThresholdKeys(AchievementCatalogBuilder.DailyStreakKeys, data.DailyStreakDays));
+        if (forCompletion || data.DailyPerfectCount > 0)
+            candidates.AddRange(ThresholdKeys(AchievementCatalogBuilder.DailyPerfectKeys, data.DailyPerfectCount));
+        return candidates;
+    }
+
+    private static List<string> CollectExamCountCandidates(int examsCompleted) =>
+        ThresholdKeys(AchievementCatalogBuilder.ExamCountKeys, examsCompleted);
+
+    private static List<string> CollectExamBestCandidates(int bestCorrect) =>
+        ThresholdKeys(AchievementCatalogBuilder.ExamBestKeys, bestCorrect);
+
+    private static List<string> CollectPerfectExamCandidates(int perfectCount) =>
+        ThresholdKeys(AchievementCatalogBuilder.PerfectExamKeys, perfectCount);
+
+    private static List<string> CollectExamImproveCandidates(int improvement) =>
+        ThresholdKeys(AchievementCatalogBuilder.ExamImproveKeys, improvement);
+
+    private static List<string> ThresholdKeys(IReadOnlyList<(int Value, string Key)> tiers, int actual)
+    {
+        var candidates = new List<string>();
+        foreach (var tier in tiers)
+        {
+            if (actual >= tier.Value)
+                candidates.Add(tier.Key);
+        }
+        return candidates;
+    }
 }

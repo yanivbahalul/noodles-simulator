@@ -11,26 +11,59 @@ namespace NoodlesSimulator.Pages;
 public class AchievementsModel : PageModel
 {
     private readonly UserProgressService _progress;
+    private readonly AchievementService _achievements;
+    private readonly AuthService _auth;
 
-    public AchievementsModel(UserProgressService progress)
+    public AchievementsModel(UserProgressService progress, AchievementService achievements, AuthService auth)
     {
         _progress = progress;
+        _achievements = achievements;
+        _auth = auth;
     }
 
     public string Username { get; set; } = "";
-    public List<(AchievementDefinition Def, bool Unlocked)> Items { get; set; } = new();
+    public int UnlockedCount { get; set; }
+    public int TotalCount { get; set; }
+    public int DailyStreakDays { get; set; }
+    public int DailyChallengesCompleted { get; set; }
+    public int DailyPerfectCount { get; set; }
+    public List<AchievementGroup> Groups { get; set; } = new();
 
-    public Task OnGetAsync()
+    public class AchievementGroup
+    {
+        public string Title { get; set; } = "";
+        public List<(AchievementDefinition Def, bool Unlocked)> Items { get; set; } = new();
+    }
+
+    public async Task OnGetAsync()
     {
         Username = HttpContext.Session.GetString("Username") ?? "";
         if (string.IsNullOrEmpty(Username))
-            return Task.CompletedTask;
+            return;
+
+        var user = await _auth.GetUserAsync(Username);
+        if (user != null)
+            _achievements.CheckAllAchievements(Username, user);
 
         var data = _progress.Load(Username);
+        DailyStreakDays = data.DailyStreakDays;
+        DailyChallengesCompleted = data.DailyChallengesCompleted;
+        DailyPerfectCount = data.DailyPerfectCount;
         var unlocked = new HashSet<string>(data.Achievements, System.StringComparer.OrdinalIgnoreCase);
-        Items = AchievementCatalog.All
-            .Select(d => (d, unlocked.Contains(d.Key)))
+        var items = AchievementCatalog.All
+            .Select(d => (Def: d, Unlocked: unlocked.Contains(d.Key)))
             .ToList();
-        return Task.CompletedTask;
+
+        UnlockedCount = items.Count(i => i.Unlocked);
+        TotalCount = items.Count;
+
+        Groups = AchievementCatalog.CategoryTitles
+            .Select(kv => new AchievementGroup
+            {
+                Title = kv.Value,
+                Items = items.Where(i => i.Def.Category == kv.Key).ToList()
+            })
+            .Where(g => g.Items.Count > 0)
+            .ToList();
     }
 }

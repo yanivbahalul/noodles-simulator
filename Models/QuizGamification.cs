@@ -9,6 +9,10 @@ public static class QuizGamification
     public const int BaseXpPerCorrect = 10;
     public const int MediumXpPerCorrect = 15;
     public const int HardXpPerCorrect = 25;
+    public const int ExamPassThreshold = 14;
+    public const int DailyChallengeXpPerCorrect = 12;
+
+    public static int DailyChallengeCompletionXp(int score) => 20 + score * 5;
 
     public static int LevelFromXp(int xp) => Math.Max(1, (int)Math.Floor(Math.Sqrt(xp / 100.0)));
 
@@ -43,20 +47,21 @@ public class AchievementDefinition
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";
     public string Emoji { get; set; } = "🏅";
+    public string Category { get; set; } = "";
 }
 
 public static class AchievementCatalog
 {
-    public static readonly IReadOnlyList<AchievementDefinition> All = new List<AchievementDefinition>
+    public static readonly IReadOnlyList<AchievementDefinition> All = AchievementCatalogBuilder.BuildAll();
+
+    public static readonly IReadOnlyDictionary<string, string> CategoryTitles = new Dictionary<string, string>
     {
-        new() { Key = "streak_5", Title = "באש!", Description = "5 תשובות נכונות ברצף", Emoji = "🔥" },
-        new() { Key = "streak_10", Title = "לוהט!", Description = "10 תשובות נכונות ברצף", Emoji = "🔥" },
-        new() { Key = "first_exam", Title = "מבחן ראשון", Description = "השלמת מבחן ראשון", Emoji = "📝" },
-        new() { Key = "perfect_exam", Title = "מושלם!", Description = "17/17 במבחן", Emoji = "💯" },
-        new() { Key = "questions_100", Title = "מאה!", Description = "100 שאלות נענו", Emoji = "💪" },
-        new() { Key = "questions_500", Title = "מכונה!", Description = "500 שאלות נענו", Emoji = "⚡" },
-        new() { Key = "daily_complete", Title = "אתגר יומי", Description = "השלמת אתגר יומי", Emoji = "📅" },
-        new() { Key = "level_5", Title = "רמה 5", Description = "הגעת לרמה 5", Emoji = "⭐" },
+        ["streak"] = "רצף תרגול",
+        ["volume"] = "נפח ורמות",
+        ["exam"] = "מבחנים",
+        ["daily"] = "אתגר יומי",
+        ["practice"] = "שבועי ותרגול",
+        ["accuracy"] = "דיוק",
     };
 
     public static AchievementDefinition? Find(string key) =>

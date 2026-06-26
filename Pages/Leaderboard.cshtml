@@ -24,13 +24,17 @@
 <div class="quiz-container leaderboard-container">
     <h2 class="leaderboard-title">🏆 טבלת המובילים</h2>
     <div id="last-update" class="leaderboard-last-update">(מתעדכן...)</div>
+    @if (!string.IsNullOrWhiteSpace(Model.TabHint))
+    {
+        <p class="leaderboard-tab-hint" id="leaderboard-tab-hint">@Model.TabHint</p>
+    }
 
     <div class="leaderboard-tabs" id="leaderboard-tabs">
         <button type="button" class="leaderboard-tab @(tab == "total" ? "active" : "")" data-tab="total">סה"כ נכונות</button>
         <button type="button" class="leaderboard-tab @(tab == "rate" ? "active" : "")" data-tab="rate">אחוז הצלחה</button>
         <button type="button" class="leaderboard-tab @(tab == "weekly" ? "active" : "")" data-tab="weekly">שבועי</button>
         <button type="button" class="leaderboard-tab @(tab == "exam" ? "active" : "")" data-tab="exam">מבחנים</button>
-        <button type="button" class="leaderboard-tab @(tab == "daily" ? "active" : "")" data-tab="daily">אתגר יומי</button>
+        <button type="button" class="leaderboard-tab @(tab == "level" ? "active" : "")" data-tab="level">רמה</button>
     </div>
 
     <div class="leaderboard-table-shell">
@@ -63,6 +67,10 @@
             }
             </tbody>
         </table>
+        @if (Model.Entries.Count == 0)
+        {
+            <p class="leaderboard-empty" id="leaderboard-empty">אין נתונים לטאב זה עדיין.</p>
+        }
     </div>
 </div>
 

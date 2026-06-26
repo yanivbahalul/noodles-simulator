@@ -19,6 +19,9 @@ public class AuthService
     private readonly string _url;
     private readonly string _apiKey;
     private const string PasswordHashPrefix = "pbkdf2$";
+    private int _cachedOnlineCount = -1;
+    private DateTime _cachedOnlineCountAt = DateTime.MinValue;
+    private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
 
     public AuthService(IConfiguration config)
     {
@@ -45,6 +48,9 @@ public class AuthService
             {
                 return null;
             }
+
+            username = username.Trim();
+            password = password.Trim();
 
             var user = await GetUserAsync(username);
             if (user == null || string.IsNullOrWhiteSpace(user.Password))
@@ -128,11 +134,31 @@ public class AuthService
     {
         try
         {
-            var safeUsername = Uri.EscapeDataString(username);
+            if (string.IsNullOrWhiteSpace(username))
+                return null;
+
+            var trimmed = username.Trim();
+            var safeUsername = Uri.EscapeDataString(trimmed);
+
             var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{safeUsername}&select=*");
             var json = await res.Content.ReadAsStringAsync();
-            var users = JsonSerializer.Deserialize<List<User>>(json);
-            return users?.FirstOrDefault();
+            if (res.IsSuccessStatusCode)
+            {
+                var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options);
+                var exact = users?.FirstOrDefault();
+                if (exact != null)
+                    return exact;
+            }
+
+            var ilikeRes = await _client.GetAsync(
+                $"{_url}/rest/v1/users?Username=ilike.{safeUsername}&select=*&limit=5");
+            var ilikeJson = await ilikeRes.Content.ReadAsStringAsync();
+            if (!ilikeRes.IsSuccessStatusCode)
+                return null;
+
+            var matches = JsonSerializer.Deserialize<List<User>>(ilikeJson, AppJson.Options);
+            return matches?.FirstOrDefault(u =>
+                string.Equals(u.Username, trimmed, StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception ex)
         {
@@ -184,36 +210,57 @@ public class AuthService
         }
     }
 
+    public static bool UserIsOnline(User? user, int withinMinutes = 5)
+    {
+        if (user?.LastSeen is not DateTime seen) return false;
+
+        var lastSeenUtc = seen.Kind switch
+        {
+            DateTimeKind.Utc => seen,
+            DateTimeKind.Local => seen.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(seen, DateTimeKind.Utc)
+        };
+
+        return lastSeenUtc > DateTime.UtcNow.AddMinutes(-withinMinutes);
+    }
+
     public async Task<int> GetOnlineUserCountAsync()
     {
+        if (_cachedOnlineCount >= 0 && DateTime.UtcNow - _cachedOnlineCountAt < OnlineCountCacheTtl)
+            return _cachedOnlineCount;
+
         try
         {
-            var threshold = DateTime.UtcNow.AddMinutes(-5).ToString("o");
-            var candidateColumns = new[] { "LastSeen", "last_seen" };
+            var threshold = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd'T'HH:mm:ss");
+            var safeThreshold = Uri.EscapeDataString(threshold);
+            var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{_url}/rest/v1/users?LastSeen=gte.{safeThreshold}&IsBanned=eq.false&IsCheater=eq.false&select=Username");
+            request.Headers.Add("Prefer", "count=exact");
 
-            foreach (var col in candidateColumns)
+            var res = await _client.SendAsync(request);
+            if (res.IsSuccessStatusCode &&
+                res.Headers.TryGetValues("Content-Range", out var ranges))
             {
-                var res = await _client.GetAsync($"{_url}/rest/v1/users?select={Uri.EscapeDataString(col)}&{Uri.EscapeDataString(col)}=gt.{Uri.EscapeDataString(threshold)}");
-                var json = await res.Content.ReadAsStringAsync();
-                if (!res.IsSuccessStatusCode)
+                var range = ranges.FirstOrDefault();
+                var slash = range?.LastIndexOf('/') ?? -1;
+                if (slash >= 0 && int.TryParse(range![(slash + 1)..], out var count))
                 {
-                    Console.WriteLine($"[GetOnlineUserCountAsync] query with '{col}' failed: {res.StatusCode} | {json}");
-                    continue;
-                }
-
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.ValueKind == JsonValueKind.Array)
-                {
-                    return doc.RootElement.GetArrayLength();
+                    _cachedOnlineCount = count;
+                    _cachedOnlineCountAt = DateTime.UtcNow;
+                    return count;
                 }
             }
 
-            return 0;
+            var users = await GetAllUsersLightAsync();
+            var fallback = users.Count(u => UserIsOnline(u));
+            _cachedOnlineCount = fallback;
+            _cachedOnlineCountAt = DateTime.UtcNow;
+            return fallback;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GetOnlineUserCountAsync Exception] {ex}");
-            return 0;
+            return _cachedOnlineCount >= 0 ? _cachedOnlineCount : 0;
         }
     }
 
@@ -323,7 +370,7 @@ public class AuthService
         {
             var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&order=CorrectAnswers.desc&limit={count}");
             var json = await res.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+            return JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
         }
         catch (Exception ex)
         {
@@ -332,13 +379,13 @@ public class AuthService
         }
     }
 
-    public async Task<List<User>> GetTopUsersBySuccessRateAsync(int count = 50, int minAnswered = 50)
+    public async Task<List<User>> GetTopUsersBySuccessRateAsync(int count = 50, int minAnswered = 10)
     {
         try
         {
             var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit=500");
             var json = await res.Content.ReadAsStringAsync();
-            var users = JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+            var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
             return users
                 .Where(u => u.TotalAnswered >= minAnswered)
                 .OrderByDescending(u => (double)u.CorrectAnswers / u.TotalAnswered)
@@ -388,15 +435,87 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect&limit=1000");
             var json = await res.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<List<User>>(json) ?? new List<User>();
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[GetAllUsersLightAsync] extended select failed: {res.StatusCode}, falling back");
+                res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered&limit=1000");
+                json = await res.Content.ReadAsStringAsync();
+            }
+            return JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GetAllUsersLightAsync Exception] {ex}");
             return new List<User>();
         }
+    }
+
+    public async Task<bool> SyncLeaderboardStatsAsync(string username, int weeklyCorrect, string weekKey, int dailyCorrect, string dayKey, int dailyChallengeScore, string dailyChallengeDate, int bestExamScore, int bestExamCorrect)
+    {
+        try
+        {
+            var patch = new Dictionary<string, object>
+            {
+                ["WeeklyCorrect"] = weeklyCorrect,
+                ["WeekKey"] = weekKey ?? "",
+                ["DailyCorrect"] = dailyCorrect,
+                ["DayKey"] = dayKey ?? "",
+                ["DailyChallengeScore"] = dailyChallengeScore,
+                ["DailyChallengeDate"] = dailyChallengeDate ?? "",
+                ["BestExamScore"] = bestExamScore,
+                ["BestExamCorrect"] = bestExamCorrect
+            };
+            var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
+            var safeUsername = Uri.EscapeDataString(username);
+            var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{safeUsername}")
+            {
+                Content = content
+            };
+            request.Headers.Add("Prefer", "return=minimal");
+            var response = await _client.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[SyncLeaderboardStatsAsync] PATCH failed for {username}: {response.StatusCode} | {body}");
+            }
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SyncLeaderboardStatsAsync Exception] {ex}");
+            return false;
+        }
+    }
+
+    public List<User> GetWeeklyLeaderboardFromUsers(IEnumerable<User> users, int limit = 50)
+    {
+        var weekKey = Services.UserProgressService.GetWeekKey();
+        return users
+            .Where(u => !u.IsBanned && !u.IsCheater && u.WeekKey == weekKey && u.WeeklyCorrect > 0)
+            .OrderByDescending(u => u.WeeklyCorrect)
+            .Take(limit)
+            .ToList();
+    }
+
+    public List<User> GetDailyLeaderboardFromUsers(IEnumerable<User> users, string date, int limit = 50)
+    {
+        return users
+            .Where(u => !u.IsBanned && !u.IsCheater && u.DayKey == date && u.DailyCorrect > 0)
+            .OrderByDescending(u => u.DailyCorrect)
+            .Take(limit)
+            .ToList();
+    }
+
+    public List<User> GetExamLeaderboardFromUsers(IEnumerable<User> users, int limit = 50)
+    {
+        return users
+            .Where(u => !u.IsBanned && !u.IsCheater && u.BestExamScore > 0)
+            .OrderByDescending(u => u.BestExamScore)
+            .ThenByDescending(u => u.BestExamCorrect)
+            .Take(limit)
+            .ToList();
     }
 
     private static bool IsHashedPassword(string storedPassword)

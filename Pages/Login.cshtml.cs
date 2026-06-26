@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
+using NoodlesSimulator.Services;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System;
@@ -26,12 +27,14 @@ public class LoginModel : PageModel
         private const int MaxFailuresBeforeBlock = 8;
 
         private readonly AuthService _authService;
+        private readonly RememberMeService _rememberMe;
         private readonly ILogger<LoginModel> _logger;
         private readonly IConfiguration _configuration;
 
-        public LoginModel(AuthService authService, ILogger<LoginModel> logger, IConfiguration configuration)
+        public LoginModel(AuthService authService, RememberMeService rememberMe, ILogger<LoginModel> logger, IConfiguration configuration)
         {
             _authService = authService;
+            _rememberMe = rememberMe;
             _logger = logger;
             _configuration = configuration;
         }
@@ -44,7 +47,21 @@ public class LoginModel : PageModel
 
         public string ErrorMessage { get; set; }
 
-        public void OnGet() { }
+        public IActionResult OnGet()
+        {
+            if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Username")))
+                return RedirectToPage("/Index");
+
+            var restored = _rememberMe.TryRead(Request);
+            if (restored != null)
+            {
+                HttpContext.Session.SetString("Username", restored.Value.Username);
+                HttpContext.Session.SetString("IsAdmin", restored.Value.IsAdmin ? "1" : "0");
+                return RedirectToPage("/Index");
+            }
+
+            return Page();
+        }
 
         private string GetAttemptKey()
         {
@@ -112,14 +129,39 @@ public class LoginModel : PageModel
         private void RotateSessionForLogin()
         {
             HttpContext.Session.Clear();
-            Response.Cookies.Delete(".Noodles.Session.v2");
-            Response.Cookies.Delete(".Noodles.Session.v3");
+            RememberMeService.ClearAuthCookies(Response);
+        }
+
+        private async Task<IActionResult> CompleteLoginAsync(User user)
+        {
+            _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
+
+            RotateSessionForLogin();
+            var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);
+            HttpContext.Session.SetString("Username", user.Username);
+            HttpContext.Session.SetString("IsAdmin", isAdminUser ? "1" : "0");
+            _rememberMe.Set(HttpContext, user.Username, isAdminUser);
+            await HttpContext.Session.CommitAsync();
+            return RedirectToPage("/Index");
+        }
+
+        private async Task<IActionResult> CompleteRegistrationAsync(string username)
+        {
+            RotateSessionForLogin();
+            HttpContext.Session.SetString("Username", username);
+            HttpContext.Session.SetString("IsAdmin", "0");
+            _rememberMe.Set(HttpContext, username, false);
+            await HttpContext.Session.CommitAsync();
+            return RedirectToPage("/Index");
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
             try
             {
+                Username = Username?.Trim();
+                Password = Password?.Trim();
+
                 var action = Request.Form["action"];
                 var attemptKey = GetAttemptKey();
 
@@ -161,19 +203,8 @@ public class LoginModel : PageModel
 
                         try
                         {
-                            _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
-
-                            RotateSessionForLogin();
-                            var isAdminUser = user.IsAdmin || string.Equals(user.Username, "Admin", StringComparison.OrdinalIgnoreCase);
-                            HttpContext.Session.SetString("Username", user.Username);
-                            HttpContext.Session.SetString("IsAdmin", isAdminUser ? "1" : "0");
-                            Response.Cookies.Append("Username", user.Username, new CookieOptions
-                            {
-                                HttpOnly = true,
-                                Secure = true,
-                                SameSite = SameSiteMode.Lax,
-                                MaxAge = TimeSpan.FromHours(1)
-                            });
+                            RecordSuccess(attemptKey);
+                            return await CompleteLoginAsync(user);
                         }
                         catch (Exception ex)
                         {
@@ -181,9 +212,6 @@ public class LoginModel : PageModel
                             ErrorMessage = "שגיאה בשמירת הפרטים. נסה שוב.";
                             return Page();
                         }
-
-                        RecordSuccess(attemptKey);
-                        return RedirectToPage("/Index");
                     }
 
                     RecordFailure(attemptKey);
@@ -253,16 +281,8 @@ public class LoginModel : PageModel
                     {
                         try
                         {
-                            RotateSessionForLogin();
-                            HttpContext.Session.SetString("Username", Username);
-                            HttpContext.Session.SetString("IsAdmin", "0");
-                            Response.Cookies.Append("Username", Username, new CookieOptions
-                            {
-                                HttpOnly = true,
-                                Secure = true,
-                                SameSite = SameSiteMode.Lax,
-                                MaxAge = TimeSpan.FromHours(1)
-                            });
+                            RecordSuccess(attemptKey);
+                            return await CompleteRegistrationAsync(Username);
                         }
                         catch (Exception ex)
                         {
@@ -270,9 +290,6 @@ public class LoginModel : PageModel
                             ErrorMessage = "ההרשמה הצליחה אך יש שגיאה בשמירת הפרטים. נסה להתחבר שוב.";
                             return Page();
                         }
-
-                        RecordSuccess(attemptKey);
-                        return RedirectToPage("/Index");
                     }
 
                     RecordFailure(attemptKey);
@@ -290,4 +307,4 @@ public class LoginModel : PageModel
                 return Page();
             }
         }
-}
+    }

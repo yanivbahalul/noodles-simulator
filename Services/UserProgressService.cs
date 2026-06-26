@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -11,6 +12,8 @@ namespace NoodlesSimulator.Services;
 public class UserProgressService
 {
     private readonly string _progressDir;
+    private readonly AuthService _auth;
+    private readonly UserProgressStore _store;
     private readonly object _lock = new();
 
     public class UserQuestionStat
@@ -28,18 +31,32 @@ public class UserProgressService
         public int Xp { get; set; }
         public int BestStreak { get; set; }
         public List<string> SessionMistakes { get; set; } = new();
-        public int WeeklyCorrect { get; set; }
-        public string WeekKey { get; set; } = "";
+    public int WeeklyCorrect { get; set; }
+    public string WeekKey { get; set; } = "";
+    public int DailyCorrect { get; set; }
+    public string DayKey { get; set; } = "";
         public int DailyChallengeScore { get; set; }
         public string DailyChallengeDate { get; set; } = "";
+        public int DailyChallengesCompleted { get; set; }
+        public int DailyPerfectCount { get; set; }
+        public int DailyStreakDays { get; set; }
+        public string LastDailyCompleteDate { get; set; } = "";
         public int ExamsCompleted { get; set; }
         public int BestExamScore { get; set; }
         public int BestExamCorrect { get; set; }
+        public int HardCorrectCount { get; set; }
+        public int WeakModeCorrectCount { get; set; }
+        public int LastExamCorrect { get; set; }
+        public int PerfectExamsCount { get; set; }
+        public int MaxExamImprovement { get; set; }
+        public int ReviewClearCount { get; set; }
     }
 
-    public UserProgressService(string progressDir)
+    public UserProgressService(string progressDir, AuthService auth = null, UserProgressStore store = null)
     {
         _progressDir = progressDir;
+        _auth = auth;
+        _store = store;
         Directory.CreateDirectory(_progressDir);
     }
 
@@ -54,34 +71,92 @@ public class UserProgressService
         lock (_lock)
         {
             var path = PathFor(username);
-            if (!File.Exists(path))
-                return new UserProgressData { WeekKey = GetWeekKey() };
+            if (File.Exists(path))
+            {
+                try
+                {
+                    var json = File.ReadAllText(path, Encoding.UTF8);
+                    var localData = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+                    if (localData != null)
+                    {
+                        EnsureWeek(localData);
+                        EnsureDay(localData);
+                        return localData;
+                    }
+                }
+                catch
+                {
+                    /* fall through */
+                }
+            }
 
-            try
+            UserProgressData data = null;
+            if (_store?.IsEnabled == true)
             {
-                var json = File.ReadAllText(path, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options) ?? new UserProgressData();
-                EnsureWeek(data);
-                return data;
+                var (fromDb, _) = _store.TryLoadWithMeta(username);
+                if (fromDb != null)
+                {
+                    var dbAchievementKeys = _store.TryLoadAchievementKeys(username);
+                    UserProgressStore.MergeAchievementKeys(fromDb, dbAchievementKeys);
+                    data = CloneProgress(fromDb);
+                }
             }
-            catch
-            {
-                return new UserProgressData { WeekKey = GetWeekKey() };
-            }
+
+            data ??= new UserProgressData { WeekKey = GetWeekKey() };
+            EnsureWeek(data);
+            EnsureDay(data);
+            WriteFile(username, data);
+            return data;
         }
+    }
+
+    private static UserProgressData CloneProgress(UserProgressData source)
+    {
+        if (source == null) return null;
+        var json = JsonSerializer.Serialize(source, AppJson.Options);
+        return JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+    }
+
+    private void WriteFile(string username, UserProgressData data)
+    {
+        var path = PathFor(username);
+        var tmp = path + ".tmp";
+        var json = JsonSerializer.Serialize(data, AppJson.Options);
+        File.WriteAllText(tmp, json, Encoding.UTF8);
+        File.Copy(tmp, path, overwrite: true);
+        File.Delete(tmp);
     }
 
     private void Save(string username, UserProgressData data)
     {
         lock (_lock)
         {
-            var path = PathFor(username);
-            var tmp = path + ".tmp";
-            var json = JsonSerializer.Serialize(data, AppJson.Options);
-            File.WriteAllText(tmp, json, Encoding.UTF8);
-            File.Copy(tmp, path, overwrite: true);
-            File.Delete(tmp);
+            WriteFile(username, data);
         }
+        _ = Task.Run(() =>
+        {
+            try { _store?.Save(username, data); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserProgressService] Supabase save failed for {username}: {ex.Message}");
+            }
+        });
+        QueueDbSync(username, data);
+    }
+
+    private void QueueDbSync(string username, UserProgressData data)
+    {
+        if (_auth == null || string.IsNullOrWhiteSpace(username)) return;
+        _ = _auth.SyncLeaderboardStatsAsync(
+            username,
+            data.WeeklyCorrect,
+            data.WeekKey,
+            data.DailyCorrect,
+            data.DayKey,
+            data.DailyChallengeScore,
+            data.DailyChallengeDate,
+            data.BestExamScore,
+            data.BestExamCorrect);
     }
 
     public void RecordAnswer(string username, string questionId, bool isCorrect, int xpGained)
@@ -89,6 +164,7 @@ public class UserProgressService
         if (string.IsNullOrWhiteSpace(username)) return;
         var data = Load(username);
         EnsureWeek(data);
+        EnsureDay(data);
 
         if (!string.IsNullOrWhiteSpace(questionId))
         {
@@ -109,16 +185,28 @@ public class UserProgressService
         if (isCorrect)
         {
             data.WeeklyCorrect++;
+            data.DailyCorrect++;
             data.Xp += Math.Max(0, xpGained);
         }
 
         Save(username, data);
     }
 
-    public void RecordExamComplete(string username, int correctCount, int totalQuestions, int score)
+    public int RecordExamComplete(string username, int correctCount, int totalQuestions, int score)
     {
         var data = Load(username);
+        var previousExamCorrect = data.LastExamCorrect;
+        var hadPreviousExam = data.ExamsCompleted > 0;
         data.ExamsCompleted++;
+        if (correctCount == totalQuestions && totalQuestions > 0)
+            data.PerfectExamsCount++;
+        if (hadPreviousExam)
+        {
+            var improvement = correctCount - previousExamCorrect;
+            if (improvement > data.MaxExamImprovement)
+                data.MaxExamImprovement = improvement;
+        }
+        data.LastExamCorrect = correctCount;
         if (correctCount > data.BestExamCorrect)
         {
             data.BestExamCorrect = correctCount;
@@ -126,12 +214,13 @@ public class UserProgressService
         }
         data.Xp += score;
         Save(username, data);
+        return previousExamCorrect;
     }
 
     public void RecordDailyChallengeAnswer(string username, bool isCorrect)
     {
         var data = Load(username);
-        var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var today = TodayKey();
         if (data.DailyChallengeDate != today)
         {
             data.DailyChallengeDate = today;
@@ -139,6 +228,72 @@ public class UserProgressService
         }
         if (isCorrect) data.DailyChallengeScore++;
         Save(username, data);
+    }
+
+    public void RecordDailyChallengeComplete(string username, bool isPerfect)
+    {
+        var data = Load(username);
+        var today = TodayKey();
+        var yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
+        if (data.LastDailyCompleteDate == today)
+            return;
+
+        if (data.LastDailyCompleteDate == yesterday)
+            data.DailyStreakDays++;
+        else
+            data.DailyStreakDays = 1;
+
+        data.LastDailyCompleteDate = today;
+        data.DailyChallengesCompleted++;
+        if (isPerfect)
+            data.DailyPerfectCount++;
+
+        data.Xp += QuizGamification.DailyChallengeCompletionXp(data.DailyChallengeScore);
+        Save(username, data);
+    }
+
+    public void IncrementReviewClear(string username)
+    {
+        var data = Load(username);
+        data.ReviewClearCount++;
+        Save(username, data);
+    }
+
+    public void IncrementWeakCorrect(string username)
+    {
+        var data = Load(username);
+        data.WeakModeCorrectCount++;
+        Save(username, data);
+    }
+
+    public void IncrementHardCorrect(string username)
+    {
+        var data = Load(username);
+        data.HardCorrectCount++;
+        Save(username, data);
+    }
+
+    public bool RemoveSessionMistake(string username, string questionId)
+    {
+        if (string.IsNullOrWhiteSpace(questionId)) return false;
+        var data = Load(username);
+        var hadMistakes = data.SessionMistakes.Count > 0;
+        data.SessionMistakes.RemoveAll(q => string.Equals(q, questionId, StringComparison.OrdinalIgnoreCase));
+        var cleared = hadMistakes && data.SessionMistakes.Count == 0;
+        Save(username, data);
+        return cleared;
+    }
+
+    public (double Accuracy, int DistinctQuestions) GetOverallAccuracyStats(string username)
+    {
+        var data = Load(username);
+        var stats = data.QuestionStats.Values.Where(s => s.Attempts > 0).ToList();
+        var distinct = stats.Count;
+        if (distinct == 0) return (0, 0);
+        var totalAttempts = stats.Sum(s => s.Attempts);
+        var totalCorrect = stats.Sum(s => s.Correct);
+        if (totalAttempts == 0) return (0, distinct);
+        return (totalCorrect / (double)totalAttempts, distinct);
     }
 
     public void ClearSessionMistakes(string username)
@@ -226,6 +381,28 @@ public class UserProgressService
         }
     }
 
+    public Dictionary<string, int> GetXpByUsername()
+    {
+        var results = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (!Directory.Exists(_progressDir)) return results;
+
+        foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
+        {
+            try
+            {
+                var json = File.ReadAllText(file, Encoding.UTF8);
+                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+                if (data == null || data.Xp <= 0) continue;
+                var username = System.IO.Path.GetFileNameWithoutExtension(file);
+                if (!results.ContainsKey(username) || data.Xp > results[username])
+                    results[username] = data.Xp;
+            }
+            catch { /* skip */ }
+        }
+
+        return results;
+    }
+
     public List<(string Username, int Score)> GetDailyLeaderboard(string date, int limit = 50)
     {
         var results = new List<(string, int)>();
@@ -237,10 +414,10 @@ public class UserProgressService
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data?.DailyChallengeDate == date && data.DailyChallengeScore > 0)
+                if (data?.DayKey == date && data.DailyCorrect > 0)
                 {
                     var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                    results.Add((username, data.DailyChallengeScore));
+                    results.Add((username, data.DailyCorrect));
                 }
             }
             catch { /* skip */ }
@@ -273,9 +450,9 @@ public class UserProgressService
         return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
     }
 
-    public List<(string Username, int BestExamScore, int BestExamCorrect)> GetExamLeaderboard(int limit = 50)
+    public List<(string Username, int ExamCount)> GetExamCountLeaderboard(int limit = 50)
     {
-        var results = new List<(string, int, int)>();
+        var results = new List<(string, int)>();
         if (!Directory.Exists(_progressDir)) return results;
 
         foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
@@ -284,20 +461,26 @@ public class UserProgressService
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data != null && data.BestExamScore > 0)
+                if (data != null && data.ExamsCompleted > 0)
                 {
                     var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                    results.Add((username, data.BestExamScore, data.BestExamCorrect));
+                    results.Add((username, data.ExamsCompleted));
                 }
             }
             catch { /* skip */ }
         }
 
-        return results
-            .OrderByDescending(r => r.Item2)
-            .ThenByDescending(r => r.Item3)
-            .Take(limit)
-            .ToList();
+        return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
+    }
+
+    private static void EnsureDay(UserProgressData data)
+    {
+        var dayKey = TodayKey();
+        if (data.DayKey != dayKey)
+        {
+            data.DayKey = dayKey;
+            data.DailyCorrect = 0;
+        }
     }
 
     private static void EnsureWeek(UserProgressData data)

@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NoodlesSimulator.Models;
+using NoodlesSimulator.Middleware;
 using NoodlesSimulator.Services;
 
 static void LoadDotEnv(string path = ".env")
@@ -74,8 +75,8 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = isProd ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
-    options.IdleTimeout = TimeSpan.FromHours(1);
-    options.Cookie.MaxAge = TimeSpan.FromHours(1);
+    options.IdleTimeout = TimeSpan.FromHours(12);
+    options.Cookie.MaxAge = RememberMeService.Duration;
 });
 
 var dataProtectionPath = isProd
@@ -113,8 +114,15 @@ builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
-builder.Services.AddSingleton(new UserProgressService(progressDir));
+builder.Services.AddSingleton<RememberMeService>();
+builder.Services.AddSingleton<UserProgressStore>();
+builder.Services.AddSingleton<UserProgressService>(sp =>
+    new UserProgressService(
+        progressDir,
+        sp.GetRequiredService<AuthService>(),
+        sp.GetService<UserProgressStore>()));
 builder.Services.AddSingleton<AchievementService>();
+builder.Services.AddSingleton<LeaderboardDataService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
@@ -235,6 +243,7 @@ app.Use(async (context, next) =>
 });
 app.UseCookiePolicy();
 app.UseSession();
+app.UseMiddleware<SessionRestoreMiddleware>();
 app.UseAuthorization();
 app.MapRazorPages();
 
@@ -249,9 +258,7 @@ app.MapPost("/clear-session", async context =>
         }
 
         context.Session.Clear();
-        context.Response.Cookies.Delete("Username");
-        context.Response.Cookies.Delete(".Noodles.Session.v2");
-        context.Response.Cookies.Delete(".Noodles.Session.v3");
+        RememberMeService.Clear(context.Response);
         context.Response.StatusCode = 200;
         await context.Response.CompleteAsync();
     }
@@ -385,7 +392,7 @@ api.MapGet("/dashboard-data", async context =>
         }
 
         var allUsers = await authService.GetAllUsersLightAsync();
-        var onlineUsers = allUsers.Where(u => u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5)).ToList();
+        var onlineUsers = allUsers.Where(AuthService.UserIsOnline).ToList();
         var cheaters = allUsers.Where(u => u.IsCheater).ToList();
         var bannedUsers = allUsers.Where(u => u.IsBanned).ToList();
         var topUsers = allUsers.OrderByDescending(u => u.CorrectAnswers).Take(5).ToList();
@@ -428,9 +435,10 @@ api.MapGet("/leaderboard-data", async context =>
 {
     try
     {
-        if (!TryResolveAuthService(context, out var authService))
+        var leaderboard = context.RequestServices.GetService<LeaderboardDataService>();
+        if (leaderboard == null)
         {
-            await WritePlainError(context, 503, "AuthService not available");
+            await WritePlainError(context, 503, "Leaderboard service not available");
             return;
         }
 
@@ -438,80 +446,22 @@ api.MapGet("/leaderboard-data", async context =>
         var tab = context.Request.Query["tab"].ToString();
         if (string.IsNullOrWhiteSpace(tab)) tab = "total";
 
-        var progressService = context.RequestServices.GetService<UserProgressService>();
-
-        List<object> data;
-
-        switch (tab)
+        var (rows, hint) = await leaderboard.GetRowsAsync(tab);
+        var data = rows.Select((u, index) => new
         {
-            case "rate":
-                var rateUsers = await authService.GetTopUsersBySuccessRateAsync(50, 50);
-                data = rateUsers.Select((u, index) => new
-                {
-                    rank = index + 1,
-                    username = u.Username ?? "",
-                    scoreDisplay = u.TotalAnswered > 0 ? $"{(int)((double)u.CorrectAnswers / u.TotalAnswered * 100)}%" : "0%",
-                    correctAnswers = u.CorrectAnswers,
-                    isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
-                    isCurrentUser = u.Username == currentUsername
-                }).Cast<object>().ToList();
-                break;
-            case "weekly" when progressService != null:
-                data = progressService.GetWeeklyLeaderboard(50).Select((r, index) => new
-                {
-                    rank = index + 1,
-                    username = r.Username,
-                    scoreDisplay = r.WeeklyCorrect.ToString(),
-                    correctAnswers = r.WeeklyCorrect,
-                    isOnline = false,
-                    isCurrentUser = r.Username == currentUsername
-                }).Cast<object>().ToList();
-                break;
-            case "exam" when progressService != null:
-                data = progressService.GetExamLeaderboard(50).Select((r, index) => new
-                {
-                    rank = index + 1,
-                    username = r.Username,
-                    scoreDisplay = $"{r.BestExamScore} ({r.BestExamCorrect}/17)",
-                    correctAnswers = r.BestExamScore,
-                    isOnline = false,
-                    isCurrentUser = r.Username == currentUsername
-                }).Cast<object>().ToList();
-                break;
-            case "daily" when progressService != null:
-                var today = UserProgressService.TodayKey();
-                data = progressService.GetDailyLeaderboard(today, 50).Select((r, index) => new
-                {
-                    rank = index + 1,
-                    username = r.Username,
-                    scoreDisplay = $"{r.Score}/10",
-                    correctAnswers = r.Score,
-                    isOnline = false,
-                    isCurrentUser = r.Username == currentUsername
-                }).Cast<object>().ToList();
-                break;
-            default:
-                var topUsers = await authService.GetTopUsersAsync(50);
-                if (topUsers == null) topUsers = new List<User>();
-                data = topUsers.Select((u, index) => new
-                {
-                    rank = index + 1,
-                    username = u.Username ?? "",
-                    scoreDisplay = u.CorrectAnswers.ToString(),
-                    totalAnswered = u.TotalAnswered,
-                    correctAnswers = u.CorrectAnswers,
-                    successRate = u.TotalAnswered > 0 ? Math.Round((double)u.CorrectAnswers / u.TotalAnswered * 100, 1) : 0,
-                    isOnline = u.LastSeen != null && u.LastSeen > DateTime.UtcNow.AddMinutes(-5),
-                    isCurrentUser = u.Username == currentUsername
-                }).Cast<object>().ToList();
-                tab = "total";
-                break;
-        }
+            rank = index + 1,
+            username = u.Username ?? "",
+            scoreDisplay = u.ScoreDisplay,
+            correctAnswers = u.ScoreDisplay,
+            isOnline = u.IsOnline,
+            isCurrentUser = u.Username == currentUsername
+        }).Cast<object>().ToList();
 
         var response = new
         {
             users = data,
             tab,
+            hint,
             currentUsername,
             timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
         };
@@ -631,6 +581,23 @@ if (!File.Exists(reportsJson))
 
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);
+
+_ = Task.Run(async () =>
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var storage = scope.ServiceProvider.GetService<SupabaseStorageService>();
+        if (storage == null) return;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await storage.ListFilesAsync("");
+        Console.WriteLine($"[Startup] Storage file list warmed ({sw.ElapsedMilliseconds}ms)");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Storage warmup failed: {ex.Message}");
+    }
+});
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 app.Urls.Add($"http://*:{port}");

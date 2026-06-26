@@ -17,7 +17,7 @@ public class SupabaseStorageService
     private bool _initialized;
     private List<string> _listCache;
     private DateTime _listCacheAt;
-    private readonly TimeSpan _listTtl = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _listTtl = TimeSpan.FromMinutes(30);
     private readonly ConcurrentDictionary<string, (string url, DateTime cachedAt)> _signedUrlCache = new();
     private readonly TimeSpan _signedUrlTtl;
 

@@ -309,5 +309,46 @@ public class TestSessionService
             var remaining = end - DateTime.UtcNow;
             return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
         }
-}
+
+        public async Task<List<(string Username, int ExamCount)>> GetExamCountLeaderboardAsync(int limit = 50)
+        {
+            try
+            {
+                var res = await _client.GetAsync(
+                    $"{_url}/rest/v1/test_sessions?Status=eq.completed&select=Username&limit=5000");
+                if (!res.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[GetExamCountLeaderboardAsync] Error: {res.StatusCode}");
+                    return new List<(string, int)>();
+                }
+
+                var json = await res.Content.ReadAsStringAsync();
+                var sessions = JsonSerializer.Deserialize<List<TestSession>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<TestSession>();
+
+                var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var session in sessions)
+                {
+                    if (string.IsNullOrWhiteSpace(session.Username)) continue;
+                    if (!counts.ContainsKey(session.Username))
+                        counts[session.Username] = 0;
+                    counts[session.Username]++;
+                }
+
+                return counts
+                    .OrderByDescending(kv => kv.Value)
+                    .ThenBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(limit)
+                    .Select(kv => (kv.Key, kv.Value))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetExamCountLeaderboardAsync Exception] {ex}");
+                return new List<(string, int)>();
+            }
+        }
+    }
 

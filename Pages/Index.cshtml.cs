@@ -28,6 +28,9 @@ public class IndexModel : PageModel
     private static List<string> _localImagesCache;
     private static DateTime _localImagesCachedAt;
     private static readonly TimeSpan _localImagesTtl = TimeSpan.FromMinutes(2);
+    private static List<List<string>> _storageGroupsCache;
+    private static DateTime _storageGroupsCachedAt;
+    private static readonly TimeSpan _storageGroupsTtl = TimeSpan.FromMinutes(30);
     // Prevent the same question (first image in a group of 5) from showing >3 times/hour
     private static readonly object _questionRateLock = new object();
     private static readonly Dictionary<string, List<DateTime>> _questionShownTimes = new Dictionary<string, List<DateTime>>();
@@ -91,7 +94,6 @@ public class IndexModel : PageModel
     public string QuestionImage { get; set; }
     public Dictionary<string, string> ShuffledAnswers { get; set; }
     public string Username { get; set; }
-    public string ConnectionStatus { get; set; }
     public int OnlineCount { get; set; }
     public bool ShowExamFixNotice { get; set; }
 
@@ -123,17 +125,7 @@ public class IndexModel : PageModel
         {
             Username = HttpContext.Session.GetString("Username");
             if (string.IsNullOrEmpty(Username))
-            {
-                HttpContext.Session.Clear();
-                Response.Cookies.Delete(".Noodles.Session");
-                Response.Cookies.Delete("Username");
                 return RedirectToPage("/Login");
-            }
-
-            var isUp = false;
-            try { isUp = await _authService.CheckConnectionAsync(); }
-            catch (Exception ex) { Console.WriteLine($"[OnGetAsync CheckConnectionAsync Error] {ex.Message}"); }
-            ConnectionStatus = isUp ? "Supabase connection OK" : "Supabase connection FAILED";
 
             if (HttpContext.Session.GetString("SessionStart") == null)
             {
@@ -142,28 +134,29 @@ public class IndexModel : PageModel
                 HttpContext.Session.SetInt32("RapidCorrect", 0);
             }
 
+            var userTask = _authService.GetUserAsync(Username);
+            var onlineTask = _authService.GetOnlineUserCountAsync();
+            await Task.WhenAll(userTask, onlineTask);
+
             User user = null;
-            try { user = await _authService.GetUserAsync(Username); }
+            try { user = await userTask; }
             catch (Exception ex) { Console.WriteLine($"[OnGetAsync GetUserAsync Error] {ex.Message}"); }
+
+            try { OnlineCount = await onlineTask; }
+            catch (HttpRequestException ex) { Console.WriteLine($"[OnGetAsync GetOnlineUserCount Error] {ex.Message}"); OnlineCount = 0; }
+
             if (user != null)
             {
                 if (user.IsBanned)
                 {
                     HttpContext.Session.Clear();
-                    Response.Cookies.Delete("Username");
+                    RememberMeService.Clear(Response);
                     return RedirectToPage("/Login");
                 }
-                try { await _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow); } catch (Exception ex) { Console.WriteLine($"[OnGetAsync UpdateLastSeen Error] {ex.Message}"); }
+                _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
                 ShowExamFixNotice = !_authService.HasDismissedNotice(user, AppNotices.ExamFix);
             }
 
-            try
-            {
-                OnlineCount = await _authService.GetOnlineUserCountAsync();
-            }
-            catch (HttpRequestException ex) { Console.WriteLine($"[OnGetAsync GetOnlineUserCount Error] {ex.Message}"); OnlineCount = 0; }
-
-            // Preload next question faster
             ApplyPracticeQueryParams();
             await PopulateUserStatsAsync(user);
             LoadPendingAchievements();
@@ -172,9 +165,6 @@ public class IndexModel : PageModel
         }
         catch (Exception ex)
         {
-            HttpContext.Session.Clear();
-            Response.Cookies.Delete(".Noodles.Session");
-            Response.Cookies.Delete("Username");
             Console.WriteLine($"[OnGetAsync Error] {ex}");
             return RedirectToPage("/Login");
         }
@@ -298,10 +288,19 @@ public class IndexModel : PageModel
         var difficulty = Request.Query["difficulty"].ToString();
 
         if (!string.IsNullOrWhiteSpace(mode))
+        {
             HttpContext.Session.SetString("PracticeMode", mode);
+            if (mode != "normal")
+                HttpContext.Session.Remove("PracticeDifficulty");
+            else if (string.IsNullOrWhiteSpace(difficulty))
+                HttpContext.Session.Remove("PracticeDifficulty");
+        }
 
         if (!string.IsNullOrWhiteSpace(difficulty))
+        {
             HttpContext.Session.SetString("PracticeDifficulty", difficulty);
+            HttpContext.Session.SetString("PracticeMode", "normal");
+        }
 
         if (mode == "daily")
             EnsureDailyChallengeSession();
@@ -334,8 +333,8 @@ public class IndexModel : PageModel
     private IActionResult HandleLogoutPost()
     {
         HttpContext.Session.Clear();
-        Response.Cookies.Delete("Username");
-        return RedirectToPage("/Index");
+        RememberMeService.Clear(Response);
+        return RedirectToPage("/Login");
     }
 
     private async Task<(User User, IActionResult Redirect)> TryRequireAuthenticatedUserAsync()
@@ -353,7 +352,7 @@ public class IndexModel : PageModel
         if (user.IsBanned)
         {
             HttpContext.Session.Clear();
-            Response.Cookies.Delete("Username");
+            RememberMeService.Clear(Response);
             return (null, RedirectToPage("/Login"));
         }
 
@@ -415,12 +414,32 @@ public class IndexModel : PageModel
 
         var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
-        var xpGain = IsCorrect ? QuizGamification.XpForDifficulty(practiceDifficulty) : 0;
+        var xpGain = IsCorrect
+            ? (practiceMode == "daily"
+                ? QuizGamification.DailyChallengeXpPerCorrect
+                : QuizGamification.XpForDifficulty(practiceDifficulty))
+            : 0;
 
         if (_userProgress != null)
         {
             _userProgress.RecordAnswer(user.Username, QuestionImage, IsCorrect, xpGain);
             _userProgress.UpdateBestStreak(user.Username, streak);
+
+            if (IsCorrect)
+            {
+                if (practiceMode == "weak")
+                    _userProgress.IncrementWeakCorrect(user.Username);
+                if (practiceDifficulty == "hard")
+                    _userProgress.IncrementHardCorrect(user.Username);
+                if (practiceMode == "review" && _achievements != null)
+                {
+                    if (_userProgress.RemoveSessionMistake(user.Username, QuestionImage))
+                    {
+                        _userProgress.IncrementReviewClear(user.Username);
+                        NewlyUnlockedAchievements.AddRange(_achievements.CheckReviewClear(user.Username));
+                    }
+                }
+            }
 
             if (practiceMode == "daily")
             {
@@ -433,11 +452,15 @@ public class IndexModel : PageModel
                     HttpContext.Session.SetInt32("DailyScore", dailyScore);
                 }
                 if (dailyIdx >= DailyTotal && _achievements != null)
-                    NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyChallengeAchievement(user.Username));
+                {
+                    var dailyScore = HttpContext.Session.GetInt32("DailyScore") ?? 0;
+                    _userProgress.RecordDailyChallengeComplete(user.Username, dailyScore >= DailyTotal);
+                    NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
+                }
             }
         }
 
-        if (IsCorrect && _userProgress != null)
+        if (_userProgress != null)
         {
             var progress = _userProgress.Load(user.Username);
             user.Xp = progress.Xp;
@@ -503,7 +526,7 @@ public class IndexModel : PageModel
             try { await _authService.UpdateUserAsync(user); }
             catch (Exception ex) { Console.WriteLine($"[OnPostAsync Ban UpdateUserAsync Error] {ex.Message}"); }
             HttpContext.Session.Clear();
-            Response.Cookies.Delete("Username");
+            RememberMeService.Clear(Response);
             return RedirectToPage("/Login");
         }
 
@@ -607,6 +630,9 @@ public class IndexModel : PageModel
 
     private async Task<List<List<string>>> LoadAllQuestionGroupsAsync()
     {
+        if (_storageGroupsCache != null && (DateTime.UtcNow - _storageGroupsCachedAt) < _storageGroupsTtl)
+            return _storageGroupsCache;
+
         List<string> filtered;
         if (_storage != null)
         {
@@ -641,6 +667,13 @@ public class IndexModel : PageModel
         var grouped = new List<List<string>>();
         for (int i = 0; i + 4 < filtered.Count; i += 5)
             grouped.Add(filtered.GetRange(i, 5));
+
+        if (_storage != null && grouped.Count > 0)
+        {
+            _storageGroupsCache = grouped;
+            _storageGroupsCachedAt = DateTime.UtcNow;
+        }
+
         return grouped;
     }
 

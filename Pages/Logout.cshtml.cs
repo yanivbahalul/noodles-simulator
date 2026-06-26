@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
+using NoodlesSimulator.Services;
 using System;
 
 namespace NoodlesSimulator.Pages
@@ -17,9 +18,7 @@ namespace NoodlesSimulator.Pages
             try
             {
                 HttpContext.Session.Clear();
-                Response.Cookies.Delete("Username");
-                Response.Cookies.Delete(".Noodles.Session.v2");
-                Response.Cookies.Delete(".Noodles.Session.v3");
+                RememberMeService.Clear(Response);
                 return RedirectToPage("/Login");
             }
             catch (Exception ex)

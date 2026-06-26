@@ -16,4 +16,12 @@ public class User
     public List<string> DismissedNotices { get; set; }
     public int Xp { get; set; }
     public int Level { get; set; }
+    public int WeeklyCorrect { get; set; }
+    public string WeekKey { get; set; }
+    public int DailyCorrect { get; set; }
+    public string DayKey { get; set; }
+    public int DailyChallengeScore { get; set; }
+    public string DailyChallengeDate { get; set; }
+    public int BestExamScore { get; set; }
+    public int BestExamCorrect { get; set; }
 }

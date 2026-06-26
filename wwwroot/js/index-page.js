@@ -41,6 +41,7 @@
     function openDifficultyModal() {
         closeImageModal();
         closeAppDialog();
+        closePracticeOptionsModal();
         dismissExamFixNotice();
         const modal = document.getElementById("difficulty-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
@@ -51,6 +52,20 @@
         if (modal) modal.classList.remove("difficulty-modal-open");
     }
 
+    function openPracticeOptionsModal() {
+        closeImageModal();
+        closeAppDialog();
+        closeDifficultyModal();
+        dismissExamFixNotice();
+        const modal = document.getElementById("practice-options-modal");
+        if (modal) modal.classList.add("difficulty-modal-open");
+    }
+
+    function closePracticeOptionsModal() {
+        const modal = document.getElementById("practice-options-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
     function setText(id, value) {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
@@ -58,14 +73,12 @@
 
     function applyStatsData(data) {
         if (data?.correct === undefined) return;
-        setText("stat-correct", data.correct);
-        setText("stat-total", data.total);
-        setText("stat-success", `${data.successRate}%`);
         setText("stat-correct-panel", data.correct);
         setText("stat-total-panel", data.total);
         setText("stat-success-panel", `${data.successRate}%`);
         if (data.streak !== undefined) setText("stat-streak", data.streak);
-        if (data.level !== undefined) setText("stat-level", `${data.level} (${data.xp} XP)`);
+        if (data.level !== undefined) setText("stat-level-value", data.level);
+        if (data.xp !== undefined) setText("stat-xp-value", data.xp);
     }
 
     function playFeedbackSound(isCorrect) {
@@ -134,13 +147,15 @@
         const panel = document.getElementById("stats-panel");
         const toggle = document.getElementById("footer-stats-toggle");
         if (!panel) return;
-        const isOpen = !panel.classList.contains("hidden");
-        panel.classList.toggle("hidden");
+        const willOpen = !panel.classList.contains("is-open");
+        panel.classList.toggle("is-open", willOpen);
+        panel.setAttribute("aria-hidden", willOpen ? "false" : "true");
         if (toggle) {
-            toggle.classList.toggle("footer-stats-toggle-open", !isOpen);
-            toggle.classList.toggle("footer-stats-toggle-closed", isOpen);
+            toggle.classList.toggle("footer-stats-toggle-open", willOpen);
+            toggle.classList.toggle("footer-stats-toggle-closed", !willOpen);
+            toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
         }
-        if (!isOpen) {
+        if (willOpen) {
             fetchStats();
             fetchOnlineCount();
         }
@@ -247,10 +262,16 @@
             e.preventDefault();
             openDifficultyModal();
         });
+        bindClick("open-practice-options-btn", (e) => {
+            e.preventDefault();
+            openPracticeOptionsModal();
+        });
         bindClick("close-difficulty-modal-btn", closeDifficultyModal);
+        bindClick("close-practice-options-btn", closePracticeOptionsModal);
         bindClick("close-image-modal-btn", closeImageModal);
         bindModalDismiss("image-modal", closeImageModal);
         bindModalDismiss("difficulty-modal", closeDifficultyModal);
+        bindModalDismiss("practice-options-modal", closePracticeOptionsModal);
         bindClick("footer-stats-toggle", toggleStats);
         bindReportForm();
         bindExamFixNotice();
@@ -260,7 +281,10 @@
         bindAnswerFeedback();
 
         document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") closeDifficultyModal();
+            if (e.key === "Escape") {
+                closeDifficultyModal();
+                closePracticeOptionsModal();
+            }
         });
     });
 

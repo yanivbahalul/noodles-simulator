@@ -8,8 +8,22 @@
         "weak" => "תרגול חולשות",
         "review" => "סקירת טעויות",
         "daily" => "אתגר יומי",
-        _ => !string.IsNullOrEmpty(Model.PracticeDifficulty) ? $"תרגול — {Model.PracticeDifficulty}" : "תרגול חופשי"
+        "normal" => Model.PracticeDifficulty switch
+        {
+            "easy" => "תרגול — קל",
+            "medium" => "תרגול — בינוני",
+            "hard" => "תרגול — קשה",
+            _ => "תרגול חופשי"
+        },
+        _ => Model.PracticeDifficulty switch
+        {
+            "easy" => "תרגול — קל",
+            "medium" => "תרגול — בינוני",
+            "hard" => "תרגול — קשה",
+            _ => "תרגול חופשי"
+        }
     };
+    var isFreePractice = string.IsNullOrEmpty(Model.PracticeMode) || Model.PracticeMode == "normal";
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -40,26 +54,13 @@
     🟢 מחוברים כעת: <strong id="online-count">@Model.OnlineCount</strong>
 </p>
 
-<div class="quiz-stats-card" id="quiz-stats-card">
-    <div class="quiz-stats-row">
-        <span>✅ <strong id="stat-correct">@Model.UserCorrect</strong> נכונות</span>
-        <span>📋 <strong id="stat-total">@Model.UserTotal</strong> שאלות</span>
-        <span>📈 <strong id="stat-success">@Model.UserSuccessRate%</strong></span>
-    </div>
-    <div class="xp-bar-wrap">
-        <span class="xp-level-label">רמה @Model.UserLevel</span>
-        <div class="xp-bar-track">
-            <div class="xp-bar-fill" style="width: @Model.XpProgressPercent%"></div>
-        </div>
-        <span class="xp-points-label">@Model.UserXp XP</span>
-    </div>
-    <p class="practice-mode-label">מצב: <strong>@modeLabel</strong>
-        @if (Model.PracticeMode == "daily")
-        {
-            <span> — @Model.DailyProgress/@Model.DailyTotal</span>
-        }
-    </p>
-</div>
+<p class="practice-mode-badge" id="practice-mode-badge">
+    @modeLabel
+    @if (Model.PracticeMode == "daily")
+    {
+        <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
+    }
+</p>
 
 @if (Model.NewlyUnlockedAchievements.Count > 0)
 {
@@ -113,17 +114,20 @@
         </p>
     }
 
-    <div class="practice-modes-row">
-        <a href="/Index?mode=weak" class="mode-btn">💪 חולשות</a>
-        <a href="/Index?difficulty=easy" class="mode-btn mode-easy">🟢 קל</a>
-        <a href="/Index?difficulty=medium" class="mode-btn mode-medium">🟡 בינוני</a>
-        <a href="/Index?difficulty=hard" class="mode-btn mode-hard">🔴 קשה</a>
-        <a href="/Index?mode=review" class="mode-btn">🔁 טעויות</a>
-        <a href="/Index?mode=daily" class="mode-btn mode-daily">📅 אתגר יומי</a>
-        <a href="/Index" class="mode-btn mode-normal">🎯 רגיל</a>
-    </div>
-
     <div class="button-row">
+        <form class="inline-form-reset">
+            <button type="button"
+                    class="next-question-btn practice-options-icon-btn"
+                    id="open-practice-options-btn"
+                    title="אפשרויות תרגול"
+                    aria-label="אפשרויות תרגול">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <line x1="4" y1="7" x2="20" y2="7" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
+            </button>
+        </form>
         <form class="inline-form-reset">
             <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
         </form>
@@ -162,21 +166,40 @@
     </div>
 }
 
+<div id="practice-options-modal" class="difficulty-modal">
+    <div class="difficulty-modal-content practice-options-content">
+        <span class="close-difficulty-modal" id="close-practice-options-btn">&times;</span>
+        <h2 class="difficulty-modal-title">אפשרויות תרגול</h2>
+
+        <p class="practice-options-section-title">מצב תרגול</p>
+        <div class="practice-options-list">
+            <a href="/Index?mode=normal" class="practice-option-btn @(isFreePractice && string.IsNullOrEmpty(Model.PracticeDifficulty) ? "is-active" : "")">תרגול חופשי</a>
+            <a href="/Index?mode=weak" class="practice-option-btn @(Model.PracticeMode == "weak" ? "is-active" : "")">תרגול חולשות</a>
+            <a href="/Index?mode=review" class="practice-option-btn @(Model.PracticeMode == "review" ? "is-active" : "")">סקירת טעויות</a>
+            <a href="/Index?mode=daily" class="practice-option-btn @(Model.PracticeMode == "daily" ? "is-active" : "")">אתגר יומי</a>
+        </div>
+
+        <p class="practice-options-section-title">רמת קושי</p>
+        <div class="practice-options-list">
+            <a href="/Index?mode=normal&amp;difficulty=easy" class="practice-option-btn @(Model.PracticeDifficulty == "easy" ? "is-active" : "")">קל</a>
+            <a href="/Index?mode=normal&amp;difficulty=medium" class="practice-option-btn @(Model.PracticeDifficulty == "medium" ? "is-active" : "")">בינוני</a>
+            <a href="/Index?mode=normal&amp;difficulty=hard" class="practice-option-btn @(Model.PracticeDifficulty == "hard" ? "is-active" : "")">קשה</a>
+        </div>
+    </div>
+</div>
+
 <div id="difficulty-modal" class="difficulty-modal">
     <div class="difficulty-modal-content">
         <span class="close-difficulty-modal" id="close-difficulty-modal-btn">&times;</span>
-        <h2 class="difficulty-modal-title">בחר רמת קושי</h2>
+        <h2 class="difficulty-modal-title">בחר רמת קושי למבחן</h2>
         <div class="difficulty-buttons">
             <a href="/Test?start=1&amp;difficulty=easy" class="difficulty-btn difficulty-easy" data-difficulty="easy">
-                <span class="difficulty-emoji">🟢</span>
                 <span class="difficulty-text">קל</span>
             </a>
             <a href="/Test?start=1&amp;difficulty=medium" class="difficulty-btn difficulty-medium" data-difficulty="medium">
-                <span class="difficulty-emoji">🟡</span>
                 <span class="difficulty-text">בינוני</span>
             </a>
             <a href="/Test?start=1&amp;difficulty=hard" class="difficulty-btn difficulty-hard" data-difficulty="hard">
-                <span class="difficulty-emoji">🔴</span>
                 <span class="difficulty-text">קשה</span>
             </a>
         </div>
@@ -201,23 +224,44 @@
     </form>
 </div>
 
-<div id="stats-panel" class="hidden">
-    <h3>📊 סטטיסטיקה אישית</h3>
-    <ul>
-        <li>✅ תשובות נכונות: <span id="stat-correct-panel">@Model.UserCorrect</span></li>
-        <li>📋 שאלות שנענו: <span id="stat-total-panel">@Model.UserTotal</span></li>
-        <li>📈 אחוז הצלחה: <span id="stat-success-panel">@Model.UserSuccessRate%</span></li>
-        <li>🔥 רצף נוכחי: <span id="stat-streak">@Model.CurrentStreak</span></li>
-        <li>⭐ רמה: <span id="stat-level">@Model.UserLevel</span> (@Model.UserXp XP)</li>
-    </ul>
-    <label class="sound-toggle-label">
-        <input type="checkbox" id="sound-toggle" checked /> צלילי משוב
-    </label>
+<div class="site-footer-wrap">
+    <div id="stats-panel" class="stats-drawer" aria-hidden="true">
+        <div class="stats-drawer-inner">
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-correct-panel">@Model.UserCorrect</span>
+                <span class="stats-drawer-label">נכונות</span>
+            </div>
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-total-panel">@Model.UserTotal</span>
+                <span class="stats-drawer-label">שאלות</span>
+            </div>
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-success-panel">@Model.UserSuccessRate%</span>
+                <span class="stats-drawer-label">אחוז</span>
+            </div>
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-streak">@Model.CurrentStreak</span>
+                <span class="stats-drawer-label">רצף</span>
+            </div>
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-level-value">@Model.UserLevel</span>
+                <span class="stats-drawer-label">רמה</span>
+            </div>
+            <div class="stats-drawer-metric">
+                <span class="stats-drawer-value" id="stat-xp-value">@Model.UserXp</span>
+                <span class="stats-drawer-label">XP</span>
+            </div>
+            <label class="stats-drawer-sound" title="צלילי משוב">
+                <input type="checkbox" id="sound-toggle" checked />
+                <span>צליל</span>
+            </label>
+        </div>
+    </div>
+
+    <partial name="Shared/_SiteFooter" />
 </div>
 
 <script src="/js/dialog.js"></script>
 <script src="/js/index-page.js" asp-append-version="true"></script>
-
-<partial name="Shared/_SiteFooter" />
 </body>
 </html>

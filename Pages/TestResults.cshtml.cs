@@ -102,7 +102,7 @@ public class TestResultsModel : PageModel
 
         var progress = _userProgress.Load(username);
         var isFirstExam = progress.ExamsCompleted == 0;
-        _userProgress.RecordExamComplete(username, correctCount, total, score);
+        var previousExamCorrect = _userProgress.RecordExamComplete(username, correctCount, total, score);
 
         var wrongQuestions = new List<string>();
         for (int i = 0; i < questions.Count; i++)
@@ -116,7 +116,7 @@ public class TestResultsModel : PageModel
             _userProgress.AddSessionMistakes(username, wrongQuestions);
 
         HasMistakes = _userProgress.Load(username).SessionMistakes.Count > 0;
-        NewAchievements = _achievements.CheckExamAchievements(username, correctCount, total, isFirstExam);
+        NewAchievements = _achievements.CheckExamAchievements(username, correctCount, total, isFirstExam, previousExamCorrect);
 
         if (_authService != null)
         {
