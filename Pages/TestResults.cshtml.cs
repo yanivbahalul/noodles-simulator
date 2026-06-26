@@ -165,7 +165,7 @@ public class TestResultsModel : PageModel
         {
             var q = qList[i];
             var a = i < aList.Count ? aList[i] : null;
-            var correctKey = "correct";
+            var correctKey = AnswerOptionShuffle.ResolveCorrectKey(q);
 
             var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
             var qUrl = resolved.QuestionUrl;

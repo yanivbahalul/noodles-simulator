@@ -24,6 +24,7 @@ public class TestReviewModel : PageModel
     public string QuestionImageUrl { get; set; }
     public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
     public string SelectedKey { get; set; }
+    public string CorrectAnswerKey { get; set; }
     public string ReviewToken { get; set; } = string.Empty;
 
     public async Task<IActionResult> OnGet()
@@ -46,6 +47,7 @@ public class TestReviewModel : PageModel
         var q = state.Questions[i];
         var a = (state.Answers != null && i < state.Answers.Count) ? state.Answers[i] : null;
         SelectedKey = a?.SelectedKey;
+        CorrectAnswerKey = AnswerOptionShuffle.ResolveCorrectKey(q);
 
         var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
         QuestionImageUrl = resolved.QuestionUrl;

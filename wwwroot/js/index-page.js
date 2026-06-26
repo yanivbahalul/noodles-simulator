@@ -224,7 +224,8 @@
             const data = {};
             formData.forEach((value, key) => {
                 if (key === "__RequestVerificationToken") return;
-                data[key === "answersJson" ? "answers" : key] = value;
+                if (key === "questionImage" || key === "explanation" || key === "selectedAnswer")
+                    data[key] = value;
             });
 
             try {

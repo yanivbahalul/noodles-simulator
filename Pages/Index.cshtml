@@ -84,7 +84,6 @@
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@Model.QuestionImage" />
-        <input type="hidden" name="answersJson" value='@System.Text.Json.JsonSerializer.Serialize(Model.ShuffledAnswers, NoodlesSimulator.Models.AppJson.Options)' />
 
         <div class="answers" id="answers-grid">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
@@ -92,7 +91,7 @@
                 var answerClass = "";
                 if (Model.AnswerChecked)
                 {
-                    if (answer.Key == "correct")
+                    if (answer.Key == Model.CorrectAnswerKey)
                         answerClass = "correct" + (Model.IsCorrect ? " answer-pulse" : " answer-reveal-correct");
                     else if (Model.SelectedAnswer == answer.Key)
                         answerClass = "incorrect answer-shake";
@@ -230,8 +229,6 @@
     <form id="report-form" class="report-form">
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
-        <input type="hidden" name="answersJson" value='@System.Text.Json.JsonSerializer.Serialize(Model.AnswerImageOriginalNames ?? Model.ShuffledAnswers, NoodlesSimulator.Models.AppJson.Options)' />
-        <input type="hidden" name="correctAnswer" value='@((Model.AnswerImageOriginalNames != null && Model.AnswerImageOriginalNames.ContainsKey("correct")) ? Model.AnswerImageOriginalNames["correct"] : (Model.ShuffledAnswers != null && Model.ShuffledAnswers.ContainsKey("correct") ? Model.ShuffledAnswers["correct"] : ""))' />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
         <label for="explanation" class="report-label">יש טעות בשאלה?, תקלה באתר? דווח לנו!</label>
         <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>

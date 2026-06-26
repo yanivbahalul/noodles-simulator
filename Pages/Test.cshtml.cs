@@ -175,12 +175,13 @@ public class TestModel : PageModel
             var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
 
             var selected = Request.Form["answer"].ToString();
-            var idxStr = Request.Form["questionIndex"].ToString();
-            int idx = session.CurrentIndex;
-            int.TryParse(idxStr, out idx);
-            idx = Math.Clamp(idx, 0, questions.Count - 1);
+            var idx = session.CurrentIndex;
 
-            var isCorrect = selected == "correct";
+            if (idx < 0 || idx >= questions.Count)
+                return RedirectToPage("/TestResults", new { token = session.Token });
+
+            var q = questions[idx];
+            var isCorrect = AnswerOptionShuffle.IsSelectedCorrect(q, selected);
 
             while (answers.Count < idx)
                 answers.Add(new TestAnswer());
@@ -282,19 +283,13 @@ public class TestModel : PageModel
             {
                 var correct = g[1];
                 var wrong = g.Skip(2).Take(3).Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
-                var answers = new List<(string key, string img)>
-                {
-                    ("correct", correct)
-                };
-                if (wrong.Count > 0) answers.Add(("a", wrong[0]));
-                if (wrong.Count > 1) answers.Add(("b", wrong[1]));
-                if (wrong.Count > 2) answers.Add(("c", wrong[2]));
-                answers = answers.OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).ToList();
+                var shuffled = AnswerOptionShuffle.Create(correct, wrong);
 
                 state.Questions.Add(new TestQuestion
                 {
                     Question = g[0],
-                    Answers = answers.ToDictionary(x => x.key, x => x.img)
+                    CorrectKey = shuffled.CorrectKey,
+                    Answers = shuffled.Options
                 });
             }
 

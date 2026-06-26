@@ -167,11 +167,25 @@ def run_exam(c, difficulty):
 
     ok(f"All {len(q_files)} questions match DB difficulty '{difficulty}'")
 
-    # answer all questions
+    # answer all questions (CorrectKey from server session — not guessable from HTML)
     for i in range(len(q_files)):
         if session_token not in html:
             session_token = extract_token(html) or session_token
-        idx = extract_question_index(html)
+
+        live = sb_get(
+            f"/rest/v1/test_sessions?Token=eq.{urllib.parse.quote(session_token)}&select=QuestionsJson,CurrentIndex"
+        )
+        if not live:
+            fail(f"Session lost on Q{i + 1}")
+        current_idx = live[0]["CurrentIndex"]
+        live_questions = json.loads(live[0]["QuestionsJson"])
+        if current_idx >= len(live_questions):
+            break
+        q = live_questions[current_idx]
+        correct_key = q.get("CorrectKey") or "correct"
+        if not correct_key:
+            fail(f"No CorrectKey for question {i + 1}")
+
         af = extract_antiforgery(html)
         if af is None:
             fail(f"No antiforgery on question {i + 1}")
@@ -181,8 +195,7 @@ def run_exam(c, difficulty):
             {
                 "__RequestVerificationToken": af,
                 "token": session_token,
-                "questionIndex": str(idx if idx is not None else i),
-                "answer": "correct",
+                "answer": correct_key,
             },
         )
         if status >= 400 and "/TestResults" not in url:

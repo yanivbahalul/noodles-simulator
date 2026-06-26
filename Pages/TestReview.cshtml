@@ -30,7 +30,7 @@
         {
             var key = kv.Key;
             var url = kv.Value;
-            var cls = (key == "correct") ? "correct" : (Model.SelectedKey == key ? "incorrect" : "");
+            var cls = (key == Model.CorrectAnswerKey) ? "correct" : (Model.SelectedKey == key ? "incorrect" : "");
             <button class="answer-btn @cls" disabled>
                 <img src="@url" alt="תשובה" loading="lazy" />
             </button>
