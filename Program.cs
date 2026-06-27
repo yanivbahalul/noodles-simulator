@@ -789,8 +789,11 @@ api.MapPost("/feedback/submit", async context =>
 
         var campaignId = campaignIdEl.GetString();
         var isAdmin = IsAdminSession(context);
-        var expectedCampaignId = FeedbackCampaigns.GetCampaignIdForUser(DateTime.UtcNow, isAdmin);
+        var progress = context.RequestServices.GetService<UserProgressService>();
+        var achievementCount = progress?.Load(context.Session.GetString("Username")!)?.Achievements?.Count ?? 0;
+        var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
         if (string.IsNullOrWhiteSpace(campaignId) ||
+            string.IsNullOrWhiteSpace(expectedCampaignId) ||
             !string.Equals(campaignId, expectedCampaignId, StringComparison.Ordinal))
         {
             await WritePlainError(context, 400, "Invalid or inactive campaign");
@@ -816,18 +819,10 @@ api.MapPost("/feedback/submit", async context =>
 
         var username = context.Session.GetString("Username")!;
 
-        var progress = context.RequestServices.GetService<UserProgressService>();
-        var achievementCount = progress?.Load(username)?.Achievements?.Count ?? 0;
-        if (!FeedbackCampaigns.IsEligible(achievementCount))
+        var (success, alreadyResponded) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
+        if (alreadyResponded)
         {
-            await WritePlainError(context, 403, "Not eligible");
-            return;
-        }
-
-        var (success, alreadySubmitted) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
-        if (alreadySubmitted)
-        {
-            await WritePlainError(context, 409, "Already submitted");
+            await WritePlainError(context, 409, "Already responded");
             return;
         }
 
@@ -845,6 +840,65 @@ api.MapPost("/feedback/submit", async context =>
     }
 });
 
+api.MapPost("/feedback/later", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        if (!doc.RootElement.TryGetProperty("campaignId", out var campaignIdEl))
+        {
+            await WritePlainError(context, 400, "campaignId required");
+            return;
+        }
+
+        var campaignId = campaignIdEl.GetString();
+        var isAdmin = IsAdminSession(context);
+        var progress = context.RequestServices.GetService<UserProgressService>();
+        var achievementCount = progress?.Load(context.Session.GetString("Username")!)?.Achievements?.Count ?? 0;
+        var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
+        if (string.IsNullOrWhiteSpace(campaignId) ||
+            string.IsNullOrWhiteSpace(expectedCampaignId) ||
+            !string.Equals(campaignId, expectedCampaignId, StringComparison.Ordinal))
+        {
+            await WritePlainError(context, 400, "Invalid or inactive campaign");
+            return;
+        }
+
+        var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
+        if (feedbackService == null || !feedbackService.IsEnabled)
+        {
+            await WritePlainError(context, 503, "Feedback service not available");
+            return;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var (success, alreadyResponded) = await feedbackService.RecordLaterAsync(username, campaignId);
+        if (alreadyResponded)
+        {
+            await WritePlainError(context, 409, "Already responded");
+            return;
+        }
+
+        if (!success)
+        {
+            await WritePlainError(context, 500, "Failed to save response");
+            return;
+        }
+
+        await WriteJson(context, new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Feedback Later API Error", ex);
+    }
+});
+
 api.MapGet("/dashboard-feedback", async context =>
 {
     if (!IsAdminSession(context))
@@ -855,8 +909,7 @@ api.MapGet("/dashboard-feedback", async context =>
 
     try
     {
-        var campaignId = FeedbackCampaigns.GetDashboardCampaignId(DateTime.UtcNow);
-        if (string.IsNullOrWhiteSpace(campaignId))
+        if (!FeedbackCampaigns.IsDashboardFeedbackActive(DateTime.UtcNow))
         {
             await WriteJson(context, new { campaignId = "", entries = Array.Empty<object>() });
             return;
@@ -869,16 +922,18 @@ api.MapGet("/dashboard-feedback", async context =>
             return;
         }
 
-        var entries = await feedbackService.GetAllForCampaignAsync(campaignId);
+        var entries = await feedbackService.GetAllMilestoneEntriesAsync();
         await WriteJson(context, new
         {
-            campaignId,
+            campaignId = FeedbackCampaigns.MilestoneCampaignPrefix,
             entries = entries.Select(e => new
             {
                 e.Id,
                 e.Username,
                 e.Rating,
                 e.Message,
+                e.Milestone,
+                isLater = e.IsLater,
                 createdAt = e.CreatedAt.ToString("o")
             })
         });

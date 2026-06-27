@@ -928,6 +928,26 @@
         });
     }
 
+    async function recordFeedbackLater(prompt, laterBtn) {
+        laterBtn.disabled = true;
+        try {
+            const res = await fetch("/api/feedback/later", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ campaignId: prompt.dataset.campaignId })
+            });
+            if (res.ok) {
+                closeFeedbackModal();
+                prompt.remove();
+                openGitHubStarModalIfPending(true);
+                return;
+            }
+        } catch {
+            // keep prompt for retry
+        }
+        laterBtn.disabled = false;
+    }
+
     async function submitFeedbackRating(prompt, selectedRating, messageEl, submitBtn) {
         if (selectedRating < 1) return;
 
@@ -974,8 +994,7 @@
         bindFeedbackStarClicks(starsEl, updateStars);
 
         laterBtn.addEventListener("click", () => {
-            closeFeedbackModal();
-            openGitHubStarModalIfPending(true);
+            recordFeedbackLater(prompt, laterBtn);
         });
 
         modal.addEventListener("click", (e) => {

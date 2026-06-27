@@ -312,7 +312,7 @@
 
 <h2 class="dashboard-section-title">💬 חוות דעת משתמשים</h2>
 <p class="dashboard-feedback-summary">
-    @Model.FeedbackEntries.Count תגובות מתוך @Model.AllUsers.Count משתמשים רשומים
+    @Model.FeedbackEntries.Count(e => !e.IsLater) תגובות · @Model.FeedbackEntries.Count(e => e.IsLater) דחיות ("אולי אחר כך")
 </p>
 @if (Model.FeedbackEntries.Count > 0)
 {
@@ -322,6 +322,8 @@
                 <tr>
                     <th>תאריך</th>
                     <th>משתמש</th>
+                    <th>אבן דרך</th>
+                    <th>סטטוס</th>
                     <th>דירוג</th>
                     <th>משוב</th>
                 </tr>
@@ -329,11 +331,26 @@
             <tbody>
                 @foreach (var entry in Model.FeedbackEntries)
                 {
-                    var stars = new string('★', entry.Rating) + new string('☆', 5 - entry.Rating);
+                    var stars = entry.IsLater
+                        ? "—"
+                        : new string('★', entry.Rating) + new string('☆', 5 - entry.Rating);
+                    var status = entry.IsLater ? "אולי אחר כך" : "נשלח";
+                    var milestoneLabel = entry.Milestone > 0 ? $"{entry.Milestone} הישגים" : "—";
                     <tr>
                         <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@entry.Username</td>
-                        <td><span class="feedback-rating-stars" aria-label="דירוג @entry.Rating מתוך 5">@stars</span></td>
+                        <td>@milestoneLabel</td>
+                        <td>@status</td>
+                        <td>
+                            @if (entry.IsLater)
+                            {
+                                <text>—</text>
+                            }
+                            else
+                            {
+                                <span class="feedback-rating-stars" aria-label="דירוג @entry.Rating מתוך 5">@stars</span>
+                            }
+                        </td>
                         <td>@(string.IsNullOrWhiteSpace(entry.Message) ? "—" : entry.Message)</td>
                     </tr>
                 }
@@ -343,7 +360,44 @@
 }
 else
 {
-    <p class="dashboard-empty-hint">עדיין אין תגובות</p>
+    <p class="dashboard-empty-hint">עדיין אין תגובות או דחיות</p>
+}
+
+<h2 class="dashboard-section-title">⭐ בקשות כוכב GitHub</h2>
+<p class="dashboard-feedback-summary">
+    @Model.GitHubStarResponses.Count(e => e.Response == "later") דחיות · @Model.GitHubStarResponses.Count(e => e.Response == "accepted") לחצו "יאללה"
+</p>
+@if (Model.GitHubStarResponses.Count > 0)
+{
+    <div class="dashboard-table-shell">
+        <table class="dashboard-table" id="github-star-table">
+            <thead>
+                <tr>
+                    <th>משתמש</th>
+                    <th>אבן דרך</th>
+                    <th>סטטוס</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model.GitHubStarResponses)
+                {
+                    var milestoneLabel = entry.Response == "accepted"
+                        ? "—"
+                        : $"{entry.Milestone} שאלות";
+                    var status = entry.Response == "accepted" ? "לחץ יאללה" : "אולי אחר כך";
+                    <tr>
+                        <td>@entry.Username</td>
+                        <td>@milestoneLabel</td>
+                        <td>@status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="dashboard-empty-hint">עדיין אין תגובות לבקשת כוכב</p>
 }
 
 @if (Model.AllUsers.Any(u => u.Username == "Admin"))

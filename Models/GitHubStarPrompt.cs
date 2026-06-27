@@ -1,10 +1,18 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace NoodlesSimulator.Models;
 
 public static class GitHubStarPrompt
 {
+    public sealed class DashboardEntry
+    {
+        public string Username { get; init; } = "";
+        public int Milestone { get; init; }
+        public string Response { get; init; } = "";
+    }
+
     public const string RepoUrl = "https://github.com/yanivbahalul/noodles-simulator";
     public const int MilestoneInterval = 100;
     public const string OptedInNoticeId = "github-star-opted-in";
@@ -57,4 +65,44 @@ public static class GitHubStarPrompt
 
         return true;
     }
+
+    public static IEnumerable<DashboardEntry> GetDashboardEntries(User? user)
+    {
+        if (user == null || user.DismissedNotices == null || user.DismissedNotices.Count == 0)
+            yield break;
+
+        var prefix = "github-star-";
+        foreach (var noticeId in user.DismissedNotices)
+        {
+            if (string.Equals(noticeId, OptedInNoticeId, StringComparison.Ordinal))
+            {
+                yield return new DashboardEntry
+                {
+                    Username = user.Username,
+                    Milestone = 0,
+                    Response = "accepted"
+                };
+                continue;
+            }
+
+            if (!noticeId.StartsWith(prefix, StringComparison.Ordinal))
+                continue;
+
+            if (!int.TryParse(noticeId.AsSpan(prefix.Length), out var milestone) || milestone < MilestoneInterval)
+                continue;
+
+            yield return new DashboardEntry
+            {
+                Username = user.Username,
+                Milestone = milestone,
+                Response = "later"
+            };
+        }
+    }
+
+    public static List<DashboardEntry> GetAllDashboardEntries(IEnumerable<User> users) =>
+        users.SelectMany(GetDashboardEntries)
+            .OrderByDescending(e => e.Milestone)
+            .ThenBy(e => e.Username, StringComparer.Ordinal)
+            .ToList();
 }

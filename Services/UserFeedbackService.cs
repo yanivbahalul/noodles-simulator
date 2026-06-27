@@ -44,9 +44,52 @@ public class UserFeedbackService
         public int Rating { get; set; }
         public string Message { get; set; } = "";
         public DateTime CreatedAt { get; set; }
+
+        public bool IsLater => Rating < 1;
+        public int Milestone => FeedbackCampaigns.ParseMilestoneFromCampaignId(CampaignId);
     }
 
-    public async Task<bool> HasSubmittedAsync(string username, string campaignId)
+    /// <summary>True if the user ever submitted a rated response (not merely "later").</summary>
+    public async Task<bool> HasSubmittedFeedbackAsync(string username)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(username))
+            return false;
+
+        try
+        {
+            var safeUser = Uri.EscapeDataString(username.Trim());
+            var prefix = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}%");
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/user_feedback?select=id&username=eq.{safeUser}&rating=gte.1&campaign_id=like.{prefix}&limit=1");
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[UserFeedbackService] HasSubmittedFeedback failed: {res.StatusCode}");
+                return false;
+            }
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.GetArrayLength() > 0)
+                return true;
+
+            var legacy = Uri.EscapeDataString(FeedbackCampaigns.LegacyCampaignId);
+            var legacyRes = await _client.GetAsync(
+                $"{_url}/rest/v1/user_feedback?select=id&username=eq.{safeUser}&rating=gte.1&campaign_id=eq.{legacy}&limit=1");
+            if (!legacyRes.IsSuccessStatusCode)
+                return false;
+
+            var legacyJson = await legacyRes.Content.ReadAsStringAsync();
+            using var legacyDoc = JsonDocument.Parse(legacyJson);
+            return legacyDoc.RootElement.GetArrayLength() > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserFeedbackService] HasSubmittedFeedback exception: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> HasRespondedAsync(string username, string campaignId)
     {
         if (!_enabled || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(campaignId))
             return false;
@@ -59,7 +102,7 @@ public class UserFeedbackService
                 $"{_url}/rest/v1/user_feedback?select=id&username=eq.{safeUser}&campaign_id=eq.{safeCampaign}&limit=1");
             if (!res.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[UserFeedbackService] HasSubmitted failed: {res.StatusCode}");
+                Console.WriteLine($"[UserFeedbackService] HasResponded failed: {res.StatusCode}");
                 return false;
             }
 
@@ -69,12 +112,53 @@ public class UserFeedbackService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UserFeedbackService] HasSubmitted exception: {ex.Message}");
+            Console.WriteLine($"[UserFeedbackService] HasResponded exception: {ex.Message}");
             return false;
         }
     }
 
-    public async Task<(bool Success, bool AlreadySubmitted)> SubmitAsync(
+    public async Task<(bool Success, bool AlreadyResponded)> RecordLaterAsync(string username, string campaignId)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(campaignId))
+            return (false, false);
+
+        if (!FeedbackCampaigns.IsMilestoneCampaignId(campaignId))
+            return (false, false);
+
+        try
+        {
+            if (await HasRespondedAsync(username, campaignId))
+                return (false, true);
+
+            var row = new
+            {
+                username = username.Trim(),
+                campaign_id = campaignId.Trim(),
+                rating = 0,
+                message = "",
+                created_at = DateTime.UtcNow.ToString("o")
+            };
+
+            var content = new StringContent(JsonSerializer.Serialize(row), Encoding.UTF8, "application/json");
+            var res = await _client.PostAsync($"{_url}/rest/v1/user_feedback", content);
+            if (res.IsSuccessStatusCode)
+                return (true, false);
+
+            if (res.StatusCode == HttpStatusCode.Conflict)
+                return (false, true);
+
+            var body = await res.Content.ReadAsStringAsync();
+            Console.WriteLine($"[UserFeedbackService] RecordLater failed: {res.StatusCode} | {body}");
+            return (false, false);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserFeedbackService] RecordLater exception: {ex.Message}");
+            return (false, false);
+        }
+    }
+
+    public async Task<(bool Success, bool AlreadyResponded)> SubmitAsync(
         string username,
         string campaignId,
         int rating,
@@ -120,49 +204,54 @@ public class UserFeedbackService
         }
     }
 
-    public async Task<List<UserFeedbackEntry>> GetAllForCampaignAsync(string campaignId, int limit = 500)
+    public async Task<List<UserFeedbackEntry>> GetAllMilestoneEntriesAsync(int limit = 500)
     {
-        if (!_enabled || string.IsNullOrWhiteSpace(campaignId))
+        if (!_enabled)
             return new List<UserFeedbackEntry>();
 
         try
         {
-            var safeCampaign = Uri.EscapeDataString(campaignId.Trim());
+            var prefix = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}%");
             var res = await _client.GetAsync(
-                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at&campaign_id=eq.{safeCampaign}&order=created_at.desc&limit={limit}");
+                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at&campaign_id=like.{prefix}&order=created_at.desc&limit={limit}");
             if (!res.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[UserFeedbackService] GetAllForCampaign failed: {res.StatusCode}");
+                Console.WriteLine($"[UserFeedbackService] GetAllMilestoneEntries failed: {res.StatusCode}");
                 return new List<UserFeedbackEntry>();
             }
 
             var json = await res.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            var list = new List<UserFeedbackEntry>();
-            foreach (var row in doc.RootElement.EnumerateArray())
-            {
-                list.Add(new UserFeedbackEntry
-                {
-                    Id = row.TryGetProperty("id", out var idEl) && idEl.TryGetInt64(out var id) ? id : 0,
-                    Username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() ?? "" : "",
-                    CampaignId = row.TryGetProperty("campaign_id", out var campEl) ? campEl.GetString() ?? "" : "",
-                    Rating = row.TryGetProperty("rating", out var ratingEl) && ratingEl.TryGetInt32(out var rating)
-                        ? rating
-                        : 0,
-                    Message = row.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "",
-                    CreatedAt = row.TryGetProperty("created_at", out var atEl) &&
-                                DateTime.TryParse(atEl.GetString(), out var parsed)
-                        ? parsed.ToUniversalTime()
-                        : DateTime.MinValue
-                });
-            }
-
-            return list;
+            return ParseEntries(json);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[UserFeedbackService] GetAllForCampaign exception: {ex.Message}");
+            Console.WriteLine($"[UserFeedbackService] GetAllMilestoneEntries exception: {ex.Message}");
             return new List<UserFeedbackEntry>();
         }
+    }
+
+    private static List<UserFeedbackEntry> ParseEntries(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var list = new List<UserFeedbackEntry>();
+        foreach (var row in doc.RootElement.EnumerateArray())
+        {
+            list.Add(new UserFeedbackEntry
+            {
+                Id = row.TryGetProperty("id", out var idEl) && idEl.TryGetInt64(out var id) ? id : 0,
+                Username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() ?? "" : "",
+                CampaignId = row.TryGetProperty("campaign_id", out var campEl) ? campEl.GetString() ?? "" : "",
+                Rating = row.TryGetProperty("rating", out var ratingEl) && ratingEl.TryGetInt32(out var rating)
+                    ? rating
+                    : 0,
+                Message = row.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "",
+                CreatedAt = row.TryGetProperty("created_at", out var atEl) &&
+                            DateTime.TryParse(atEl.GetString(), out var parsed)
+                    ? parsed.ToUniversalTime()
+                    : DateTime.MinValue
+            });
+        }
+
+        return list;
     }
 }

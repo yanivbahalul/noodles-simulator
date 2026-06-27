@@ -36,7 +36,7 @@ public class DashboardModel : PageModel
     public int HardCount { get; set; }
 
     public List<UserFeedbackService.UserFeedbackEntry> FeedbackEntries { get; set; } = new();
-    public string FeedbackCampaignId { get; set; } = "";
+    public List<GitHubStarPrompt.DashboardEntry> GitHubStarResponses { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -120,9 +120,11 @@ public class DashboardModel : PageModel
                 .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
                 .DefaultIfEmpty(0).Average() * 100;
 
-            FeedbackCampaignId = FeedbackCampaigns.GetDashboardCampaignId(DateTime.UtcNow);
-            if (_feedbackService != null && _feedbackService.IsEnabled && !string.IsNullOrEmpty(FeedbackCampaignId))
-                FeedbackEntries = await _feedbackService.GetAllForCampaignAsync(FeedbackCampaignId);
+            FeedbackEntries = _feedbackService != null && _feedbackService.IsEnabled &&
+                              FeedbackCampaigns.IsDashboardFeedbackActive(DateTime.UtcNow)
+                ? await _feedbackService.GetAllMilestoneEntriesAsync()
+                : new List<UserFeedbackService.UserFeedbackEntry>();
+            GitHubStarResponses = GitHubStarPrompt.GetAllDashboardEntries(AllUsers);
         }
         catch (Exception ex)
         {

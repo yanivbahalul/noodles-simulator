@@ -104,6 +104,7 @@ public class IndexModel : PageModel
     public string ActiveNoticeId { get; set; } = "";
     public bool ShowFeedbackModal { get; set; }
     public string FeedbackCampaignId { get; set; } = "";
+    public int FeedbackMilestone { get; set; }
     public bool ShowGitHubStarModal { get; set; }
     public int GitHubStarMilestone { get; set; }
 
@@ -167,15 +168,20 @@ public class IndexModel : PageModel
                 ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
 
                 var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
-                var campaignId = FeedbackCampaigns.GetCampaignIdForUser(DateTime.UtcNow, isAdmin);
+                var achievementCount = GetUnlockedAchievementCount(user.Username);
+                var campaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
                 if (!string.IsNullOrEmpty(campaignId) && _feedbackService != null && _feedbackService.IsEnabled)
                 {
-                    var alreadySubmitted = await _feedbackService.HasSubmittedAsync(user.Username, campaignId);
-                    var achievementCount = GetUnlockedAchievementCount(user.Username);
-                    if (!alreadySubmitted && FeedbackCampaigns.IsEligible(achievementCount))
+                    var alreadySubmitted = await _feedbackService.HasSubmittedFeedbackAsync(user.Username);
+                    if (!alreadySubmitted)
                     {
-                        ShowFeedbackModal = true;
-                        FeedbackCampaignId = campaignId;
+                        var alreadyResponded = await _feedbackService.HasRespondedAsync(user.Username, campaignId);
+                        if (!alreadyResponded)
+                        {
+                            ShowFeedbackModal = true;
+                            FeedbackCampaignId = campaignId;
+                            FeedbackMilestone = FeedbackCampaigns.GetActiveMilestone(achievementCount);
+                        }
                     }
                 }
 
