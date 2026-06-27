@@ -150,6 +150,7 @@ public class LoginModel : PageModel
 
         private async Task<IActionResult> CompleteRegistrationAsync(string username)
         {
+            ActivityEventCatalog.LogRegister(_activityEvents, username);
             RotateSessionForLogin();
             HttpContext.Session.SetString("Username", username);
             HttpContext.Session.SetString("IsAdmin", "0");

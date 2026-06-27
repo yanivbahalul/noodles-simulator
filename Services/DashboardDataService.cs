@@ -70,6 +70,8 @@ public class DashboardDataService
     public class ActivityRow
     {
         public string Kind { get; set; } = "";
+        public string KindLabel { get; set; } = "";
+        public string Category { get; set; } = "";
         public string Username { get; set; } = "";
         public string Message { get; set; } = "";
         public string TimestampIso { get; set; }
@@ -186,8 +188,8 @@ public class DashboardDataService
             : 0;
 
         var activeExams = await BuildActiveExamsAsync();
-        var recentActivity = await BuildDerivedActivityAsync();
-        var liveActivity = await BuildLiveActivityAsync();
+        var recentActivity = await BuildActivityFeedAsync(100);
+        var liveActivity = await BuildActivityFeedAsync(50);
 
         return new DashboardSnapshot
         {
@@ -273,125 +275,27 @@ public class DashboardDataService
         }).ToList();
     }
 
-    private async Task<List<ActivityRow>> BuildDerivedActivityAsync()
-    {
-        var items = new List<ActivityRow>();
-
-        if (_progressStore?.IsEnabled == true)
-        {
-            foreach (var row in await _progressStore.FetchRecentProgressUpdatesAsync(25))
-            {
-                items.Add(new ActivityRow
-                {
-                    Kind = "progress",
-                    Username = row.Username,
-                    Message = "עדכן התקדמות",
-                    TimestampIso = row.UpdatedAt.ToUniversalTime().ToString("o")
-                });
-            }
-
-            foreach (var row in await _progressStore.FetchRecentAchievementsAsync(25))
-            {
-                var def = AchievementCatalog.Find(row.AchievementKey);
-                var title = def?.Title ?? row.AchievementKey;
-                items.Add(new ActivityRow
-                {
-                    Kind = "achievement",
-                    Username = row.Username,
-                    Message = $"פתח הישג: {title}",
-                    TimestampIso = row.UnlockedAt.ToUniversalTime().ToString("o")
-                });
-            }
-        }
-
-        if (_testSessions != null)
-        {
-            foreach (var s in await _testSessions.GetRecentCompletedSessionsAsync(25))
-            {
-                var when = s.CompletedUtc ?? s.UpdatedAt;
-                items.Add(new ActivityRow
-                {
-                    Kind = "exam_complete",
-                    Username = s.Username,
-                    Message = $"סיים מבחן {s.Score}/{s.MaxScore}",
-                    TimestampIso = when.ToUniversalTime().ToString("o")
-                });
-            }
-        }
-
-        return items
-            .Where(a => !string.IsNullOrWhiteSpace(a.TimestampIso))
-            .OrderByDescending(a => a.TimestampIso, StringComparer.Ordinal)
-            .Take(40)
-            .ToList();
-    }
-
-    private async Task<List<ActivityRow>> BuildLiveActivityAsync()
+    private async Task<List<ActivityRow>> BuildActivityFeedAsync(int limit)
     {
         if (_activityEvents == null || !_activityEvents.IsEnabled)
             return new List<ActivityRow>();
 
-        var events = await _activityEvents.GetRecentAsync(50);
-        return events.Select(e => new ActivityRow
-        {
-            Kind = e.EventType,
-            Username = e.Username,
-            Message = FormatLiveMessage(e),
-            TimestampIso = e.CreatedAt.ToUniversalTime().ToString("o")
-        }).ToList();
+        var events = await _activityEvents.GetRecentAsync(limit);
+        return events.Select(MapActivityEvent).ToList();
     }
 
-    private static string FormatLiveMessage(ActivityEventService.ActivityEvent e)
+    private static ActivityRow MapActivityEvent(ActivityEventService.ActivityEvent e)
     {
         var payload = e.Payload ?? new Dictionary<string, object>();
-        return e.EventType switch
+        return new ActivityRow
         {
-            "answer" => FormatAnswerMessage(payload),
-            "exam_start" => "התחיל מבחן",
-            "exam_complete" => FormatExamCompleteMessage(payload),
-            "achievement" => FormatAchievementMessage(payload),
-            "login" => "התחבר",
-            _ => e.EventType
+            Kind = e.EventType,
+            KindLabel = ActivityEventCatalog.KindLabel(e.EventType),
+            Category = ActivityEventCatalog.GetCategory(e.EventType),
+            Username = e.Username,
+            Message = ActivityEventCatalog.FormatMessage(e.EventType, payload),
+            TimestampIso = e.CreatedAt.ToUniversalTime().ToString("o")
         };
-    }
-
-    private static string FormatAnswerMessage(Dictionary<string, object> payload)
-    {
-        var correct = payload.TryGetValue("correct", out var c) && c is bool b && b;
-        var questionId = payload.TryGetValue("questionId", out var q) ? q?.ToString() : "";
-        var mode = payload.TryGetValue("mode", out var m) ? m?.ToString() : "normal";
-        var modeLabel = mode switch
-        {
-            "weak" => "חולשות",
-            "review" => "חזרה",
-            "daily" => "אתגר יומי",
-            _ => "רגיל"
-        };
-        var shortQ = string.IsNullOrWhiteSpace(questionId)
-            ? "שאלה"
-            : (questionId.Length > 28 ? questionId[..25] + "…" : questionId);
-        return correct
-            ? $"ענה נכון על {shortQ} ({modeLabel})"
-            : $"ענה שגוי על {shortQ} ({modeLabel})";
-    }
-
-    private static string FormatExamCompleteMessage(Dictionary<string, object> payload)
-    {
-        var score = payload.TryGetValue("score", out var s) ? s?.ToString() : "?";
-        var max = payload.TryGetValue("maxScore", out var m) ? m?.ToString() : "?";
-        return $"סיים מבחן {score}/{max}";
-    }
-
-    private static string FormatAchievementMessage(Dictionary<string, object> payload)
-    {
-        if (payload.TryGetValue("title", out var t) && t != null)
-            return $"פתח הישג: {t}";
-        if (payload.TryGetValue("key", out var k) && k != null)
-        {
-            var def = AchievementCatalog.Find(k.ToString());
-            if (def != null) return $"פתח הישג: {def.Title}";
-        }
-        return "פתח הישג חדש";
     }
 
     public async Task<UserDetailSnapshot> GetUserDetailAsync(string username)
@@ -589,6 +493,8 @@ public class DashboardDataService
     private static object ToApiActivity(ActivityRow a) => new
     {
         kind = a.Kind,
+        kindLabel = string.IsNullOrWhiteSpace(a.KindLabel) ? a.Kind : a.KindLabel,
+        category = string.IsNullOrWhiteSpace(a.Category) ? ActivityEventCatalog.GetCategory(a.Kind) : a.Category,
         username = a.Username,
         message = a.Message,
         timestampIso = a.TimestampIso

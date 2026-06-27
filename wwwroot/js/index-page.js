@@ -40,10 +40,49 @@
         }).catch(ignoreDismissError);
     }
 
+    function logPromptShown(prompt, details = {}) {
+        fetch("/api/activity/prompt-shown", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt, ...details })
+        }).catch(() => {});
+    }
+
+    function ensureFeedbackPrompt(campaignId, milestone) {
+        let prompt = document.getElementById("feedback-prompt");
+        if (!prompt) {
+            prompt = document.createElement("div");
+            prompt.id = "feedback-prompt";
+            prompt.hidden = true;
+            document.body.appendChild(prompt);
+        }
+        prompt.dataset.campaignId = campaignId;
+        prompt.dataset.milestone = String(milestone ?? "");
+        return prompt;
+    }
+
+    function openFeedbackModal(campaignId, milestone) {
+        const modal = document.getElementById("feedback-modal");
+        if (!modal || !campaignId) {
+            openGitHubStarModalIfPending();
+            return;
+        }
+        ensureFeedbackPrompt(campaignId, milestone);
+        resetFeedbackStars(
+            document.getElementById("feedback-stars"),
+            document.getElementById("feedback-submit-btn")
+        );
+        modal.classList.add("difficulty-modal-open");
+        logPromptShown("feedback", {
+            campaignId,
+            milestone: parseInt(milestone, 10) || 0
+        });
+    }
+
     function openFeedbackModalIfPending() {
         const prompt = document.getElementById("feedback-prompt");
         const modal = document.getElementById("feedback-modal");
-        if (!prompt || !modal) {
+        if (!prompt || !modal || !prompt.dataset.campaignId) {
             openGitHubStarModalIfPending();
             return;
         }
@@ -69,6 +108,7 @@
         modal.dataset.milestone = String(milestone ?? "");
         modal.dataset.repoUrl = url || "https://github.com/yanivbahalul/noodles-simulator";
         modal.classList.add("difficulty-modal-open");
+        logPromptShown("github_star", { milestone: parseInt(milestone, 10) || 0 });
     }
 
     function closeGitHubStarModal() {
@@ -589,7 +629,9 @@
         updateStreakBadge(data.stats?.streak ?? 0);
         showAchievementToast(data.achievements);
 
-        if (data.showGitHubStarPrompt) {
+        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
+            openFeedbackModal(data.feedbackCampaignId, data.feedbackMilestone);
+        } else if (data.showGitHubStarPrompt) {
             openGitHubStarModal(data.githubStarMilestone, data.githubStarUrl);
         }
 
@@ -890,6 +932,7 @@
         if (!modal || !noticeId) return;
 
         modal.classList.add("difficulty-modal-open");
+        logPromptShown("app_notice", { noticeId });
 
         const dismiss = () => {
             dismissAppNotice();
@@ -976,10 +1019,18 @@
         }
     }
 
-    function bindFeedbackModal() {
-        const prompt = document.getElementById("feedback-prompt");
-        if (!prompt) return;
+    let feedbackSelectedRating = 0;
 
+    function resetFeedbackStars(starsEl, submitBtn) {
+        feedbackSelectedRating = 0;
+        if (!starsEl || !submitBtn) return;
+        starsEl.querySelectorAll(".feedback-star").forEach((star) => star.classList.remove("is-selected"));
+        submitBtn.disabled = true;
+        const messageEl = document.getElementById("feedback-message");
+        if (messageEl) messageEl.value = "";
+    }
+
+    function bindFeedbackModal() {
         const modal = document.getElementById("feedback-modal");
         const submitBtn = document.getElementById("feedback-submit-btn");
         const laterBtn = document.getElementById("feedback-later-btn");
@@ -987,14 +1038,14 @@
         const messageEl = document.getElementById("feedback-message");
         if (!modal || !submitBtn || !laterBtn || !starsEl) return;
 
-        let selectedRating = 0;
         const updateStars = createFeedbackStarUpdater(starsEl, submitBtn, (rating) => {
-            selectedRating = rating;
+            feedbackSelectedRating = rating;
         });
         bindFeedbackStarClicks(starsEl, updateStars);
 
         laterBtn.addEventListener("click", () => {
-            recordFeedbackLater(prompt, laterBtn);
+            const prompt = document.getElementById("feedback-prompt");
+            if (prompt) recordFeedbackLater(prompt, laterBtn);
         });
 
         modal.addEventListener("click", (e) => {
@@ -1002,11 +1053,16 @@
         });
 
         submitBtn.addEventListener("click", () => {
-            submitFeedbackRating(prompt, selectedRating, messageEl, submitBtn);
+            const prompt = document.getElementById("feedback-prompt");
+            if (prompt) {
+                submitFeedbackRating(prompt, feedbackSelectedRating, messageEl, submitBtn);
+            }
         });
 
-        if (prompt.dataset.hasNotice !== "1") {
+        const prompt = document.getElementById("feedback-prompt");
+        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1") {
             openFeedbackModalIfPending();
+        } else {
             openGitHubStarModalIfPending();
         }
     }

@@ -199,7 +199,8 @@ if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbKeyForTest
     builder.Services.AddSingleton<TestSessionService>(sp =>
         new TestSessionService(
             sp.GetRequiredService<IConfiguration>(),
-            sp.GetService<SupabaseStorageService>()));
+            sp.GetService<SupabaseStorageService>(),
+            sp.GetService<ActivityEventService>()));
 }
 else
 {
@@ -610,12 +611,23 @@ api.MapPost("/dashboard-user-action", async context =>
             return;
         }
 
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        var adminUsername = context.Session.GetString("Username") ?? "Admin";
+
         if (root.TryGetProperty("isCheater", out var cheaterEl) &&
             (cheaterEl.ValueKind == System.Text.Json.JsonValueKind.True ||
              cheaterEl.ValueKind == System.Text.Json.JsonValueKind.False))
         {
             var wasCheater = user.IsCheater;
             user.IsCheater = cheaterEl.GetBoolean();
+            if (wasCheater != user.IsCheater)
+            {
+                ActivityEventCatalog.LogAdminAction(
+                    activity,
+                    adminUsername,
+                    user.Username,
+                    user.IsCheater ? "cheater_mark" : "cheater_unmark");
+            }
             if (wasCheater && !user.IsCheater)
                 RestoreUserStatsFromProgress(context, user);
         }
@@ -623,7 +635,18 @@ api.MapPost("/dashboard-user-action", async context =>
         if (root.TryGetProperty("isBanned", out var bannedEl) &&
             (bannedEl.ValueKind == System.Text.Json.JsonValueKind.True ||
              bannedEl.ValueKind == System.Text.Json.JsonValueKind.False))
+        {
+            var wasBanned = user.IsBanned;
             user.IsBanned = bannedEl.GetBoolean();
+            if (wasBanned != user.IsBanned)
+            {
+                ActivityEventCatalog.LogAdminAction(
+                    activity,
+                    adminUsername,
+                    user.Username,
+                    user.IsBanned ? "ban" : "unban");
+            }
+        }
 
         var ok = await authService.UpdateUserAsync(user);
         if (ok)
@@ -761,6 +784,20 @@ api.MapPost("/notices/dismiss", async context =>
             return;
         }
 
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        if (AppNotices.IsValid(noticeId))
+            PromptActivityEvents.LogAppNoticeDismiss(activity, username, noticeId);
+        else if (string.Equals(noticeId, GitHubStarPrompt.OptedInNoticeId, StringComparison.Ordinal))
+            PromptActivityEvents.LogGitHubStarAccept(activity, username);
+        else if (GitHubStarPrompt.IsGitHubStarNotice(noticeId))
+        {
+            var suffix = noticeId!.Length > "github-star-".Length
+                ? noticeId["github-star-".Length..]
+                : "";
+            if (int.TryParse(suffix, out var milestone))
+                PromptActivityEvents.LogGitHubStarLater(activity, username, milestone);
+        }
+
         await WriteJson(context, new { ok = true });
     }
     catch (Exception ex)
@@ -832,6 +869,9 @@ api.MapPost("/feedback/submit", async context =>
             return;
         }
 
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        PromptActivityEvents.LogFeedbackSubmit(activity, username, rating, campaignId!);
+
         await WriteJson(context, new { ok = true });
     }
     catch (Exception ex)
@@ -891,6 +931,10 @@ api.MapPost("/feedback/later", async context =>
             return;
         }
 
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        var milestone = FeedbackCampaigns.ParseMilestoneFromCampaignId(campaignId);
+        PromptActivityEvents.LogFeedbackLater(activity, username, campaignId!, milestone);
+
         await WriteJson(context, new { ok = true });
     }
     catch (Exception ex)
@@ -899,6 +943,85 @@ api.MapPost("/feedback/later", async context =>
     }
 });
 
+api.MapPost("/activity/prompt-shown", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        if (!doc.RootElement.TryGetProperty("prompt", out var promptEl))
+        {
+            await WritePlainError(context, 400, "prompt required");
+            return;
+        }
+
+        var prompt = promptEl.GetString();
+        var username = context.Session.GetString("Username")!;
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        if (activity == null || !activity.IsEnabled)
+        {
+            await WriteJson(context, new { ok = true });
+            return;
+        }
+
+        switch (prompt)
+        {
+            case "feedback":
+            {
+                var campaignId = doc.RootElement.TryGetProperty("campaignId", out var cEl)
+                    ? cEl.GetString() ?? ""
+                    : "";
+                var milestone = doc.RootElement.TryGetProperty("milestone", out var mEl) &&
+                                mEl.TryGetInt32(out var m)
+                    ? m
+                    : FeedbackCampaigns.ParseMilestoneFromCampaignId(campaignId);
+                PromptActivityEvents.LogFeedbackPrompt(activity, username, milestone, campaignId);
+                break;
+            }
+            case "github_star":
+            {
+                var milestone = doc.RootElement.TryGetProperty("milestone", out var mEl) &&
+                                mEl.TryGetInt32(out var m)
+                    ? m
+                    : 0;
+                PromptActivityEvents.LogGitHubStarPrompt(activity, username, milestone);
+                break;
+            }
+            case "app_notice":
+            {
+                if (!doc.RootElement.TryGetProperty("noticeId", out var nEl))
+                {
+                    await WritePlainError(context, 400, "noticeId required");
+                    return;
+                }
+
+                var noticeId = nEl.GetString();
+                if (!AppNotices.IsValid(noticeId))
+                {
+                    await WritePlainError(context, 400, "Invalid noticeId");
+                    return;
+                }
+
+                PromptActivityEvents.LogAppNoticePrompt(activity, username, noticeId!);
+                break;
+            }
+            default:
+                await WritePlainError(context, 400, "Invalid prompt");
+                return;
+        }
+
+        await WriteJson(context, new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Prompt Shown API Error", ex);
+    }
+});
 api.MapGet("/dashboard-feedback", async context =>
 {
     if (!IsAdminSession(context))

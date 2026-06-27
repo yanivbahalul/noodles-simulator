@@ -194,42 +194,39 @@
     </div>
 }
 
-@if (Model.ShowFeedbackModal)
-{
-    <div id="feedback-prompt"
-         data-campaign-id="@Model.FeedbackCampaignId"
-         data-milestone="@Model.FeedbackMilestone"
-         data-has-notice="@(!string.IsNullOrEmpty(Model.ActiveNoticeId) ? "1" : "0")"
-         hidden></div>
-    <div id="feedback-modal" class="difficulty-modal feedback-modal">
-        <div class="difficulty-modal-content feedback-modal-content">
-            <h2 class="difficulty-modal-title">@FeedbackCampaigns.Title</h2>
-            <p class="difficulty-modal-message feedback-modal-subtitle">@FeedbackCampaigns.Subtitle</p>
+<div id="feedback-prompt"
+     data-campaign-id="@(Model.ShowFeedbackModal ? Model.FeedbackCampaignId : "")"
+     data-milestone="@(Model.ShowFeedbackModal ? Model.FeedbackMilestone : 0)"
+     data-has-notice="@(!string.IsNullOrEmpty(Model.ActiveNoticeId) ? "1" : "0")"
+     hidden></div>
+<div id="feedback-modal" class="difficulty-modal feedback-modal">
+    <div class="difficulty-modal-content feedback-modal-content">
+        <h2 class="difficulty-modal-title">@FeedbackCampaigns.Title</h2>
+        <p class="difficulty-modal-message feedback-modal-subtitle">@FeedbackCampaigns.Subtitle</p>
 
-            <div class="feedback-stars" id="feedback-stars" role="radiogroup" aria-label="דירוג">
-                @for (var star = 1; star <= 5; star++)
-                {
-                    <button type="button"
-                            class="feedback-star"
-                            data-rating="@star"
-                            aria-label="דירוג @star מתוך 5">★</button>
-                }
-            </div>
+        <div class="feedback-stars" id="feedback-stars" role="radiogroup" aria-label="דירוג">
+            @for (var star = 1; star <= 5; star++)
+            {
+                <button type="button"
+                        class="feedback-star"
+                        data-rating="@star"
+                        aria-label="דירוג @star מתוך 5">★</button>
+            }
+        </div>
 
-            <label for="feedback-message" class="feedback-message-label">משוב (אופציונלי)</label>
-            <textarea id="feedback-message"
-                      class="feedback-message-input"
-                      maxlength="2000"
-                      rows="4"
-                      placeholder="ספר לנו מה אהבת, מה היית משפר, או כל דבר אחר..."></textarea>
+        <label for="feedback-message" class="feedback-message-label">משוב (אופציונלי)</label>
+        <textarea id="feedback-message"
+                  class="feedback-message-input"
+                  maxlength="2000"
+                  rows="4"
+                  placeholder="ספר לנו מה אהבת, מה היית משפר, או כל דבר אחר..."></textarea>
 
-            <div class="difficulty-buttons feedback-modal-buttons">
-                <button type="button" class="difficulty-btn difficulty-easy" id="feedback-submit-btn" disabled>שליחה</button>
-                <button type="button" class="difficulty-btn difficulty-medium" id="feedback-later-btn">אולי אחר כך</button>
-            </div>
+        <div class="difficulty-buttons feedback-modal-buttons">
+            <button type="button" class="difficulty-btn difficulty-easy" id="feedback-submit-btn" disabled>שליחה</button>
+            <button type="button" class="difficulty-btn difficulty-medium" id="feedback-later-btn">אולי אחר כך</button>
         </div>
     </div>
-}
+</div>
 
 @if (Model.ShowGitHubStarModal)
 {

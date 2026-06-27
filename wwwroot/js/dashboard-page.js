@@ -4,6 +4,10 @@
     let userFilter = "all";
     let userSearch = "";
     let allUsersCache = [];
+    let liveActivityCache = [];
+    let recentActivityCache = [];
+    let liveActivityFilter = "all";
+    let recentActivityFilter = "all";
 
     const DIFFICULTY_LABELS = {
         easy: "קלות",
@@ -100,28 +104,42 @@
             updateTable("online-users-table", data.onlineUsersList, ["rank", "username", "totalAnswered", "correctAnswers", "successRate"], { usernameClickable: true });
             updateTable("top-users-table", data.topUsersList, ["rank", "username", "totalAnswered", "correctAnswers", "successRate"], { usernameClickable: true });
             renderActiveExams(data.activeExams || []);
-            renderActivityFeed("live-activity-feed", data.liveActivity || [], true);
-            renderActivityFeed("recent-activity-feed", data.recentActivity || [], false);
+            liveActivityCache = data.liveActivity || [];
+            recentActivityCache = data.recentActivity || [];
+            renderActivityFeed("live-activity-feed", liveActivityCache, true, liveActivityFilter);
+            renderActivityFeed("recent-activity-feed", recentActivityCache, false, recentActivityFilter);
         } catch {
             const lastUpdate = document.getElementById("last-update");
             if (lastUpdate) lastUpdate.textContent = "(שגיאה בעדכון - מחכה...)";
         }
     }
 
-    function renderActivityFeed(containerId, items, isLive) {
+    function passesActivityFilter(item, filter) {
+        if (!filter || filter === "all") return true;
+        const category = item.category || "other";
+        return category === filter;
+    }
+
+    function renderActivityFeed(containerId, items, isLive, filter) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        if (!items.length) {
-            container.innerHTML = `<p class="dashboard-empty-hint">${isLive ? "אין עדיין אירועים חיים — יופיעו אחרי תשובות ומבחנים" : "אין פעילות אחרונה"}</p>`;
+        const filtered = (items || []).filter((item) => passesActivityFilter(item, filter));
+
+        if (!filtered.length) {
+            const emptyMsg = !items?.length
+                ? (isLive ? "אין עדיין אירועים — יופיעו אחרי פעילות משתמשים" : "אין פעילות אחרונה")
+                : "אין אירועים בסינון הנוכחי";
+            container.innerHTML = `<p class="dashboard-empty-hint">${emptyMsg}</p>`;
             return;
         }
 
-        container.innerHTML = items.map((item) => {
+        container.innerHTML = filtered.map((item) => {
             const kindClass = `dashboard-activity-kind dashboard-activity-kind-${escapeHtml(item.kind || "other")}`;
+            const kindText = escapeHtml(item.kindLabel || item.kind || "");
             return `<div class="dashboard-activity-item">
                 <span class="dashboard-activity-time" title="${escapeHtml(item.timestampIso)}">${formatRelativeTime(item.timestampIso)}</span>
-                <span class="${kindClass}">${escapeHtml(item.kind || "")}</span>
+                <span class="${kindClass}">${kindText}</span>
                 <button type="button" class="dashboard-user-link" data-username="${escapeHtml(item.username)}">${escapeHtml(item.username)}</button>
                 <span class="dashboard-activity-message">${escapeHtml(item.message)}</span>
             </div>`;
@@ -129,6 +147,26 @@
 
         container.querySelectorAll(".dashboard-user-link").forEach((btn) => {
             btn.addEventListener("click", () => openUserDetail(btn.dataset.username));
+        });
+    }
+
+    function bindActivityFilters(containerId, cacheKey) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.querySelectorAll("[data-activity-filter]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                container.querySelectorAll("[data-activity-filter]").forEach((b) => b.classList.remove("is-active"));
+                btn.classList.add("is-active");
+                const filter = btn.dataset.activityFilter || "all";
+                if (cacheKey === "live") {
+                    liveActivityFilter = filter;
+                    renderActivityFeed("live-activity-feed", liveActivityCache, true, liveActivityFilter);
+                } else {
+                    recentActivityFilter = filter;
+                    renderActivityFeed("recent-activity-feed", recentActivityCache, false, recentActivityFilter);
+                }
+            });
         });
     }
 
@@ -530,14 +568,17 @@
             card.addEventListener("click", () => filterByDifficulty(card.dataset.difficulty));
         });
 
-        document.querySelectorAll(".dashboard-filter-btn").forEach((btn) => {
+        document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((btn) => {
             btn.addEventListener("click", () => {
-                document.querySelectorAll(".dashboard-filter-btn").forEach((b) => b.classList.remove("is-active"));
+                document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((b) => b.classList.remove("is-active"));
                 btn.classList.add("is-active");
                 userFilter = btn.dataset.filter || "all";
                 renderAllUsersTable();
             });
         });
+
+        bindActivityFilters("live-activity-filters", "live");
+        bindActivityFilters("recent-activity-filters", "recent");
 
         const search = document.getElementById("user-search");
         if (search) {

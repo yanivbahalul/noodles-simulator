@@ -168,22 +168,7 @@ public class IndexModel : PageModel
                 ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
 
                 var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
-                var achievementCount = GetUnlockedAchievementCount(user.Username);
-                var campaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
-                if (!string.IsNullOrEmpty(campaignId) && _feedbackService != null && _feedbackService.IsEnabled)
-                {
-                    var alreadySubmitted = await _feedbackService.HasSubmittedFeedbackAsync(user.Username);
-                    if (!alreadySubmitted)
-                    {
-                        var alreadyResponded = await _feedbackService.HasRespondedAsync(user.Username, campaignId);
-                        if (!alreadyResponded)
-                        {
-                            ShowFeedbackModal = true;
-                            FeedbackCampaignId = campaignId;
-                            FeedbackMilestone = FeedbackCampaigns.GetActiveMilestone(achievementCount);
-                        }
-                    }
-                }
+                await TryResolveFeedbackPromptAsync(user, isAdmin);
 
                 if (GitHubStarPrompt.ShouldPrompt(user))
                 {
@@ -274,6 +259,7 @@ public class IndexModel : PageModel
             var reportSubject = ErrorReportBuilder.BuildSubject(payload.Username);
 
             await TrySendReportEmailAsync(reportSubject, htmlBody);
+            ActivityEventCatalog.LogQuestionReport(_activityEvents, payload.Username, payload.QuestionImage);
             return new JsonResult(new { success = true });
         }
         catch (Exception ex)
@@ -331,6 +317,8 @@ public class IndexModel : PageModel
             SaveAnswerFlashToSession();
             ClearPrefetch();
             await PopulateUserStatsAsync(auth.User);
+            var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
+            await TryResolveFeedbackPromptAsync(auth.User, isAdmin);
             ShowGitHubStarModal = GitHubStarPrompt.ShouldPrompt(auth.User);
             if (ShowGitHubStarModal)
                 GitHubStarMilestone = GitHubStarPrompt.GetActiveMilestone(auth.User.TotalAnswered);
@@ -431,12 +419,16 @@ public class IndexModel : PageModel
 
     private void ApplyPracticeQueryParams()
     {
+        var username = HttpContext.Session.GetString("Username");
         var mode = Request.Query["mode"].ToString();
         var difficulty = Request.Query["difficulty"].ToString();
 
         if (!string.IsNullOrWhiteSpace(mode))
         {
+            var prevMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
             HttpContext.Session.SetString("PracticeMode", mode);
+            if (!string.IsNullOrWhiteSpace(username) && mode != prevMode && IsNotablePracticeMode(mode))
+                ActivityEventCatalog.LogPracticeStart(_activityEvents, username, mode);
             if (mode != "normal")
                 HttpContext.Session.Remove("PracticeDifficulty");
             else if (string.IsNullOrWhiteSpace(difficulty))
@@ -451,6 +443,34 @@ public class IndexModel : PageModel
 
         if (mode == "daily")
             EnsureDailyChallengeSession();
+    }
+
+    private static bool IsNotablePracticeMode(string mode) =>
+        mode is "daily" or "weak" or "review";
+
+    private async Task TryResolveFeedbackPromptAsync(User user, bool isAdmin)
+    {
+        ShowFeedbackModal = false;
+        FeedbackCampaignId = "";
+        FeedbackMilestone = 0;
+
+        if (user == null || _feedbackService == null || !_feedbackService.IsEnabled)
+            return;
+
+        var achievementCount = GetUnlockedAchievementCount(user.Username);
+        var campaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
+        if (string.IsNullOrEmpty(campaignId))
+            return;
+
+        if (await _feedbackService.HasSubmittedFeedbackAsync(user.Username))
+            return;
+
+        if (await _feedbackService.HasRespondedAsync(user.Username, campaignId))
+            return;
+
+        ShowFeedbackModal = true;
+        FeedbackCampaignId = campaignId;
+        FeedbackMilestone = FeedbackCampaigns.GetActiveMilestone(achievementCount);
     }
 
     private int GetUnlockedAchievementCount(string username)
@@ -867,13 +887,16 @@ public class IndexModel : PageModel
         if (practiceMode == "daily")
             RecordDailyChallengeProgress(user);
 
-        _activityEvents?.Log(user.Username, "answer", new Dictionary<string, object>
+        if (practiceMode != "daily")
         {
-            ["questionId"] = QuestionImage ?? "",
-            ["correct"] = IsCorrect,
-            ["mode"] = practiceMode ?? "normal",
-            ["difficulty"] = practiceDifficulty ?? "easy"
-        });
+            _activityEvents?.Log(user.Username, ActivityEventCatalog.Answer, new Dictionary<string, object>
+            {
+                ["questionId"] = QuestionImage ?? "",
+                ["correct"] = IsCorrect,
+                ["mode"] = practiceMode ?? "normal",
+                ["difficulty"] = practiceDifficulty ?? "easy"
+            });
+        }
     }
 
     private void RecordCorrectAnswerProgress(User user, string practiceMode, string practiceDifficulty)
@@ -907,6 +930,7 @@ public class IndexModel : PageModel
         var finalScore = HttpContext.Session.GetInt32("DailyScore") ?? 0;
         _userProgress.RecordDailyChallengeComplete(user.Username, finalScore >= DailyTotal);
         NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
+        ActivityEventCatalog.LogDailyComplete(_activityEvents, user.Username, finalScore, DailyTotal);
     }
 
     private void SyncUserLevelFromProgress(User user)
@@ -914,8 +938,11 @@ public class IndexModel : PageModel
         if (_userProgress == null) return;
 
         var progress = _userProgress.Load(user.Username);
+        var oldLevel = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(user.Xp);
         user.Xp = progress.Xp;
         user.Level = QuizGamification.LevelFromXp(user.Xp);
+        if (user.Level > oldLevel)
+            ActivityEventCatalog.LogLevelUp(_activityEvents, user.Username, user.Level);
     }
 
     private async Task FinalizeAnswerSubmissionAsync(User user, int streak)
@@ -1607,6 +1634,9 @@ public class IndexModel : PageModel
             },
             achievements,
             redirect = (string)null,
+            showFeedbackPrompt = ShowFeedbackModal,
+            feedbackCampaignId = FeedbackCampaignId,
+            feedbackMilestone = FeedbackMilestone,
             showGitHubStarPrompt = ShowGitHubStarModal,
             githubStarMilestone = GitHubStarMilestone,
             githubStarUrl = GitHubStarPrompt.RepoUrl

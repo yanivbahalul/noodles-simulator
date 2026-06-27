@@ -46,7 +46,7 @@ public class MyExamsModel : PageModel
         {
             if (_testSession.IsExpired(session))
             {
-                await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
+                await _testSession.ExpireSessionAsync(session);
                 session.Status = "expired";
             }
         }

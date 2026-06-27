@@ -1959,6 +1959,14 @@ button.answer-btn,
     color: #fff;
 }
 
+.dashboard-activity-toolbar {
+    margin-bottom: 0.65rem;
+}
+
+.dashboard-activity-toolbar .dashboard-filter-group {
+    flex-wrap: wrap;
+}
+
 .dashboard-activity-feed {
     background: #1e1e1e;
     border-radius: 12px;
@@ -1997,10 +2005,25 @@ button.answer-btn,
 
 .dashboard-activity-kind-answer { background: #1e3a5f; color: #9fd0ff; }
 .dashboard-activity-kind-exam_start,
-.dashboard-activity-kind-exam_complete { background: #3d2e14; color: #ffd700; }
+.dashboard-activity-kind-exam_complete,
+.dashboard-activity-kind-exam_expired { background: #3d2e14; color: #ffd700; }
 .dashboard-activity-kind-achievement { background: #2e1f3d; color: #e0b0ff; }
 .dashboard-activity-kind-login { background: #1f3d2a; color: #9fdfb0; }
-.dashboard-activity-kind-progress { background: #2a2a2a; color: #bbb; }
+.dashboard-activity-kind-register,
+.dashboard-activity-kind-level_up,
+.dashboard-activity-kind-daily_complete,
+.dashboard-activity-kind-practice_start,
+.dashboard-activity-kind-progress_reset { background: #1f3d3d; color: #9fe0e0; }
+.dashboard-activity-kind-question_report { background: #3d1f1f; color: #ffb0b0; }
+.dashboard-activity-kind-admin_action { background: #3d1f2e; color: #ff9fc8; }
+.dashboard-activity-kind-feedback_prompt,
+.dashboard-activity-kind-feedback_submit,
+.dashboard-activity-kind-feedback_later { background: #3d2a4a; color: #e8b4ff; }
+.dashboard-activity-kind-github_star_prompt,
+.dashboard-activity-kind-github_star_accept,
+.dashboard-activity-kind-github_star_later { background: #2a3540; color: #ffd700; }
+.dashboard-activity-kind-app_notice_prompt,
+.dashboard-activity-kind-app_notice_dismiss { background: #3d2817; color: #ffb366; }
 
 .dashboard-user-link {
     background: none;

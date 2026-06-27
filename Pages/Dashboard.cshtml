@@ -52,11 +52,37 @@
     </div>
 
     <h2 class="dashboard-section-title">⚡ פעילות חיה</h2>
+    <div class="dashboard-activity-toolbar">
+        <div class="dashboard-filter-group" id="live-activity-filters" role="group" aria-label="סינון פעילות חיה">
+            <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="admin">ניהול</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+        </div>
+    </div>
     <div class="dashboard-activity-feed" id="live-activity-feed">
         <p class="dashboard-empty-hint">טוען פעילות...</p>
     </div>
 
     <h2 class="dashboard-section-title">🕐 פעילות אחרונה</h2>
+    <div class="dashboard-activity-toolbar">
+        <div class="dashboard-filter-group" id="recent-activity-filters" role="group" aria-label="סינון פעילות אחרונה">
+            <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="admin">ניהול</button>
+            <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+        </div>
+    </div>
     <div class="dashboard-activity-feed" id="recent-activity-feed">
         <p class="dashboard-empty-hint">טוען פעילות...</p>
     </div>
@@ -185,7 +211,7 @@
     </table>
     </div>
 
-<script src="/js/dashboard-page.js?v=8"></script>
+<script src="/js/dashboard-page.js?v=9"></script>
 
 <!-- Difficulty Management Section -->
 <h2 class="dashboard-section-title">🎯 ניהול רמות קושי</h2>

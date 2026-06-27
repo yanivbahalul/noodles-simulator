@@ -25,11 +25,13 @@ public class TestSessionService
     private readonly string _url;
     private readonly string _apiKey;
     private readonly SupabaseStorageService? _storage;
+    private readonly ActivityEventService? _activityEvents;
     private static readonly TimeSpan TestDuration = TimeSpan.FromHours(2);
 
-    public TestSessionService(IConfiguration config, SupabaseStorageService storage = null)
+    public TestSessionService(IConfiguration config, SupabaseStorageService storage = null, ActivityEventService activityEvents = null)
     {
         _storage = storage;
+        _activityEvents = activityEvents;
         _url = SupabaseConfiguration.Url(config) ?? string.Empty;
         _apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
                   ?? SupabaseConfiguration.AnonApiKey(config)
@@ -197,7 +199,7 @@ public class TestSessionService
 
             if (IsExpired(session))
             {
-                await UpdateSessionStatusAsync(session.Token, "expired");
+                await ExpireSessionAsync(session);
                 return null;
             }
 
@@ -276,6 +278,25 @@ public class TestSessionService
             Console.WriteLine($"[UpdateSessionStatusAsync Exception] {ex}");
             return false;
         }
+    }
+
+    public async Task<bool> ExpireSessionAsync(TestSession session)
+    {
+        if (session == null || !string.Equals(session.Status, "active", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var ok = await UpdateSessionStatusAsync(session.Token, "expired");
+        if (ok)
+        {
+            ActivityEventCatalog.LogExamExpired(
+                _activityEvents,
+                session.Username,
+                session.Score,
+                session.MaxScore,
+                session.CurrentIndex);
+        }
+
+        return ok;
     }
 
     public async Task<List<TestSession>> GetUserSessionsAsync(string username, int limit = 50, bool includeBlobs = false)

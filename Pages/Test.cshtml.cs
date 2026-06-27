@@ -120,7 +120,7 @@ public class TestModel : PageModel
             {
                 if (session.Status == "active")
                 {
-                    await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
+                    await _testSession.ExpireSessionAsync(session);
                 }
                 return RedirectToPage("/TestResults", new { token = session.Token });
             }
@@ -242,7 +242,7 @@ public class TestModel : PageModel
 
             if (_testSession.IsExpired(session) || session.Status != "active")
             {
-                await _testSession.UpdateSessionStatusAsync(session.Token, "expired");
+                await _testSession.ExpireSessionAsync(session);
                 return new TestAnswerProcessResult
                 {
                     RedirectPath = $"/TestResults?token={Uri.EscapeDataString(session.Token)}"
