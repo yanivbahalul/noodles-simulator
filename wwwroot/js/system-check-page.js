@@ -26,6 +26,7 @@
     let totalChecks = plan.length;
     let completedChecks = 0;
     let counts = { passed: 0, failed: 0, warnings: 0 };
+    let streamFinished = false;
 
     function renderPlan() {
         tbody.innerHTML = "";
@@ -37,18 +38,21 @@
         updateSummary();
 
         for (const item of plan) {
+            const id = item.id || item.Id;
+            const name = item.name || item.Name;
+            const category = item.category || item.Category;
             const tr = document.createElement("tr");
-            tr.id = `check-row-${item.id}`;
+            tr.id = `check-row-${id}`;
             tr.className = "system-check-row-pending";
             tr.innerHTML = `
-                <td class="system-check-category">${escapeHtml(item.category)}</td>
-                <td>${escapeHtml(item.name)}</td>
+                <td class="system-check-category">${escapeHtml(category)}</td>
+                <td>${escapeHtml(name)}</td>
                 <td><span class="system-check-badge system-check-badge-pending">${statusLabel.pending}</span></td>
                 <td class="system-check-detail">—</td>
                 <td class="system-check-time">—</td>
             `;
             tbody.appendChild(tr);
-            rows.set(item.id, tr);
+            rows.set(id, tr);
         }
     }
 
@@ -94,31 +98,46 @@
     }
 
     function normalizeStatus(raw) {
-        if (raw === "Ok" || raw === 2) return "ok";
-        if (raw === "Warn" || raw === 4) return "warn";
-        if (raw === "Fail" || raw === 3) return "fail";
-        if (raw === "Running" || raw === 1) return "running";
+        if (raw === "ok" || raw === "Ok" || raw === 2) return "ok";
+        if (raw === "warn" || raw === "Warn" || raw === 4) return "warn";
+        if (raw === "fail" || raw === "Fail" || raw === 3) return "fail";
+        if (raw === "running" || raw === "Running" || raw === 1) return "running";
         if (typeof raw === "string") return raw.toLowerCase();
         return "fail";
     }
 
+    function getPhase(evt) {
+        return evt.phase || evt.Phase || "";
+    }
+
     function handleEvent(evt) {
-        if (evt.phase === "start") {
-            totalChecks = (evt.plan && evt.plan.length) || plan.length;
+        const phase = getPhase(evt);
+
+        if (phase === "error") {
+            streamFinished = true;
+            setBanner("fail", `❌ שגיאה: ${evt.detail || evt.Detail || "לא ידוע"}`);
+            runBtn.disabled = false;
+            runBtn.classList.remove("is-running");
+            return;
+        }
+
+        if (phase === "start") {
+            const planItems = evt.plan || evt.Plan;
+            totalChecks = (planItems && planItems.length) || plan.length;
             setBanner("running", "⏳ מריץ בדיקות...");
             updateClock(`התחיל ב-${formatTime(new Date())}`);
             return;
         }
 
-        if (evt.phase === "running") {
-            applyRowState(evt.id, "running", "בודק…");
+        if (phase === "running") {
+            applyRowState(evt.id || evt.Id, "running", "בודק…");
             return;
         }
 
-        if (evt.phase === "check") {
-            const status = normalizeStatus(evt.status);
+        if (phase === "check") {
+            const status = normalizeStatus(evt.status ?? evt.Status);
 
-            applyRowState(evt.id, status, evt.detail || "", evt.elapsedMs);
+            applyRowState(evt.id || evt.Id, status, evt.detail || evt.Detail || "", evt.elapsedMs ?? evt.ElapsedMs);
             completedChecks++;
             if (status === "ok") counts.passed++;
             else if (status === "warn") counts.warnings++;
@@ -129,9 +148,10 @@
             return;
         }
 
-        if (evt.phase === "complete") {
-            const failed = evt.failed ?? counts.failed;
-            const warnings = evt.warnings ?? counts.warnings;
+        if (phase === "complete") {
+            streamFinished = true;
+            const failed = evt.failed ?? evt.Failed ?? counts.failed;
+            const warnings = evt.warnings ?? evt.Warnings ?? counts.warnings;
             if (failed > 0) {
                 setBanner("fail", `❌ הסתיים — ${failed} נכשלו, ${warnings} אזהרות`);
             } else if (warnings > 0) {
@@ -160,6 +180,7 @@
         }
 
         renderPlan();
+        streamFinished = false;
         runBtn.disabled = true;
         runBtn.classList.add("is-running");
         setBanner("running", "⏳ מתחבר לבדיקות חיות...");
@@ -177,6 +198,8 @@
         };
 
         eventSource.onerror = () => {
+            if (streamFinished) return;
+            if (completedChecks > 0 && eventSource && eventSource.readyState === EventSource.CLOSED) return;
             setBanner("fail", "❌ החיבור לבדיקות נותק — נסה שוב");
             runBtn.disabled = false;
             runBtn.classList.remove("is-running");

@@ -113,9 +113,13 @@ builder.Services.AddRateLimiter(options =>
                 });
         }
 
-        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var ip = context.Connection.RemoteIpAddress;
+        if (ip != null && (System.Net.IPAddress.IsLoopback(ip) || ip.ToString() == "::1"))
+            return RateLimitPartition.GetNoLimiter("loopback");
+
+        var ipKey = ip?.ToString() ?? "unknown";
         return RateLimitPartition.GetSlidingWindowLimiter(
-            partitionKey: $"ip:{ip}",
+            partitionKey: $"ip:{ipKey}",
             factory: _ => new SlidingWindowRateLimiterOptions
             {
                 PermitLimit = 400,

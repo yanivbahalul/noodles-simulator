@@ -31,7 +31,7 @@ public class SystemCheckModel : PageModel
             return RedirectToPage("/Login");
 
         EnvironmentName = _env.EnvironmentName;
-        PlanJson = JsonSerializer.Serialize(_verification.GetPlan(), AppJson.Options);
+        PlanJson = JsonSerializer.Serialize(_verification.GetPlan(), AppJson.Web);
         return Page();
     }
 
@@ -40,22 +40,53 @@ public class SystemCheckModel : PageModel
         if (!IsAdmin())
         {
             Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await Response.WriteAsync("Unauthorized");
+            Response.ContentType = "text/plain; charset=utf-8";
+            await Response.WriteAsync("Unauthorized", cancellationToken);
             return;
         }
 
-        Response.ContentType = "text/event-stream";
+        Response.ContentType = "text/event-stream; charset=utf-8";
         Response.Headers.CacheControl = "no-cache, no-store";
         Response.Headers.Connection = "keep-alive";
+        Response.Headers["X-Accel-Buffering"] = "no";
 
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var probeBaseUrl = ResolveProbeBaseUrl();
 
-        await foreach (var evt in _verification.RunAsync(baseUrl, cancellationToken))
+        try
         {
-            var json = JsonSerializer.Serialize(evt, AppJson.Options);
-            await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
-            await Response.Body.FlushAsync(cancellationToken);
+            await foreach (var evt in _verification.RunAsync(probeBaseUrl, cancellationToken))
+            {
+                await WriteEventAsync(evt, cancellationToken);
+            }
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Client disconnected.
+        }
+        catch (Exception ex)
+        {
+            await WriteEventAsync(new SystemVerificationEvent
+            {
+                Phase = "error",
+                Detail = ex.Message
+            }, CancellationToken.None);
+        }
+    }
+
+    private async Task WriteEventAsync(SystemVerificationEvent evt, CancellationToken cancellationToken)
+    {
+        var json = JsonSerializer.Serialize(evt, AppJson.Web);
+        await Response.WriteAsync($"data: {json}\n\n", cancellationToken);
+        await Response.Body.FlushAsync(cancellationToken);
+    }
+
+    private string ResolveProbeBaseUrl()
+    {
+        var port = Environment.GetEnvironmentVariable("PORT");
+        if (!string.IsNullOrWhiteSpace(port))
+            return $"http://127.0.0.1:{port}";
+
+        return $"{Request.Scheme}://{Request.Host}";
     }
 
     private bool IsAdmin() =>

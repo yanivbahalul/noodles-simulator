@@ -299,32 +299,39 @@ public class SystemVerificationService
     private async Task<(bool ok, string detail, bool warn)> ProbeSupabaseTableAsync(
         string tableName, CancellationToken cancellationToken)
     {
-        var url = SupabaseConfiguration.Url(_config);
-        var key = SupabaseConfiguration.ServiceRoleApiKey(_config);
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(key))
-            return (false, "חסר SUPABASE_URL או service key", false);
-
-        var client = _httpClientFactory.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{url.TrimEnd('/')}/rest/v1/{tableName}?select=*&limit=1");
-        request.Headers.TryAddWithoutValidation("apikey", key);
-        request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {key}");
-        request.Headers.TryAddWithoutValidation("Prefer", "count=exact");
-
-        using var response = await client.SendAsync(request, cancellationToken);
-        if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.PartialContent)
+        try
         {
-            var count = "?";
-            if (response.Headers.TryGetValues("Content-Range", out var values))
-            {
-                var range = values.FirstOrDefault();
-                if (!string.IsNullOrEmpty(range) && range.Contains('/'))
-                    count = range.Split('/').Last();
-            }
-            return (true, $"נגיש, שורות={count}", false);
-        }
+            var url = SupabaseConfiguration.Url(_config);
+            var key = SupabaseConfiguration.ServiceRoleApiKey(_config);
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(key))
+                return (false, "חסר SUPABASE_URL או service key", false);
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        return (false, $"HTTP {(int)response.StatusCode}: {Trim(body, 120)}", false);
+            var client = _httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{url.TrimEnd('/')}/rest/v1/{tableName}?select=*&limit=1");
+            request.Headers.TryAddWithoutValidation("apikey", key);
+            request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {key}");
+            request.Headers.TryAddWithoutValidation("Prefer", "count=exact");
+
+            using var response = await client.SendAsync(request, cancellationToken);
+            if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.PartialContent)
+            {
+                var count = "?";
+                if (response.Headers.TryGetValues("Content-Range", out var values))
+                {
+                    var range = values.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(range) && range.Contains('/'))
+                        count = range.Split('/').Last();
+                }
+                return (true, $"נגיש, שורות={count}", false);
+            }
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            return (false, $"HTTP {(int)response.StatusCode}: {Trim(body, 120)}", false);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message, false);
+        }
     }
 
     private async Task<(bool ok, string detail, bool warn, CookieContainer cookies)> RunUserFlowStepAsync(
