@@ -141,7 +141,7 @@ public class AuthService
         };
 
         var content = new StringContent(JsonSerializer.Serialize(newUser), Encoding.UTF8, "application/json");
-        var res = await _client.PostAsync($"{_url}/rest/v1/users", content);
+        var res = await _adminClient.PostAsync($"{_url}/rest/v1/users", content);
         if (res.IsSuccessStatusCode)
         {
             if (_stats?.IsEnabled == true)
