@@ -109,7 +109,7 @@ public class DashboardModel : PageModel
             AllUsers = await _authService.GetAllUsersLightAsync();
             Cheaters = AllUsers.Where(u => u.IsCheater).ToList();
             BannedUsers = AllUsers.Where(u => u.IsBanned).ToList();
-            OnlineUsers = AllUsers.Where(AuthService.UserIsOnline).ToList();
+            OnlineUsers = AllUsers.Where(u => AuthService.UserIsOnline(u) && !u.IsBanned && !u.IsCheater).ToList();
             TopUsers = AllUsers.OrderByDescending(u => u.CorrectAnswers).Take(5).ToList();
             AverageSuccessRate = AllUsers.Where(u => u.TotalAnswered > 0)
                 .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)

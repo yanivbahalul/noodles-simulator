@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -32,7 +33,9 @@ public class AuthService
     private readonly UserStatsService _stats;
     private int _cachedOnlineCount = -1;
     private DateTime _cachedOnlineCountAt = DateTime.MinValue;
-    private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan PresenceTouchMinInterval = TimeSpan.FromSeconds(60);
+    private readonly ConcurrentDictionary<string, DateTime> _lastPresenceByUser = new();
 
     public AuthService(IConfiguration config, UserStatsService stats = null)
     {
@@ -262,6 +265,7 @@ public class AuthService
     public static bool UserIsOnline(User? user, int withinMinutes = 5)
     {
         if (user?.LastSeen is not DateTime seen) return false;
+        if (user.IsBanned || user.IsCheater) return false;
 
         var lastSeenUtc = seen.Kind switch
         {
@@ -273,6 +277,15 @@ public class AuthService
         return lastSeenUtc > DateTime.UtcNow.AddMinutes(-withinMinutes);
     }
 
+    public static int CountOnlineUsers(IEnumerable<User> users) =>
+        users.Count(u => UserIsOnline(u));
+
+    public void InvalidateOnlineCountCache()
+    {
+        _cachedOnlineCount = -1;
+        _cachedOnlineCountAt = DateTime.MinValue;
+    }
+
     public async Task<int> GetOnlineUserCountAsync()
     {
         if (_cachedOnlineCount >= 0 && DateTime.UtcNow - _cachedOnlineCountAt < OnlineCountCacheTtl)
@@ -280,37 +293,34 @@ public class AuthService
 
         try
         {
-            var threshold = DateTime.UtcNow.AddMinutes(-5).ToString("yyyy-MM-dd'T'HH:mm:ss");
-            var safeThreshold = Uri.EscapeDataString(threshold);
-            var request = new HttpRequestMessage(HttpMethod.Get,
-                $"{_url}/rest/v1/users?LastSeen=gte.{safeThreshold}&IsBanned=eq.false&IsCheater=eq.false&select=Username");
-            request.Headers.Add("Prefer", "count=exact");
-
-            var res = await _client.SendAsync(request);
-            if (res.IsSuccessStatusCode &&
-                res.Headers.TryGetValues("Content-Range", out var ranges))
-            {
-                var range = ranges.FirstOrDefault();
-                var slash = range?.LastIndexOf('/') ?? -1;
-                if (slash >= 0 && int.TryParse(range![(slash + 1)..], out var count))
-                {
-                    _cachedOnlineCount = count;
-                    _cachedOnlineCountAt = DateTime.UtcNow;
-                    return count;
-                }
-            }
-
             var users = await GetAllUsersLightAsync();
-            var fallback = users.Count(u => UserIsOnline(u));
-            _cachedOnlineCount = fallback;
+            var count = CountOnlineUsers(users);
+            _cachedOnlineCount = count;
             _cachedOnlineCountAt = DateTime.UtcNow;
-            return fallback;
+            return count;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[GetOnlineUserCountAsync Exception] {ex}");
             return _cachedOnlineCount >= 0 ? _cachedOnlineCount : 0;
         }
+    }
+
+    public async Task<bool> TouchLastSeenIfDueAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return false;
+
+        var now = DateTime.UtcNow;
+        if (_lastPresenceByUser.TryGetValue(username, out var last) && now - last < PresenceTouchMinInterval)
+            return false;
+
+        if (!await TouchLastSeenAsync(username, now))
+            return false;
+
+        _lastPresenceByUser[username] = now;
+        InvalidateOnlineCountCache();
+        return true;
     }
 
     public bool HasDismissedNotice(User? user, string noticeId)
@@ -399,7 +409,10 @@ public class AuthService
 
                 var response = await _client.SendAsync(request);
                 if (response.IsSuccessStatusCode)
+                {
+                    InvalidateOnlineCountCache();
                     return true;
+                }
 
                 var errorBody = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"[TouchLastSeenAsync] PATCH with '{col}' failed for {username}: {response.StatusCode} | {errorBody}");

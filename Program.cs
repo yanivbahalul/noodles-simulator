@@ -773,6 +773,14 @@ api.MapGet("/online-count", async context =>
             return;
         }
 
+        var heartbeat = context.Request.Query["heartbeat"] == "1";
+        var username = context.Session.GetString("Username");
+        if (heartbeat && !string.IsNullOrEmpty(username) &&
+            await authService.TouchLastSeenIfDueAsync(username))
+        {
+            InvalidateDashboardCaches(context.RequestServices);
+        }
+
         var onlineCount = await authService.GetOnlineUserCountAsync();
         var data = new { online = onlineCount };
 

@@ -8,7 +8,7 @@ namespace NoodlesSimulator.Services;
 
 public class DashboardDataService
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(5);
 
     private readonly AuthService _auth;
     private readonly UserProgressStore _progressStore;
@@ -145,7 +145,7 @@ public class DashboardDataService
             .OrderByDescending(u => u.LastSeenIso ?? "")
             .ToList();
 
-        var online = userRows.Where(u => u.IsOnline).ToList();
+        var online = userRows.Where(u => u.IsOnline && !u.IsCheater && !u.IsBanned).ToList();
         var top = allUsers
             .OrderByDescending(u => u.CorrectAnswers)
             .Take(5)

@@ -45,8 +45,37 @@
     window.fetchDrawerStats = fetchDrawerStats;
     window.toggleFooterStats = toggleFooterStats;
 
+    let presenceInterval = null;
+
+    async function presenceHeartbeat() {
+        try {
+            await fetch(`/api/online-count?heartbeat=1&_=${Date.now()}`, { credentials: "same-origin" });
+        } catch {
+            // keep session presence best-effort
+        }
+    }
+
+    function startPresence() {
+        stopPresence();
+        presenceHeartbeat();
+        presenceInterval = setInterval(presenceHeartbeat, 60000);
+    }
+
+    function stopPresence() {
+        if (presenceInterval) {
+            clearInterval(presenceInterval);
+            presenceInterval = null;
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const btn = document.getElementById("footer-stats-toggle");
         if (btn) btn.addEventListener("click", toggleFooterStats);
+        startPresence();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopPresence();
+        else startPresence();
     });
 })();
