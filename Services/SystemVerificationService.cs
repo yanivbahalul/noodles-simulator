@@ -97,7 +97,7 @@ public class SystemVerificationService
             new SystemVerificationPlanItem { Id = "sb-user-progress", Name = "טבלת user_progress", Category = "Supabase" },
             new SystemVerificationPlanItem { Id = "sb-user-achievements", Name = "טבלת user_achievements", Category = "Supabase" },
             new SystemVerificationPlanItem { Id = "sb-test-sessions", Name = "טבלת test_sessions", Category = "Supabase" },
-            new SystemVerificationPlanItem { Id = "flow-login", Name = "התחברות בדיקה", Category = "זרימת משתמש" },
+            new SystemVerificationPlanItem { Id = "flow-login", Name = "Session פעיל", Category = "זרימת משתמש" },
             new SystemVerificationPlanItem { Id = "flow-stats-data", Name = "נתוני סטטיסטיקה", Category = "זרימת משתמש" },
             new SystemVerificationPlanItem { Id = "flow-next-question", Name = "שאלה הבאה", Category = "זרימת משתמש" },
         });
@@ -106,6 +106,8 @@ public class SystemVerificationService
 
     public async IAsyncEnumerable<SystemVerificationEvent> RunAsync(
         string baseUrl,
+        string forwardedCookieHeader = null,
+        string sessionUsername = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var plan = GetPlan();
@@ -162,15 +164,14 @@ public class SystemVerificationService
             else failed++;
         }
 
-        CookieContainer cookies = null;
+        var flowContext = new FlowTestContext(forwardedCookieHeader, sessionUsername);
         foreach (var flow in GetUserFlowProbes())
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return Running(flow.Id, flow.Name, "זרימת משתמש");
 
             var sw = Stopwatch.StartNew();
-            var flowResult = await SafeUserFlowStepAsync(flow.Id, baseUrl, cookies, cancellationToken);
-            cookies = flowResult.Cookies ?? cookies;
+            var flowResult = await SafeUserFlowStepAsync(flow.Id, baseUrl, flowContext, cancellationToken);
 
             yield return Result(flow.Id, flow.Name, "זרימת משתמש", flowResult.Ok, flowResult.Detail, sw.ElapsedMilliseconds, flowResult.Warn);
             if (flowResult.Ok) passed++;
@@ -278,21 +279,45 @@ public class SystemVerificationService
         }
     }
 
-    private async Task<(bool Ok, string Detail, bool Warn, CookieContainer Cookies)> SafeUserFlowStepAsync(
+    private sealed class FlowTestContext
+    {
+        public FlowTestContext(string cookieHeader, string username)
+        {
+            CookieHeader = cookieHeader ?? "";
+            Username = username ?? "";
+            SessionVerified = false;
+        }
+
+        public string CookieHeader { get; }
+        public string Username { get; }
+        public bool SessionVerified { get; set; }
+    }
+
+    private static HttpClient CreateFlowClient(string baseUrl, FlowTestContext ctx)
+    {
+        var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = true })
+        {
+            Timeout = TimeSpan.FromSeconds(45),
+            BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/")
+        };
+        if (!string.IsNullOrWhiteSpace(ctx.CookieHeader))
+            client.DefaultRequestHeaders.Add("Cookie", ctx.CookieHeader);
+        return client;
+    }
+
+    private async Task<(bool Ok, string Detail, bool Warn)> SafeUserFlowStepAsync(
         string stepId,
         string baseUrl,
-        CookieContainer cookies,
+        FlowTestContext ctx,
         CancellationToken cancellationToken)
     {
         try
         {
-            var (ok, detail, warn, updatedCookies) = await RunUserFlowStepAsync(
-                stepId, baseUrl, cookies, cancellationToken);
-            return (ok, detail, warn, updatedCookies);
+            return await RunUserFlowStepAsync(stepId, baseUrl, ctx, cancellationToken);
         }
         catch (Exception ex)
         {
-            return (false, ex.Message, false, cookies);
+            return (false, ex.Message, false);
         }
     }
 
@@ -334,131 +359,76 @@ public class SystemVerificationService
         }
     }
 
-    private async Task<(bool ok, string detail, bool warn, CookieContainer cookies)> RunUserFlowStepAsync(
+    private async Task<(bool ok, string detail, bool warn)> RunUserFlowStepAsync(
         string stepId,
         string baseUrl,
-        CookieContainer cookies,
+        FlowTestContext ctx,
         CancellationToken cancellationToken)
     {
-        cookies ??= new CookieContainer();
-        var handler = new HttpClientHandler
-        {
-            CookieContainer = cookies,
-            UseCookies = true,
-            AllowAutoRedirect = true
-        };
-        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(45) };
-
-        var username = Environment.GetEnvironmentVariable("SYSTEM_CHECK_USER")
-            ?? _config["SystemCheck:Username"]
-            ?? "e2etestuser99";
-        var password = Environment.GetEnvironmentVariable("SYSTEM_CHECK_PASS")
-            ?? _config["SystemCheck:Password"]
-            ?? "testpass99";
+        baseUrl = baseUrl.TrimEnd('/');
 
         if (stepId == "flow-login")
         {
-            var loginHtml = await client.GetStringAsync($"{baseUrl}/Login", cancellationToken);
-            var token = ExtractCsrf(loginHtml);
-            if (string.IsNullOrEmpty(token))
-                return (false, "לא נמצא CSRF בדף Login", false, cookies);
+            if (string.IsNullOrWhiteSpace(ctx.CookieHeader))
+                return (false, "אין session — התחבר מחדש", true);
 
-            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            using var client = CreateFlowClient(baseUrl, ctx);
+            using var res = await client.GetAsync("api/stats-data", cancellationToken);
+            if (!res.IsSuccessStatusCode)
+                return (false, $"session לא תקף (HTTP {(int)res.StatusCode})", true);
+
+            ctx.SessionVerified = true;
+            var user = ctx.Username;
+            if (string.IsNullOrWhiteSpace(user))
             {
-                ["__RequestVerificationToken"] = token,
-                ["Username"] = username,
-                ["Password"] = password,
-                ["action"] = "login"
-            });
-            using var loginRes = await client.PostAsync($"{baseUrl}/Login", form, cancellationToken);
-            var hasSession = cookies.GetCookies(new Uri(baseUrl)).Cast<Cookie>()
-                .Any(c => c.Name.StartsWith(".Noodles.Session", StringComparison.Ordinal));
-            var ok = hasSession || loginRes.StatusCode == HttpStatusCode.Redirect;
-            if (!ok)
-            {
-                var tryRegister = await TryRegisterAsync(client, baseUrl, username, password, cancellationToken);
-                ok = tryRegister.ok;
-                if (!ok)
-                    return (false, $"Login נכשל עבור {username}", true, cookies);
+                var json = await res.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("username", out var userEl))
+                    user = userEl.GetString() ?? "";
             }
-            return (true, $"מחובר כ-{username}", false, cookies);
+
+            return (true, string.IsNullOrWhiteSpace(user) ? "session פעיל" : $"session פעיל ({user})", false);
         }
 
-        if (cookies.GetCookies(new Uri(baseUrl)).Count == 0)
-            return (false, "אין session — דלג אחרי כשל login", true, cookies);
+        if (!ctx.SessionVerified)
+            return (false, "אין session — דלג אחרי כשל login", true);
+
+        using var flowClient = CreateFlowClient(baseUrl, ctx);
 
         if (stepId == "flow-stats-data")
         {
-            using var res = await client.GetAsync($"{baseUrl}/api/stats-data", cancellationToken);
+            using var res = await flowClient.GetAsync("api/stats-data", cancellationToken);
             if (res.StatusCode == HttpStatusCode.Unauthorized)
-                return (false, "HTTP 401", true, cookies);
+                return (false, "HTTP 401", true);
             if (!res.IsSuccessStatusCode)
-                return (false, $"HTTP {(int)res.StatusCode}", false, cookies);
+                return (false, $"HTTP {(int)res.StatusCode}", false);
 
             var json = await res.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(json);
             var xp = doc.RootElement.TryGetProperty("xp", out var xpEl) ? xpEl.GetInt32() : 0;
             var level = doc.RootElement.TryGetProperty("level", out var lvlEl) ? lvlEl.GetInt32() : 0;
-            return (true, $"xp={xp}, level={level}", false, cookies);
+            return (true, $"xp={xp}, level={level}", false);
         }
 
         if (stepId == "flow-next-question")
         {
-            using var res = await client.GetAsync($"{baseUrl}/Index?handler=NextQuestion", cancellationToken);
+            using var res = await flowClient.GetAsync("Index?handler=NextQuestion", cancellationToken);
             if (!res.IsSuccessStatusCode)
-                return (false, $"HTTP {(int)res.StatusCode}", false, cookies);
+                return (false, $"HTTP {(int)res.StatusCode}", false);
 
             var json = await res.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("error", out var errEl))
-                return (false, errEl.GetString() ?? "שגיאה", false, cookies);
+                return (false, errEl.GetString() ?? "שגיאה", false);
 
             var hasQuestion = doc.RootElement.TryGetProperty("questionImage", out _)
                 || doc.RootElement.TryGetProperty("questionImageOriginalName", out _);
             return hasQuestion
-                ? (true, "התקבלה שאלה", false, cookies)
-                : (false, "חסרה תמונת שאלה", false, cookies);
+                ? (true, "התקבלה שאלה", false)
+                : (false, "חסרה תמונת שאלה", false);
         }
 
-        return (false, "שלב לא מוכר", false, cookies);
-    }
-
-    private static async Task<(bool ok, string detail)> TryRegisterAsync(
-        HttpClient client, string baseUrl, string username, string password, CancellationToken cancellationToken)
-    {
-        var loginHtml = await client.GetStringAsync($"{baseUrl}/Login", cancellationToken);
-        var token = ExtractCsrf(loginHtml);
-        if (string.IsNullOrEmpty(token))
-            return (false, "no csrf");
-
-        var form = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["__RequestVerificationToken"] = token,
-            ["Username"] = username,
-            ["Password"] = password,
-            ["action"] = "register"
-        });
-        using var regRes = await client.PostAsync($"{baseUrl}/Login", form, cancellationToken);
-        if (!regRes.IsSuccessStatusCode && regRes.StatusCode != HttpStatusCode.Redirect)
-            return (false, "register failed");
-
-        loginHtml = await client.GetStringAsync($"{baseUrl}/Login", cancellationToken);
-        token = ExtractCsrf(loginHtml);
-        form = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["__RequestVerificationToken"] = token,
-            ["Username"] = username,
-            ["Password"] = password,
-            ["action"] = "login"
-        });
-        using var loginRes = await client.PostAsync($"{baseUrl}/Login", form, cancellationToken);
-        return (loginRes.IsSuccessStatusCode || loginRes.StatusCode == HttpStatusCode.Redirect, "registered");
-    }
-
-    private static string ExtractCsrf(string html)
-    {
-        var m = CsrfTokenRegex.Match(html);
-        return m.Success ? m.Groups[1].Value : "";
+        return (false, "שלב לא מוכר", false);
     }
 
     private static string SummarizeHealthJson(string body, long elapsedMs)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,10 +52,12 @@ public class SystemCheckModel : PageModel
         Response.Headers["X-Accel-Buffering"] = "no";
 
         var probeBaseUrl = ResolveProbeBaseUrl();
+        var cookieHeader = BuildForwardedCookieHeader();
+        var username = HttpContext.Session.GetString("Username") ?? "";
 
         try
         {
-            await foreach (var evt in _verification.RunAsync(probeBaseUrl, cancellationToken))
+            await foreach (var evt in _verification.RunAsync(probeBaseUrl, cookieHeader, username, cancellationToken))
             {
                 await WriteEventAsync(evt, cancellationToken);
             }
@@ -87,6 +90,24 @@ public class SystemCheckModel : PageModel
             return $"http://127.0.0.1:{port}";
 
         return $"{Request.Scheme}://{Request.Host}";
+    }
+
+    private string BuildForwardedCookieHeader()
+    {
+        var parts = new List<string>();
+        foreach (var name in new[]
+        {
+            AuthCookieNames.SessionV3,
+            AuthCookieNames.SessionV2,
+            AuthCookieNames.Remember,
+            AuthCookieNames.LegacyUsername
+        })
+        {
+            if (Request.Cookies.TryGetValue(name, out var value) && !string.IsNullOrEmpty(value))
+                parts.Add($"{name}={value}");
+        }
+
+        return string.Join("; ", parts);
     }
 
     private bool IsAdmin() =>
