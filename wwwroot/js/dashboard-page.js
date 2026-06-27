@@ -187,11 +187,6 @@
         }
     }
 
-        easy: "קלות",
-        medium: "בינוניות",
-        hard: "קשות"
-    };
-
     function formatRelativeTime(iso) {
         if (!iso) return "—";
         const then = new Date(iso);
