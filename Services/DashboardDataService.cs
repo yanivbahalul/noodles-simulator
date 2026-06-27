@@ -8,11 +8,12 @@ namespace NoodlesSimulator.Services;
 
 public class DashboardDataService
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(15);
 
     private readonly AuthService _auth;
     private readonly UserProgressStore _progressStore;
     private readonly UserProgressService _progressService;
+    private readonly UserQuestionStatsStore _questionStatsStore;
     private readonly TestSessionService _testSessions;
     private readonly ActivityEventService _activityEvents;
     private readonly object _cacheLock = new();
@@ -23,12 +24,14 @@ public class DashboardDataService
         AuthService auth,
         UserProgressStore progressStore = null,
         UserProgressService progressService = null,
+        UserQuestionStatsStore questionStatsStore = null,
         TestSessionService testSessions = null,
         ActivityEventService activityEvents = null)
     {
         _auth = auth;
         _progressStore = progressStore;
         _progressService = progressService;
+        _questionStatsStore = questionStatsStore;
         _testSessions = testSessions;
         _activityEvents = activityEvents;
     }
@@ -199,17 +202,17 @@ public class DashboardDataService
         return sessions.Select(s =>
         {
             var remaining = _testSessions.GetRemainingTime(s);
-            int totalQuestions = 0;
-            try
+            var totalQuestions = s.QuestionCount;
+            if (totalQuestions <= 0 && !string.IsNullOrWhiteSpace(s.QuestionsJson))
             {
-                if (!string.IsNullOrWhiteSpace(s.QuestionsJson))
+                try
                 {
                     using var doc = System.Text.Json.JsonDocument.Parse(s.QuestionsJson);
                     if (doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array)
                         totalQuestions = doc.RootElement.GetArrayLength();
                 }
+                catch { /* ignore */ }
             }
-            catch { /* ignore */ }
 
             return new ActiveExamRow
             {
@@ -355,12 +358,22 @@ public class DashboardDataService
         var user = await _auth.GetUserAsync(username);
         if (user == null) return null;
 
-        var progress = (_progressStore?.IsEnabled == true
-            ? (await Task.Run(() => _progressStore.TryLoadWithMeta(username))).Data
-            : null) ?? _progressService?.Load(username);
+        var progress = _progressService?.Load(username);
 
         var recentQuestions = new List<UserQuestionActivity>();
-        if (progress?.QuestionStats != null)
+        if (_questionStatsStore?.IsEnabled == true)
+        {
+            var recent = await _questionStatsStore.GetRecentAsync(username, 10);
+            recentQuestions = recent.Select(r => new UserQuestionActivity
+            {
+                QuestionId = r.QuestionId,
+                Attempts = r.Stat.Attempts,
+                Correct = r.Stat.Correct,
+                LastAnsweredIso = r.Stat.LastAnsweredUtc.ToUniversalTime().ToString("o"),
+                LastWasCorrect = r.Stat.LastWasCorrect
+            }).ToList();
+        }
+        else if (progress?.QuestionStats != null)
         {
             recentQuestions = progress.QuestionStats
                 .Where(kv => kv.Value.LastAnsweredUtc > DateTime.MinValue)
@@ -377,8 +390,14 @@ public class DashboardDataService
                 .ToList();
         }
 
+        List<string> achievementKeys;
+        if (_progressStore?.IsEnabled == true)
+            achievementKeys = await Task.Run(() => _progressStore.TryLoadAchievementKeys(username));
+        else
+            achievementKeys = progress?.Achievements ?? new List<string>();
+
         var achievements = AchievementCatalog.All
-            .Where(a => progress?.Achievements?.Contains(a.Key, StringComparer.OrdinalIgnoreCase) == true)
+            .Where(a => achievementKeys.Contains(a.Key, StringComparer.OrdinalIgnoreCase))
             .Select(a => new UserAchievementRow { Key = a.Key, Title = a.Title, Emoji = a.Emoji })
             .ToList();
 

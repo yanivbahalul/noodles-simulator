@@ -514,6 +514,29 @@
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") closeUserModal();
         });
+
+        const recalcForm = document.getElementById("recalculate-difficulties-form");
+        if (recalcForm) {
+            recalcForm.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById("recalculate-difficulties-btn");
+                if (btn) btn.disabled = true;
+                try {
+                    const token = recalcForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                    const res = await fetch("/Dashboard?handler=RecalculateDifficulties", {
+                        method: "POST",
+                        headers: {
+                            "RequestVerificationToken": token || "",
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: new URLSearchParams({ __RequestVerificationToken: token || "" })
+                    });
+                    if (res.ok) location.reload();
+                } finally {
+                    if (btn) btn.disabled = false;
+                }
+            });
+        }
     });
 
     window.addEventListener("load", () => {

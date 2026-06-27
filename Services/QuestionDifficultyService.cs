@@ -313,7 +313,7 @@ public class QuestionDifficultyService
             try
             {
                 var res = await _client.GetAsync(
-                    $"{_url}/rest/v1/question_difficulties?select=*&order=LastUpdated.desc&limit={limit}"
+                    $"{_url}/rest/v1/question_difficulties?select=QuestionFile,Difficulty,SuccessRate,TotalAttempts,CorrectAttempts,LastUpdated,ManualOverride&order=LastUpdated.desc&limit={limit}"
                 );
                 
                 if (!res.IsSuccessStatusCode)

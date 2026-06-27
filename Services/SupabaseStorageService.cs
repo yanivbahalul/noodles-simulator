@@ -108,6 +108,32 @@ public class SupabaseStorageService
         });
     }
 
+    public async Task<string> DownloadTextAsync(string objectPath)
+    {
+        if (string.IsNullOrWhiteSpace(objectPath))
+            throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
+        await EnsureInitAsync();
+        var from = _client.Storage.From(_bucket);
+        var bytes = await from.Download(objectPath, (Supabase.Storage.TransformOptions?)null);
+        return System.Text.Encoding.UTF8.GetString(bytes);
+    }
+
+    public async Task UploadTextAsync(string objectPath, string content, string contentType = "application/json", bool overwrite = true)
+    {
+        if (string.IsNullOrWhiteSpace(objectPath))
+            throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content ?? "");
+        await EnsureInitAsync();
+        var from = _client.Storage.From(_bucket);
+        await from.Upload(bytes, objectPath, new Supabase.Storage.FileOptions
+        {
+            Upsert = overwrite,
+            ContentType = contentType
+        });
+    }
+
     public async Task DeleteAsync(string objectPath)
     {
         if (string.IsNullOrWhiteSpace(objectPath))

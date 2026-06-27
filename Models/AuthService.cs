@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using NoodlesSimulator.Services;
 
 #nullable enable
 
@@ -15,16 +16,26 @@ namespace NoodlesSimulator.Models;
 
 public class AuthService
 {
+    public const string UserSelectPublic =
+        "Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect,DismissedNotices";
+
+    public const string UserSelectLeaderboard =
+        "Username,CorrectAnswers,TotalAnswered,LastSeen,IsCheater,IsBanned";
+
+    private const string UserSelectAuth = UserSelectPublic + ",Password";
+
     private readonly HttpClient _client;
     private readonly string _url;
     private readonly string _apiKey;
     private const string PasswordHashPrefix = "pbkdf2$";
+    private readonly UserStatsService _stats;
     private int _cachedOnlineCount = -1;
     private DateTime _cachedOnlineCountAt = DateTime.MinValue;
     private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
 
-    public AuthService(IConfiguration config)
+    public AuthService(IConfiguration config, UserStatsService stats = null)
     {
+        _stats = stats;
         _url = SupabaseConfiguration.Url(config)
                ?? throw new Exception("Missing Supabase URL ENV var (SUPABASE_URL).");
 
@@ -52,7 +63,7 @@ public class AuthService
             username = username.Trim();
             password = password.Trim();
 
-            var user = await GetUserAsync(username);
+            var user = await GetUserForAuthAsync(username);
             if (user == null || string.IsNullOrWhiteSpace(user.Password))
             {
                 return null;
@@ -130,7 +141,13 @@ public class AuthService
         return false;
     }
 
-    public async Task<User?> GetUserAsync(string username)
+    public async Task<User?> GetUserAsync(string username) =>
+        await FetchUserAsync(username, includePassword: false);
+
+    public async Task<User?> GetUserForAuthAsync(string username) =>
+        await FetchUserAsync(username, includePassword: true);
+
+    private async Task<User?> FetchUserAsync(string username, bool includePassword)
     {
         try
         {
@@ -139,8 +156,9 @@ public class AuthService
 
             var trimmed = username.Trim();
             var safeUsername = Uri.EscapeDataString(trimmed);
+            var select = includePassword ? UserSelectAuth : UserSelectPublic;
 
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{safeUsername}&select=*");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?Username=eq.{safeUsername}&select={select}");
             var json = await res.Content.ReadAsStringAsync();
             if (res.IsSuccessStatusCode)
             {
@@ -151,7 +169,7 @@ public class AuthService
             }
 
             var ilikeRes = await _client.GetAsync(
-                $"{_url}/rest/v1/users?Username=ilike.{safeUsername}&select=*&limit=5");
+                $"{_url}/rest/v1/users?Username=ilike.{safeUsername}&select={select}&limit=5");
             var ilikeJson = await ilikeRes.Content.ReadAsStringAsync();
             if (!ilikeRes.IsSuccessStatusCode)
                 return null;
@@ -201,6 +219,15 @@ public class AuthService
                 Console.WriteLine($"[UpdateUserAsync Error] PATCH failed for {updatedUser.Username}: {response.StatusCode} | {errorBody}");
                 return false;
             }
+
+            if (_stats?.IsEnabled == true)
+            {
+                var row = await _stats.GetAsync(updatedUser.Username) ?? new UserStatsRow { Username = updatedUser.Username };
+                row.Xp = updatedUser.Xp;
+                row.Level = updatedUser.Level > 0 ? updatedUser.Level : QuizGamification.LevelFromXp(updatedUser.Xp);
+                await _stats.UpsertAsync(row);
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -368,7 +395,7 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&order=CorrectAnswers.desc&limit={count}");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select={UserSelectLeaderboard}&order=CorrectAnswers.desc&limit={count}");
             var json = await res.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
         }
@@ -383,7 +410,7 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=*&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit={Math.Max(count * 3, 100)}");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select={UserSelectLeaderboard}&TotalAnswered=gte.{minAnswered}&order=CorrectAnswers.desc&limit={Math.Max(count * 3, 100)}");
             var json = await res.Content.ReadAsStringAsync();
             var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
             return users
@@ -435,15 +462,43 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect&limit=1000");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered&limit=1000");
             var json = await res.Content.ReadAsStringAsync();
             if (!res.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[GetAllUsersLightAsync] extended select failed: {res.StatusCode}, falling back");
-                res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered&limit=1000");
-                json = await res.Content.ReadAsStringAsync();
+                Console.WriteLine($"[GetAllUsersLightAsync] select failed: {res.StatusCode}");
+                return new List<User>();
             }
-            return JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
+
+            var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? new List<User>();
+            if (_stats?.IsEnabled == true)
+            {
+                var statsMap = await _stats.GetAllCachedAsync();
+                foreach (var user in users)
+                {
+                    if (string.IsNullOrWhiteSpace(user.Username)) continue;
+                    if (!statsMap.TryGetValue(user.Username, out var row)) continue;
+                    user.Xp = row.Xp;
+                    user.Level = row.Level > 0 ? row.Level : QuizGamification.LevelFromXp(row.Xp);
+                    user.WeeklyCorrect = row.WeeklyCorrect;
+                    user.WeekKey = row.WeekKey;
+                    user.DailyCorrect = row.DailyCorrect;
+                    user.DayKey = row.DayKey;
+                    user.DailyChallengeScore = row.DailyChallengeScore;
+                    user.DailyChallengeDate = row.DailyChallengeDate;
+                    user.BestExamScore = row.BestExamScore;
+                    user.BestExamCorrect = row.BestExamCorrect;
+                }
+            }
+            else
+            {
+                res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect&limit=1000");
+                json = await res.Content.ReadAsStringAsync();
+                if (res.IsSuccessStatusCode)
+                    users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? users;
+            }
+
+            return users;
         }
         catch (Exception ex)
         {
@@ -456,6 +511,20 @@ public class AuthService
     {
         try
         {
+            if (_stats?.IsEnabled == true)
+            {
+                var row = await _stats.GetAsync(username) ?? new UserStatsRow { Username = username };
+                row.WeeklyCorrect = weeklyCorrect;
+                row.WeekKey = weekKey ?? "";
+                row.DailyCorrect = dailyCorrect;
+                row.DayKey = dayKey ?? "";
+                row.DailyChallengeScore = dailyChallengeScore;
+                row.DailyChallengeDate = dailyChallengeDate ?? "";
+                row.BestExamScore = bestExamScore;
+                row.BestExamCorrect = bestExamCorrect;
+                return await _stats.UpsertAsync(row);
+            }
+
             var patch = new Dictionary<string, object>
             {
                 ["WeeklyCorrect"] = weeklyCorrect,

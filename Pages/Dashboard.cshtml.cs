@@ -44,7 +44,7 @@ public class DashboardModel : PageModel
         try
         {
             await LoadData();
-            await LoadDifficultyData();
+            await LoadDifficultyData(recalculate: false);
             return Page();
         }
         catch (Exception ex)
@@ -54,13 +54,39 @@ public class DashboardModel : PageModel
         }
     }
 
-    private async Task LoadDifficultyData()
+    public async Task<IActionResult> OnPostRecalculateDifficultiesAsync()
+    {
+        var isAdmin = HttpContext.Session.GetString("IsAdmin");
+        if (!string.Equals(isAdmin, "1", StringComparison.Ordinal))
+            return new JsonResult(new { success = false });
+
+        try
+        {
+            await LoadDifficultyData(recalculate: true);
+            return new JsonResult(new
+            {
+                success = true,
+                easyCount = EasyCount,
+                mediumCount = MediumCount,
+                hardCount = HardCount,
+                total = DifficultyQuestions.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Dashboard RecalculateDifficulties Error] {ex}");
+            return new JsonResult(new { success = false });
+        }
+    }
+
+    private async Task LoadDifficultyData(bool recalculate)
     {
         try
         {
             if (_difficultyService != null)
             {
-                await _difficultyService.RecalculateAllDifficultiesAsync();
+                if (recalculate)
+                    await _difficultyService.RecalculateAllDifficultiesAsync();
                 DifficultyQuestions = await _difficultyService.GetAllQuestionsAsync(500);
                 EasyCount = DifficultyQuestions.Count(q => q.Difficulty == "easy");
                 MediumCount = DifficultyQuestions.Count(q => q.Difficulty == "medium");

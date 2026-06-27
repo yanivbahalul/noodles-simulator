@@ -1262,9 +1262,10 @@ public class IndexModel : PageModel
 
         if (useSpaced && _userProgress != null && !string.IsNullOrEmpty(username))
         {
+            var progress = _userProgress.Load(username);
             var withPriority = pool
                 .Where(g => g.Count > 0)
-                .Select(g => (g, priority: _userProgress.GetSpacedPriority(username, g[0])))
+                .Select(g => (g, priority: _userProgress.GetSpacedPriority(progress, g[0])))
                 .GroupBy(x => x.priority)
                 .OrderByDescending(g => g.Key)
                 .First();

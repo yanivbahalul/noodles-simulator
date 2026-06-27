@@ -11,6 +11,9 @@ public class TestSession
     public string Status { get; set; } // "active", "completed", "expired"
     public string QuestionsJson { get; set; }
     public string AnswersJson { get; set; }
+    public string QuestionsStoragePath { get; set; }
+    public string AnswersStoragePath { get; set; }
+    public int QuestionCount { get; set; }
     public int CurrentIndex { get; set; }
     public int Score { get; set; }
     public int MaxScore { get; set; }

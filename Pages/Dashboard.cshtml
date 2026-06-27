@@ -199,8 +199,12 @@
             Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%
         </p>
         <p class="difficulty-panel-hint">
-            ⚡ מעודכן אוטומטית בכל טעינת דף
+            לחץ «חשב מחדש» לעדכון ידני · הנתונים נטענים מ-Supabase
         </p>
+        <form method="post" asp-page-handler="RecalculateDifficulties" id="recalculate-difficulties-form" class="difficulty-recalc-form">
+            @Html.AntiForgeryToken()
+            <button type="submit" id="recalculate-difficulties-btn" class="btn btn-sm btn-outline-secondary">חשב מחדש רמות קושי</button>
+        </form>
     </div>
     
     <div class="difficulty-grid">

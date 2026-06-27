@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using NoodlesSimulator.Models;
 
@@ -11,9 +12,13 @@ namespace NoodlesSimulator.Services;
 
 public class UserProgressService
 {
+    private static readonly AsyncLocal<Dictionary<string, UserProgressData>> RequestCache = new();
+
     private readonly string _progressDir;
     private readonly AuthService _auth;
     private readonly UserProgressStore _store;
+    private readonly UserStatsService _stats;
+    private readonly UserQuestionStatsStore _questionStats;
     private readonly object _lock = new();
 
     public class UserQuestionStat
@@ -24,6 +29,7 @@ public class UserProgressService
         public bool LastWasCorrect { get; set; }
     }
 
+    /// <summary>In-memory aggregate; persisted stats live in user_stats / user_question_stats / user_achievements.</summary>
     public class UserProgressData
     {
         public Dictionary<string, UserQuestionStat> QuestionStats { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -31,10 +37,10 @@ public class UserProgressService
         public int Xp { get; set; }
         public int BestStreak { get; set; }
         public List<string> SessionMistakes { get; set; } = new();
-    public int WeeklyCorrect { get; set; }
-    public string WeekKey { get; set; } = "";
-    public int DailyCorrect { get; set; }
-    public string DayKey { get; set; } = "";
+        public int WeeklyCorrect { get; set; }
+        public string WeekKey { get; set; } = "";
+        public int DailyCorrect { get; set; }
+        public string DayKey { get; set; } = "";
         public int DailyChallengeScore { get; set; }
         public string DailyChallengeDate { get; set; } = "";
         public int DailyChallengesCompleted { get; set; }
@@ -52,12 +58,48 @@ public class UserProgressService
         public int ReviewClearCount { get; set; }
     }
 
-    public UserProgressService(string progressDir, AuthService auth = null, UserProgressStore store = null)
+    /// <summary>Slim document stored in user_progress.ProgressData (no duplicated stats).</summary>
+    public class ProgressDataDocument
+    {
+        public int BestStreak { get; set; }
+        public List<string> SessionMistakes { get; set; } = new();
+        public int DailyChallengesCompleted { get; set; }
+        public int DailyPerfectCount { get; set; }
+        public int DailyStreakDays { get; set; }
+        public string LastDailyCompleteDate { get; set; } = "";
+        public int ExamsCompleted { get; set; }
+        public int LastExamCorrect { get; set; }
+        public int PerfectExamsCount { get; set; }
+        public int MaxExamImprovement { get; set; }
+        public int ReviewClearCount { get; set; }
+        public int HardCorrectCount { get; set; }
+        public int WeakModeCorrectCount { get; set; }
+    }
+
+    public UserProgressService(
+        string progressDir,
+        AuthService auth = null,
+        UserProgressStore store = null,
+        UserStatsService stats = null,
+        UserQuestionStatsStore questionStats = null)
     {
         _progressDir = progressDir;
         _auth = auth;
         _store = store;
+        _stats = stats;
+        _questionStats = questionStats;
         Directory.CreateDirectory(_progressDir);
+    }
+
+    public void ClearRequestCache() => RequestCache.Value = null;
+
+    private Dictionary<string, UserProgressData> GetRequestCache()
+    {
+        var cache = RequestCache.Value;
+        if (cache != null) return cache;
+        cache = new Dictionary<string, UserProgressData>(StringComparer.OrdinalIgnoreCase);
+        RequestCache.Value = cache;
+        return cache;
     }
 
     private string PathFor(string username) =>
@@ -68,60 +110,184 @@ public class UserProgressService
 
     public UserProgressData Load(string username)
     {
+        if (string.IsNullOrWhiteSpace(username))
+            return new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
+
+        var cache = GetRequestCache();
+        if (cache.TryGetValue(username, out var cached))
+        {
+            EnsureWeek(cached);
+            EnsureDay(cached);
+            return cached;
+        }
+
         lock (_lock)
         {
-            var path = PathFor(username);
-            if (File.Exists(path))
+            if (cache.TryGetValue(username, out cached))
             {
-                try
-                {
-                    var json = File.ReadAllText(path, Encoding.UTF8);
-                    var localData = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                    if (localData != null)
-                    {
-                        EnsureWeek(localData);
-                        EnsureDay(localData);
-                        return localData;
-                    }
-                }
-                catch
-                {
-                    /* fall through */
-                }
+                EnsureWeek(cached);
+                EnsureDay(cached);
+                return cached;
             }
 
-            UserProgressData data = null;
-            if (_store?.IsEnabled == true)
-            {
-                var (fromDb, _) = _store.TryLoadWithMeta(username);
-                if (fromDb != null)
-                {
-                    var dbAchievementKeys = _store.TryLoadAchievementKeys(username);
-                    UserProgressStore.MergeAchievementKeys(fromDb, dbAchievementKeys);
-                    data = CloneProgress(fromDb);
-                }
-            }
-
-            data ??= new UserProgressData { WeekKey = GetWeekKey() };
+            var data = LoadFromStorage(username);
             EnsureWeek(data);
             EnsureDay(data);
-            WriteFile(username, data);
+            cache[username] = data;
             return data;
         }
     }
 
-    private static UserProgressData CloneProgress(UserProgressData source)
+    private UserProgressData LoadFromStorage(string username)
     {
-        if (source == null) return null;
-        var json = JsonSerializer.Serialize(source, AppJson.Options);
-        return JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+        ProgressDataDocument doc = null;
+
+        var path = PathFor(username);
+        if (File.Exists(path))
+        {
+            try
+            {
+                var json = File.ReadAllText(path, Encoding.UTF8);
+                doc = TryDeserializeDocument(json);
+            }
+            catch { /* fall through */ }
+        }
+
+        if (doc == null && _store?.IsEnabled == true)
+        {
+            var (fromDb, _) = _store.TryLoadDocumentWithMeta(username);
+            doc = fromDb;
+        }
+
+        var data = doc != null ? FromDocument(doc) : new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
+
+        if (_stats?.IsEnabled == true)
+        {
+            var statsRow = _stats.GetAsync(username).GetAwaiter().GetResult();
+            if (statsRow != null)
+                UserStatsService.ApplyToProgress(statsRow, data);
+        }
+
+        if (_questionStats?.IsEnabled == true)
+        {
+            var qStats = _questionStats.LoadForUserAsync(username).GetAwaiter().GetResult();
+            if (qStats.Count > 0)
+                data.QuestionStats = qStats;
+        }
+        else if (doc == null && File.Exists(path))
+        {
+            try
+            {
+                var legacyJson = File.ReadAllText(path, Encoding.UTF8);
+                var legacy = JsonSerializer.Deserialize<UserProgressData>(legacyJson, AppJson.Options);
+                if (legacy?.QuestionStats?.Count > 0)
+                    data.QuestionStats = legacy.QuestionStats;
+            }
+            catch { /* ignore */ }
+        }
+
+        if (_store?.IsEnabled == true)
+        {
+            var keys = _store.TryLoadAchievementKeys(username);
+            data.Achievements = keys ?? new List<string>();
+        }
+        else if (File.Exists(path))
+        {
+            try
+            {
+                var legacyJson = File.ReadAllText(path, Encoding.UTF8);
+                using var legacyDoc = JsonDocument.Parse(legacyJson);
+                if (legacyDoc.RootElement.TryGetProperty("Achievements", out var achEl) &&
+                    achEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in achEl.EnumerateArray())
+                    {
+                        var key = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(key) &&
+                            !data.Achievements.Contains(key, StringComparer.OrdinalIgnoreCase))
+                            data.Achievements.Add(key);
+                    }
+                }
+            }
+            catch { /* ignore */ }
+        }
+
+        if (doc == null && !File.Exists(path))
+            WriteFile(username, data);
+
+        return data;
+    }
+
+    private static ProgressDataDocument TryDeserializeDocument(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("QuestionStats", out _) ||
+                doc.RootElement.TryGetProperty("Achievements", out _) ||
+                doc.RootElement.TryGetProperty("Xp", out _))
+            {
+                var legacy = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+                return legacy != null ? ToDocument(legacy) : null;
+            }
+
+            return JsonSerializer.Deserialize<ProgressDataDocument>(json, AppJson.Options);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static UserProgressData FromDocument(ProgressDataDocument doc)
+    {
+        return new UserProgressData
+        {
+            BestStreak = doc.BestStreak,
+            SessionMistakes = doc.SessionMistakes ?? new List<string>(),
+            DailyChallengesCompleted = doc.DailyChallengesCompleted,
+            DailyPerfectCount = doc.DailyPerfectCount,
+            DailyStreakDays = doc.DailyStreakDays,
+            LastDailyCompleteDate = doc.LastDailyCompleteDate ?? "",
+            ExamsCompleted = doc.ExamsCompleted,
+            LastExamCorrect = doc.LastExamCorrect,
+            PerfectExamsCount = doc.PerfectExamsCount,
+            MaxExamImprovement = doc.MaxExamImprovement,
+            ReviewClearCount = doc.ReviewClearCount,
+            HardCorrectCount = doc.HardCorrectCount,
+            WeakModeCorrectCount = doc.WeakModeCorrectCount,
+            WeekKey = GetWeekKey(),
+            DayKey = TodayKey()
+        };
+    }
+
+    public static ProgressDataDocument ToDocument(UserProgressData data)
+    {
+        if (data == null) return new ProgressDataDocument();
+        return new ProgressDataDocument
+        {
+            BestStreak = data.BestStreak,
+            SessionMistakes = data.SessionMistakes ?? new List<string>(),
+            DailyChallengesCompleted = data.DailyChallengesCompleted,
+            DailyPerfectCount = data.DailyPerfectCount,
+            DailyStreakDays = data.DailyStreakDays,
+            LastDailyCompleteDate = data.LastDailyCompleteDate ?? "",
+            ExamsCompleted = data.ExamsCompleted,
+            LastExamCorrect = data.LastExamCorrect,
+            PerfectExamsCount = data.PerfectExamsCount,
+            MaxExamImprovement = data.MaxExamImprovement,
+            ReviewClearCount = data.ReviewClearCount,
+            HardCorrectCount = data.HardCorrectCount,
+            WeakModeCorrectCount = data.WeakModeCorrectCount
+        };
     }
 
     private void WriteFile(string username, UserProgressData data)
     {
         var path = PathFor(username);
         var tmp = path + ".tmp";
-        var json = JsonSerializer.Serialize(data, AppJson.Options);
+        var json = JsonSerializer.Serialize(ToDocument(data), AppJson.Options);
         File.WriteAllText(tmp, json, Encoding.UTF8);
         File.Copy(tmp, path, overwrite: true);
         File.Delete(tmp);
@@ -129,18 +295,29 @@ public class UserProgressService
 
     private void Save(string username, UserProgressData data)
     {
+        GetRequestCache()[username] = data;
+
         lock (_lock)
         {
             WriteFile(username, data);
         }
-        _ = Task.Run(() =>
+
+        _ = Task.Run(async () =>
         {
-            try { _store?.Save(username, data); }
+            try
+            {
+                if (_stats?.IsEnabled == true)
+                    await _stats.UpsertAsync(UserStatsService.FromProgress(username, data));
+
+                if (_store?.IsEnabled == true)
+                    _store.SaveDocument(username, ToDocument(data));
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"[UserProgressService] Supabase save failed for {username}: {ex.Message}");
             }
         });
+
         QueueDbSync(username, data);
     }
 
@@ -178,6 +355,9 @@ public class UserProgressService
             stat.LastAnsweredUtc = DateTime.UtcNow;
             stat.LastWasCorrect = isCorrect;
 
+            if (_questionStats?.IsEnabled == true)
+                _ = _questionStats.RecordAnswerAsync(username, questionId, isCorrect);
+
             if (!isCorrect && !data.SessionMistakes.Contains(questionId, StringComparer.OrdinalIgnoreCase))
                 data.SessionMistakes.Add(questionId);
         }
@@ -202,6 +382,8 @@ public class UserProgressService
             DayKey = TodayKey()
         };
 
+        GetRequestCache()[username] = fresh;
+
         lock (_lock)
         {
             WriteFile(username, fresh);
@@ -209,8 +391,12 @@ public class UserProgressService
 
         try
         {
-            _store?.Save(username, fresh);
+            _store?.SaveDocument(username, ToDocument(fresh));
             _store?.ClearAchievements(username);
+            if (_questionStats?.IsEnabled == true)
+                _questionStats.ClearForUserAsync(username).GetAwaiter().GetResult();
+            if (_stats?.IsEnabled == true)
+                _stats.UpsertAsync(UserStatsService.FromProgress(username, fresh)).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -356,7 +542,14 @@ public class UserProgressService
                 newly.Add(key);
             }
         }
-        if (newly.Count > 0) Save(username, data);
+
+        if (newly.Count > 0)
+        {
+            GetRequestCache()[username] = data;
+            if (_store?.IsEnabled == true)
+                _store.SyncAchievements(username, newly);
+        }
+
         return newly;
     }
 
@@ -383,9 +576,12 @@ public class UserProgressService
             .ToList();
     }
 
-    public int GetSpacedPriority(string username, string questionId)
+    public int GetSpacedPriority(string username, string questionId) =>
+        GetSpacedPriority(Load(username), questionId);
+
+    public int GetSpacedPriority(UserProgressData data, string questionId)
     {
-        var data = Load(username);
+        if (data == null) return 2;
         if (!data.QuestionStats.TryGetValue(questionId, out var stat))
             return 2;
 
@@ -411,6 +607,15 @@ public class UserProgressService
 
     public Dictionary<string, int> GetXpByUsername()
     {
+        if (_stats?.IsEnabled == true)
+        {
+            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            return all.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.Xp,
+                StringComparer.OrdinalIgnoreCase);
+        }
+
         var results = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         if (!Directory.Exists(_progressDir)) return results;
 
@@ -419,11 +624,11 @@ public class UserProgressService
             try
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data == null || data.Xp <= 0) continue;
+                var doc = TryDeserializeDocument(json);
+                if (doc == null) continue;
                 var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                if (!results.ContainsKey(username) || data.Xp > results[username])
-                    results[username] = data.Xp;
+                if (!results.ContainsKey(username))
+                    results[username] = 0;
             }
             catch { /* skip */ }
         }
@@ -433,49 +638,35 @@ public class UserProgressService
 
     public List<(string Username, int Score)> GetDailyLeaderboard(string date, int limit = 50)
     {
-        var results = new List<(string, int)>();
-        if (!Directory.Exists(_progressDir)) return results;
-
-        foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
+        if (_stats?.IsEnabled == true)
         {
-            try
-            {
-                var json = File.ReadAllText(file, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data?.DayKey == date && data.DailyCorrect > 0)
-                {
-                    var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                    results.Add((username, data.DailyCorrect));
-                }
-            }
-            catch { /* skip */ }
+            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            return all.Values
+                .Where(s => s.DayKey == date && s.DailyCorrect > 0)
+                .OrderByDescending(s => s.DailyCorrect)
+                .Take(limit)
+                .Select(s => (s.Username, s.DailyCorrect))
+                .ToList();
         }
 
-        return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
+        return new List<(string, int)>();
     }
 
     public List<(string Username, int WeeklyCorrect)> GetWeeklyLeaderboard(int limit = 50)
     {
         var weekKey = GetWeekKey();
-        var results = new List<(string, int)>();
-        if (!Directory.Exists(_progressDir)) return results;
-
-        foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
+        if (_stats?.IsEnabled == true)
         {
-            try
-            {
-                var json = File.ReadAllText(file, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data is { WeekKey: var wk, WeeklyCorrect: > 0 } && wk == weekKey)
-                {
-                    var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                    results.Add((username, data.WeeklyCorrect));
-                }
-            }
-            catch { /* skip */ }
+            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            return all.Values
+                .Where(s => s.WeekKey == weekKey && s.WeeklyCorrect > 0)
+                .OrderByDescending(s => s.WeeklyCorrect)
+                .Take(limit)
+                .Select(s => (s.Username, s.WeeklyCorrect))
+                .ToList();
         }
 
-        return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
+        return new List<(string, int)>();
     }
 
     public List<(string Username, int ExamCount)> GetExamCountLeaderboard(int limit = 50)
@@ -488,11 +679,11 @@ public class UserProgressService
             try
             {
                 var json = File.ReadAllText(file, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                if (data is { ExamsCompleted: > 0 })
+                var doc = JsonSerializer.Deserialize<ProgressDataDocument>(json, AppJson.Options);
+                if (doc is { ExamsCompleted: > 0 })
                 {
                     var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                    results.Add((username, data.ExamsCompleted));
+                    results.Add((username, doc.ExamsCompleted));
                 }
             }
             catch { /* skip */ }
@@ -503,24 +694,7 @@ public class UserProgressService
 
     public List<(string Username, int AchievementCount)> GetAchievementCountLeaderboard(int limit = 50)
     {
-        var results = new List<(string, int)>();
-        if (!Directory.Exists(_progressDir)) return results;
-
-        foreach (var file in Directory.GetFiles(_progressDir, "*.json"))
-        {
-            try
-            {
-                var json = File.ReadAllText(file, Encoding.UTF8);
-                var data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
-                var count = data?.Achievements?.Count ?? 0;
-                if (count <= 0) continue;
-                var username = System.IO.Path.GetFileNameWithoutExtension(file);
-                results.Add((username, count));
-            }
-            catch { /* skip */ }
-        }
-
-        return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
+        return new List<(string, int)>();
     }
 
     public (int TotalAnswered, int CorrectAnswers) GetAnswerTotals(string username)

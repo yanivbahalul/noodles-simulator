@@ -11,17 +11,19 @@ using NoodlesSimulator.Models;
 namespace NoodlesSimulator.Services;
 
 /// <summary>
-/// Persists UserProgressData to Supabase (source of truth when configured).
-/// Local progress/*.json is a cache; DB wins on load when available.
+/// Persists slim ProgressDataDocument to Supabase (source of truth when configured).
+/// Achievements and stats live in dedicated tables.
 /// </summary>
 public class UserProgressStore
 {
     private readonly HttpClient _client;
     private readonly string _url;
     private readonly bool _enabled;
+    private readonly UserStatsService _stats;
 
-    public UserProgressStore(IConfiguration config)
+    public UserProgressStore(IConfiguration config, UserStatsService stats = null)
     {
+        _stats = stats;
         _url = SupabaseConfiguration.Url(config) ?? string.Empty;
         var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
                      ?? SupabaseConfiguration.AnonApiKey(config);
@@ -36,7 +38,7 @@ public class UserProgressStore
         _client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         _client.DefaultRequestHeaders.Add("apikey", apiKey);
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-        Console.WriteLine("[UserProgressStore] Enabled — progress and achievements persist to Supabase");
+        Console.WriteLine("[UserProgressStore] Enabled — progress persists to Supabase");
     }
 
     public bool IsEnabled => _enabled;
@@ -167,7 +169,7 @@ public class UserProgressStore
         }
     }
 
-    public (UserProgressService.UserProgressData Data, DateTime? UpdatedAt) TryLoadWithMeta(string username)
+    public (UserProgressService.ProgressDataDocument Data, DateTime? UpdatedAt) TryLoadDocumentWithMeta(string username)
     {
         if (!_enabled || string.IsNullOrWhiteSpace(username))
             return (null, null);
@@ -189,7 +191,23 @@ public class UserProgressStore
 
             var row = doc.RootElement[0];
             var progressJson = row.GetProperty("ProgressData").GetRawText();
-            var data = JsonSerializer.Deserialize<UserProgressService.UserProgressData>(progressJson, AppJson.Options);
+            UserProgressService.ProgressDataDocument data;
+
+            using (var progressDoc = JsonDocument.Parse(progressJson))
+            {
+                if (progressDoc.RootElement.TryGetProperty("QuestionStats", out _) ||
+                    progressDoc.RootElement.TryGetProperty("Xp", out _))
+                {
+                    var legacy = JsonSerializer.Deserialize<UserProgressService.UserProgressData>(progressJson, AppJson.Options);
+                    data = legacy != null ? UserProgressService.ToDocument(legacy) : new UserProgressService.ProgressDataDocument();
+                }
+                else
+                {
+                    data = JsonSerializer.Deserialize<UserProgressService.ProgressDataDocument>(progressJson, AppJson.Options)
+                           ?? new UserProgressService.ProgressDataDocument();
+                }
+            }
+
             DateTime? updatedAt = null;
             if (row.TryGetProperty("UpdatedAt", out var updatedEl) &&
                 DateTime.TryParse(updatedEl.GetString(), out var parsed))
@@ -240,71 +258,23 @@ public class UserProgressStore
         }
     }
 
-    public static void MergeAchievementKeys(UserProgressService.UserProgressData data, IEnumerable<string> keys)
-    {
-        if (data == null || keys == null) return;
-        foreach (var key in keys)
-        {
-            if (string.IsNullOrWhiteSpace(key)) continue;
-            if (!data.Achievements.Contains(key, StringComparer.OrdinalIgnoreCase))
-                data.Achievements.Add(key);
-        }
-    }
-
-    private Dictionary<string, int> _allXpCache;
-    private DateTime _allXpCacheAt = DateTime.MinValue;
-    private static readonly TimeSpan AllXpCacheTtl = TimeSpan.FromSeconds(3);
-
     public Dictionary<string, int> GetAllXpCached()
     {
-        if (!_enabled) return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        if (_allXpCache != null && DateTime.UtcNow - _allXpCacheAt < AllXpCacheTtl)
-            return _allXpCache;
-
-        _allXpCache = FetchAllXpFromDb();
-        _allXpCacheAt = DateTime.UtcNow;
-        return _allXpCache;
-    }
-
-    private Dictionary<string, int> FetchAllXpFromDb()
-    {
-        var results = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        try
+        if (_stats?.IsEnabled == true)
         {
-            var res = _client
-                .GetAsync($"{_url}/rest/v1/user_progress?select=Username,ProgressData&limit=1000")
-                .GetAwaiter()
-                .GetResult();
-            if (!res.IsSuccessStatusCode) return results;
-
-            var json = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-            using var doc = JsonDocument.Parse(json);
-            foreach (var row in doc.RootElement.EnumerateArray())
-            {
-                if (!row.TryGetProperty("Username", out var userEl)) continue;
-                var username = userEl.GetString();
-                if (string.IsNullOrWhiteSpace(username)) continue;
-                if (!row.TryGetProperty("ProgressData", out var progressEl)) continue;
-                if (!progressEl.TryGetProperty("Xp", out var xpEl)) continue;
-                if (!xpEl.TryGetInt32(out var xp) || xp <= 0) continue;
-                if (!results.TryGetValue(username, out var current) || xp > current)
-                    results[username] = xp;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[UserProgressStore] FetchAllXp failed: {ex.Message}");
+            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            return all.ToDictionary(kv => kv.Key, kv => kv.Value.Xp, StringComparer.OrdinalIgnoreCase);
         }
 
-        return results;
+        return new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     }
 
-    public void Save(string username, UserProgressService.UserProgressData data)
+    public void SaveDocument(string username, UserProgressService.ProgressDataDocument data)
     {
         if (!_enabled || string.IsNullOrWhiteSpace(username) || data == null) return;
         try
         {
-            SaveAsync(username, data).GetAwaiter().GetResult();
+            SaveDocumentAsync(username, data).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -312,7 +282,7 @@ public class UserProgressStore
         }
     }
 
-    private async Task SaveAsync(string username, UserProgressService.UserProgressData data)
+    private async Task SaveDocumentAsync(string username, UserProgressService.ProgressDataDocument data)
     {
         var progressJson = JsonSerializer.Serialize(data, AppJson.Options);
         var payload = new[]
@@ -339,10 +309,20 @@ public class UserProgressStore
             throw new InvalidOperationException($"user_progress upsert failed: {res.StatusCode} | {body}");
         }
 
-        _allXpCache = null;
+        _stats?.InvalidateCache();
+    }
 
-        if (data.Achievements?.Count > 0)
-            await SyncAllAchievementsAsync(username, data.Achievements);
+    public void SyncAchievements(string username, IEnumerable<string> keys)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(username)) return;
+        try
+        {
+            SyncAchievementsAsync(username, keys).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressStore] SyncAchievements failed for {username}: {ex.Message}");
+        }
     }
 
     public void ClearAchievements(string username)
@@ -369,7 +349,7 @@ public class UserProgressStore
         }
     }
 
-    private async Task SyncAllAchievementsAsync(string username, IReadOnlyList<string> keys)
+    private async Task SyncAchievementsAsync(string username, IEnumerable<string> keys)
     {
         var rows = keys
             .Where(k => !string.IsNullOrWhiteSpace(k))

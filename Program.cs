@@ -41,18 +41,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<AuthService>();
-var sbUrlForTests = SupabaseConfiguration.Url(builder.Configuration);
-var sbKeyForTests = SupabaseConfiguration.ServiceRoleApiKey(builder.Configuration)
-                    ?? SupabaseConfiguration.AnonApiKey(builder.Configuration);
-if (!string.IsNullOrWhiteSpace(sbUrlForTests) && !string.IsNullOrWhiteSpace(sbKeyForTests))
-{
-    builder.Services.AddSingleton<TestSessionService>();
-}
-else
-{
-    Console.WriteLine("Test session service disabled — missing SUPABASE_URL or API key.");
-}
+builder.Services.AddSingleton<UserStatsService>();
+builder.Services.AddSingleton<UserQuestionStatsStore>();
+builder.Services.AddSingleton<AuthService>(sp =>
+    new AuthService(sp.GetRequiredService<IConfiguration>(), sp.GetService<UserStatsService>()));
 builder.Services.AddSingleton<QuestionDifficultyService>();
 
 builder.Services.AddSingleton<EmailService>(provider =>
@@ -145,12 +137,15 @@ var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 builder.Services.AddSingleton<RememberMeService>();
-builder.Services.AddSingleton<UserProgressStore>();
+builder.Services.AddSingleton<UserProgressStore>(sp =>
+    new UserProgressStore(sp.GetRequiredService<IConfiguration>(), sp.GetService<UserStatsService>()));
 builder.Services.AddSingleton<UserProgressService>(sp =>
     new UserProgressService(
         progressDir,
         sp.GetRequiredService<AuthService>(),
-        sp.GetService<UserProgressStore>()));
+        sp.GetService<UserProgressStore>(),
+        sp.GetService<UserStatsService>(),
+        sp.GetService<UserQuestionStatsStore>()));
 builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
@@ -180,7 +175,21 @@ if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbService))
 {
     builder.Services.AddSingleton(new SupabaseStorageService(sbUrl!, sbService!, sbBucket, sbTtl));
 }
+
+var sbKeyForTests = sbService ?? SupabaseConfiguration.AnonApiKey(builder.Configuration);
+if (!string.IsNullOrWhiteSpace(sbUrl) && !string.IsNullOrWhiteSpace(sbKeyForTests))
+{
+    builder.Services.AddSingleton<TestSessionService>(sp =>
+        new TestSessionService(
+            sp.GetRequiredService<IConfiguration>(),
+            sp.GetService<SupabaseStorageService>()));
+}
 else
+{
+    Console.WriteLine("Test session service disabled — missing SUPABASE_URL or API key.");
+}
+
+if (string.IsNullOrWhiteSpace(sbUrl) || string.IsNullOrWhiteSpace(sbService))
 {
     Console.WriteLine("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
 }
@@ -294,6 +303,17 @@ app.Use(async (context, next) =>
 app.UseCookiePolicy();
 app.UseSession();
 app.UseMiddleware<SessionRestoreMiddleware>();
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    finally
+    {
+        context.RequestServices.GetService<UserProgressService>()?.ClearRequestCache();
+    }
+});
 if (!disableRateLimit)
 {
     app.UseRateLimiter();
