@@ -741,7 +741,7 @@ api.MapPost("/notices/dismiss", async context =>
         }
 
         var noticeId = noticeIdEl.GetString();
-        if (!AppNotices.IsValid(noticeId))
+        if (!AppNotices.IsValid(noticeId) && !GitHubStarPrompt.IsGitHubStarNotice(noticeId))
         {
             await WritePlainError(context, 400, "Invalid noticeId");
             return;

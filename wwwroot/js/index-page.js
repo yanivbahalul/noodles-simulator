@@ -43,13 +43,48 @@
     function openFeedbackModalIfPending() {
         const prompt = document.getElementById("feedback-prompt");
         const modal = document.getElementById("feedback-modal");
-        if (!prompt || !modal) return;
+        if (!prompt || !modal) {
+            openGitHubStarModalIfPending();
+            return;
+        }
         modal.classList.add("difficulty-modal-open");
     }
 
     function closeFeedbackModal() {
         const modal = document.getElementById("feedback-modal");
         if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function dismissGitHubStarNotice(noticeId) {
+        return fetch("/api/notices/dismiss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noticeId })
+        }).catch(ignoreDismissError);
+    }
+
+    function openGitHubStarModal(milestone, url) {
+        const modal = document.getElementById("github-star-modal");
+        if (!modal) return;
+        modal.dataset.milestone = String(milestone ?? "");
+        modal.dataset.repoUrl = url || "https://github.com/yanivbahalul/noodles-simulator";
+        modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeGitHubStarModal() {
+        const modal = document.getElementById("github-star-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function openGitHubStarModalIfPending(skipFeedbackCheck = false) {
+        const prompt = document.getElementById("github-star-prompt");
+        if (!prompt) return;
+        if (prompt.dataset.hasNotice === "1") return;
+        if (!skipFeedbackCheck && prompt.dataset.hasFeedback === "1") return;
+        openGitHubStarModal(
+            parseInt(prompt.dataset.milestone, 10),
+            prompt.dataset.repoUrl
+        );
     }
 
     function ignoreDismissError() {
@@ -526,6 +561,10 @@
         updateStreakBadge(data.stats?.streak ?? 0);
         showAchievementToast(data.achievements);
 
+        if (data.showGitHubStarPrompt) {
+            openGitHubStarModal(data.githubStarMilestone, data.githubStarUrl);
+        }
+
         const selectedInput = document.querySelector('#report-form input[name="selectedAnswer"]');
         if (selectedInput) selectedInput.value = data.selectedKey ?? "";
         scheduleQuizViewportAdjust();
@@ -818,6 +857,7 @@
         const dismiss = () => {
             dismissAppNotice();
             openFeedbackModalIfPending();
+            openGitHubStarModalIfPending();
         };
 
         bindDismissHandler(document.getElementById("app-notice-dismiss-btn"), dismiss);
@@ -855,7 +895,10 @@
             });
         });
 
-        laterBtn.addEventListener("click", () => closeFeedbackModal());
+        laterBtn.addEventListener("click", () => {
+            closeFeedbackModal();
+            openGitHubStarModalIfPending(true);
+        });
 
         modal.addEventListener("click", (e) => {
             if (e.target === modal) closeFeedbackModal();
@@ -896,7 +939,45 @@
 
         if (prompt.dataset.hasNotice !== "1") {
             openFeedbackModalIfPending();
+            openGitHubStarModalIfPending();
         }
+    }
+
+    function bindGitHubStarModal() {
+        const modal = document.getElementById("github-star-modal");
+        const acceptBtn = document.getElementById("github-star-accept-btn");
+        const laterBtn = document.getElementById("github-star-later-btn");
+        if (!modal || !acceptBtn || !laterBtn) return;
+
+        acceptBtn.addEventListener("click", () => {
+            const url = modal.dataset.repoUrl || "https://github.com/yanivbahalul/noodles-simulator";
+            window.open(url, "_blank", "noopener,noreferrer");
+            dismissGitHubStarNotice("github-star-opted-in");
+            closeGitHubStarModal();
+            document.getElementById("github-star-prompt")?.remove();
+        });
+
+        laterBtn.addEventListener("click", () => {
+            const milestone = parseInt(modal.dataset.milestone, 10);
+            if (milestone > 0) {
+                dismissGitHubStarNotice(`github-star-${milestone}`);
+            }
+            closeGitHubStarModal();
+            document.getElementById("github-star-prompt")?.remove();
+        });
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) {
+                const milestone = parseInt(modal.dataset.milestone, 10);
+                if (milestone > 0) {
+                    dismissGitHubStarNotice(`github-star-${milestone}`);
+                }
+                closeGitHubStarModal();
+                document.getElementById("github-star-prompt")?.remove();
+            }
+        });
+
+        openGitHubStarModalIfPending();
     }
 
     function bindDifficultyChoices() {
@@ -1007,6 +1088,7 @@
         bindReportForm();
         bindAppNotice();
         bindFeedbackModal();
+        bindGitHubStarModal();
         bindDifficultyChoices();
         bindSoundToggle();
         bindAchievementToast();

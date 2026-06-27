@@ -104,6 +104,8 @@ public class IndexModel : PageModel
     public string ActiveNoticeId { get; set; } = "";
     public bool ShowFeedbackModal { get; set; }
     public string FeedbackCampaignId { get; set; } = "";
+    public bool ShowGitHubStarModal { get; set; }
+    public int GitHubStarMilestone { get; set; }
 
     public int CurrentStreak { get; set; }
     public int UserCorrect { get; set; }
@@ -174,6 +176,12 @@ public class IndexModel : PageModel
                         ShowFeedbackModal = true;
                         FeedbackCampaignId = campaignId;
                     }
+                }
+
+                if (GitHubStarPrompt.ShouldPrompt(user))
+                {
+                    ShowGitHubStarModal = true;
+                    GitHubStarMilestone = user.TotalAnswered;
                 }
             }
 
@@ -321,6 +329,9 @@ public class IndexModel : PageModel
             SaveAnswerFlashToSession();
             ClearPrefetch();
             await PopulateUserStatsAsync(auth.User);
+            ShowGitHubStarModal = GitHubStarPrompt.ShouldPrompt(auth.User);
+            if (ShowGitHubStarModal)
+                GitHubStarMilestone = auth.User.TotalAnswered;
             await PopulateUrlsAsync();
             return new JsonResult(BuildSubmitAnswerResponse());
         }
@@ -1557,7 +1568,10 @@ public class IndexModel : PageModel
                 level = UserLevel
             },
             achievements,
-            redirect = (string)null
+            redirect = (string)null,
+            showGitHubStarPrompt = ShowGitHubStarModal,
+            githubStarMilestone = GitHubStarMilestone,
+            githubStarUrl = GitHubStarPrompt.RepoUrl
         };
     }
 

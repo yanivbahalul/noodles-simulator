@@ -230,6 +230,24 @@ button,
     cursor: not-allowed;
 }
 
+.github-star-modal.difficulty-modal-open {
+    z-index: 6050;
+}
+
+.github-star-modal-content {
+    max-width: min(480px, 100%);
+}
+
+.github-star-modal-subtitle {
+    margin-bottom: 24px;
+}
+
+.github-star-modal-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
 .feedback-rating-stars {
     color: #ffc107;
     letter-spacing: 2px;
