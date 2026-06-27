@@ -1270,6 +1270,21 @@ api.MapGet("/stats-data", async context =>
         }
 
         var successRate = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
+        var xpProgressPercent = QuizGamification.XpProgressPercent(xp);
+        var weeklyRank = 0;
+        if (progressService != null)
+        {
+            var board = progressService.GetWeeklyLeaderboard(50);
+            for (var i = 0; i < board.Count; i++)
+            {
+                if (string.Equals(board[i].Username, username, StringComparison.OrdinalIgnoreCase))
+                {
+                    weeklyRank = i + 1;
+                    break;
+                }
+            }
+        }
+
         await WriteJson(context, new
         {
             correct,
@@ -1277,7 +1292,10 @@ api.MapGet("/stats-data", async context =>
             successRate,
             streak,
             level,
-            xp
+            xp,
+            xpProgressPercent,
+            xpToNextLevel = QuizGamification.XpToNextLevel(xp),
+            weeklyRank
         });
     }
     catch (Exception ex)

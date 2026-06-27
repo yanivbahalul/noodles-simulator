@@ -62,14 +62,25 @@
 </p>
 
 <div class="practice-mode-stack">
-    <p class="practice-mode-badge" id="practice-mode-badge">
-        @modeLabel
-        @if (Model.PracticeMode == "daily")
-        {
-            <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
-        }
-    </p>
-    <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden")>@Model.CurrentStreak 🔥</span>
+    <div class="practice-mode-top">
+        <p class="practice-mode-badge" id="practice-mode-badge">
+            @modeLabel
+            @if (Model.PracticeMode == "daily")
+            {
+                <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
+            }
+        </p>
+        <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden")>@Model.CurrentStreak 🔥</span>
+    </div>
+    <div class="level-progress-live" id="level-progress-live" aria-label="התקדמות רמה">
+        <span class="level-progress-live-label">רמה <strong id="live-level">@Model.UserLevel</strong></span>
+        <div class="level-progress-live-track" aria-hidden="true">
+            <div class="level-progress-live-fill" id="live-xp-fill" style="width: @Model.XpProgressPercent%"></div>
+        </div>
+        <span class="level-progress-live-meta" id="live-xp-meta">
+            @Model.UserXp XP · +@QuizGamification.XpToNextLevel(Model.UserXp) לרמה @(Model.UserLevel + 1)
+        </span>
+    </div>
 </div>
 
 @if (Model.NewlyUnlockedAchievements.Count > 0)
@@ -128,6 +139,8 @@
     {
         <p class="quiz-answer-feedback" id="answer-feedback" hidden></p>
     }
+
+    <p class="quiz-keyboard-hint" id="quiz-keyboard-hint">קיצורים: 1–4 לבחירה · Enter לשאלה הבאה</p>
 
     <div class="button-row">
         <form class="inline-form-reset">
@@ -285,6 +298,17 @@
             <a href="/Test?start=1&amp;difficulty=hard" class="difficulty-btn difficulty-hard" data-difficulty="hard">
                 <span class="difficulty-text">קשה</span>
             </a>
+        </div>
+    </div>
+</div>
+
+<div id="daily-complete-modal" class="difficulty-modal daily-complete-modal">
+    <div class="difficulty-modal-content daily-complete-content">
+        <h2 class="difficulty-modal-title">🎯 סיימת אתגר יומי!</h2>
+        <p class="difficulty-modal-message" id="daily-complete-score"></p>
+        <p class="difficulty-modal-message daily-complete-sub">חזור מחר לאתגר חדש, או המשך בתרגול חופשי.</p>
+        <div class="difficulty-buttons difficulty-buttons-single">
+            <button type="button" class="difficulty-btn difficulty-easy" id="daily-complete-dismiss-btn">המשך</button>
         </div>
     </div>
 </div>

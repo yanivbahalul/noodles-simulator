@@ -132,6 +132,12 @@ public class IndexModel : PageModel
     public string QuestionImageOriginalName { get; set; }
     public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
+    private int _lastXpGain;
+    private int _levelUpTo;
+    private int _brokenStreakAt;
+    private bool _dailyJustCompleted;
+    private int _dailyFinalScore;
+
     public async Task<IActionResult> OnGetAsync()
     {
         try
@@ -673,12 +679,14 @@ public class IndexModel : PageModel
 
     private async Task ProcessSubmittedAnswerCoreAsync(User user)
     {
+        ResetAnswerFeedbackState();
         ApplyAnswerToUserStats(user);
 
         var streak = UpdateAnswerStreak();
         var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
         var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
+        _lastXpGain = xpGain;
 
         RecordPracticeProgress(user, streak, practiceMode, practiceDifficulty, xpGain);
         SyncUserLevelFromProgress(user);
@@ -863,7 +871,8 @@ public class IndexModel : PageModel
 
     private int UpdateAnswerStreak()
     {
-        var streak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+        var previous = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+        var streak = previous;
         if (IsCorrect)
         {
             streak++;
@@ -871,6 +880,8 @@ public class IndexModel : PageModel
         }
         else
         {
+            if (previous >= 3)
+                _brokenStreakAt = previous;
             streak = 0;
             HttpContext.Session.SetInt32("CurrentStreak", 0);
         }
@@ -936,6 +947,9 @@ public class IndexModel : PageModel
         _userProgress.RecordDailyChallengeComplete(user.Username, finalScore >= DailyTotal);
         NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
         ActivityEventCatalog.LogDailyComplete(_activityEvents, user.Username, finalScore, DailyTotal);
+        _dailyJustCompleted = true;
+        _dailyFinalScore = finalScore;
+        IsDailyComplete = true;
     }
 
     private void SyncUserLevelFromProgress(User user)
@@ -947,7 +961,10 @@ public class IndexModel : PageModel
         user.Xp = progress.Xp;
         user.Level = QuizGamification.LevelFromXp(user.Xp);
         if (user.Level > oldLevel)
+        {
+            _levelUpTo = user.Level;
             ActivityEventCatalog.LogLevelUp(_activityEvents, user.Username, user.Level);
+        }
     }
 
     private async Task FinalizeAnswerSubmissionAsync(User user, int streak)
@@ -1591,8 +1608,60 @@ public class IndexModel : PageModel
         }
     }
 
+    private void ResetAnswerFeedbackState()
+    {
+        _lastXpGain = 0;
+        _levelUpTo = 0;
+        _brokenStreakAt = 0;
+        _dailyJustCompleted = false;
+        _dailyFinalScore = 0;
+    }
+
+    private int? GetQuestionSuccessRatePercent()
+    {
+        if (_stats == null || string.IsNullOrEmpty(QuestionImage))
+            return null;
+
+        var rate = _stats.GetSuccessRate(QuestionImage);
+        if (rate <= 0)
+            return null;
+
+        return (int)Math.Round(rate * 100);
+    }
+
+    private int GetWeeklyRank(string username)
+    {
+        if (_userProgress == null || string.IsNullOrEmpty(username))
+            return 0;
+
+        var board = _userProgress.GetWeeklyLeaderboard(50);
+        for (var i = 0; i < board.Count; i++)
+        {
+            if (string.Equals(board[i].Username, username, StringComparison.OrdinalIgnoreCase))
+                return i + 1;
+        }
+
+        return 0;
+    }
+
+    private string GetSocialHint(string username)
+    {
+        if (!IsCorrect)
+            return null;
+
+        var rank = GetWeeklyRank(username);
+        if (rank > 0 && rank <= 15)
+            return $"מקום {rank} בטבלה השבועית 🏆";
+
+        if (UserTotal >= 5 && UserSuccessRate >= 80)
+            return $"אחוז הצלחה שלך: {UserSuccessRate}% 📈";
+
+        return null;
+    }
+
     private object BuildSubmitAnswerResponse()
     {
+        var username = HttpContext.Session.GetString("Username") ?? "";
         var achievements = NewlyUnlockedAchievements
             .Select(key =>
             {
@@ -1635,7 +1704,21 @@ public class IndexModel : PageModel
                 successRate = UserSuccessRate,
                 streak = CurrentStreak,
                 xp = UserXp,
-                level = UserLevel
+                level = UserLevel,
+                xpProgressPercent = XpProgressPercent,
+                xpToNextLevel = QuizGamification.XpToNextLevel(UserXp),
+                weeklyRank = GetWeeklyRank(username)
+            },
+            feedback = new
+            {
+                xpGain = _lastXpGain,
+                levelUpTo = _levelUpTo > 0 ? _levelUpTo : (int?)null,
+                brokenStreak = _brokenStreakAt,
+                dailyComplete = _dailyJustCompleted,
+                dailyScore = _dailyFinalScore,
+                dailyTotal = DailyTotal,
+                questionSuccessRate = GetQuestionSuccessRatePercent(),
+                socialHint = GetSocialHint(username)
             },
             achievements,
             redirect = (string)null,

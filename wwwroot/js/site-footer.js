@@ -25,6 +25,9 @@
             if (data.streak !== undefined) setText("stat-streak", data.streak);
             if (data.level !== undefined) setText("stat-level-value", data.level);
             if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+            if (typeof window.applyLevelProgressLive === "function") {
+                window.applyLevelProgressLive(data);
+            }
         } catch {
             // keep existing values
         }

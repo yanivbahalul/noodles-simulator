@@ -56,6 +56,22 @@
         ]);
     };
 
+    window.showAppToast = function showAppToast(message, durationMs = 3200) {
+        let toast = document.getElementById("app-toast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "app-toast";
+            toast.className = "app-toast";
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message ?? "";
+        toast.classList.add("app-toast-visible");
+        clearTimeout(window.__appToastTimer);
+        window.__appToastTimer = setTimeout(() => {
+            toast.classList.remove("app-toast-visible");
+        }, durationMs);
+    };
+
     window.bindConfirmEndTestButtons = function bindConfirmEndTestButtons(message) {
         document.querySelectorAll(".confirm-end-test-btn").forEach((btn) => {
             btn.addEventListener("click", async (e) => {

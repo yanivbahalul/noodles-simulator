@@ -130,7 +130,9 @@
                 form.requestSubmit(submitter);
                 return;
             }
-            if (window.showAppAlert) {
+            if (window.showAppToast) {
+                window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
+            } else if (window.showAppAlert) {
                 await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
             }
         } finally {

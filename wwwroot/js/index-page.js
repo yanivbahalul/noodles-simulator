@@ -164,14 +164,47 @@
         if (el) el.textContent = value;
     }
 
-    function applyStatsData(data) {
+    function applyLevelProgressLive(data, options = {}) {
+        if (data?.level !== undefined) {
+            setText("live-level", data.level);
+            setText("stat-level-value", data.level);
+        }
+        if (data?.xpProgressPercent !== undefined) {
+            const fill = document.getElementById("live-xp-fill");
+            if (fill) fill.style.width = `${data.xpProgressPercent}%`;
+        }
+        if (data?.xp !== undefined || data?.xpToNextLevel !== undefined || data?.level !== undefined) {
+            const meta = document.getElementById("live-xp-meta");
+            const level = Number(data.level ?? document.getElementById("live-level")?.textContent ?? 1);
+            const xp = data.xp ?? parseInt(document.getElementById("stat-xp-value")?.textContent ?? "0", 10);
+            const toNext = data.xpToNextLevel;
+            if (meta) {
+                if (toNext !== undefined && data.xp !== undefined) {
+                    meta.textContent = `${data.xp} XP · +${toNext} לרמה ${level + 1}`;
+                } else if (toNext !== undefined) {
+                    meta.textContent = `${xp} XP · +${toNext} לרמה ${level + 1}`;
+                }
+            }
+            if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+        }
+        if (options.pulse && data?.xpGain > 0) pulseLevelBar();
+    }
+
+    function pulseLevelBar() {
+        const fill = document.getElementById("live-xp-fill");
+        if (!fill) return;
+        fill.classList.remove("level-progress-live-fill--pulse");
+        void fill.offsetWidth;
+        fill.classList.add("level-progress-live-fill--pulse");
+    }
+
+    function applyStatsData(data, options = {}) {
         if (data?.correct === undefined) return;
         setText("stat-correct-panel", data.correct);
         setText("stat-total-panel", data.total);
         setText("stat-success-panel", `${data.successRate}%`);
         if (data.streak !== undefined) setText("stat-streak", data.streak);
-        if (data.level !== undefined) setText("stat-level-value", data.level);
-        if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+        applyLevelProgressLive(data, options);
     }
 
     const FEEDBACK_TONES = {
@@ -229,8 +262,7 @@
     function bindAnswerFeedback() {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback || feedback.hidden) return;
-        const isCorrect = feedback.classList.contains("is-correct");
-        playFeedbackSound(isCorrect);
+        playFeedbackSound(feedback.classList.contains("is-correct"));
     }
 
     function applyOnlineCount(data) {
@@ -429,9 +461,11 @@
 
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
         const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
+        const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
             feedbackHeight +
+            hintHeight +
             32;
     }
 
@@ -586,10 +620,80 @@
     function showAnswerFeedback(data) {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback) return;
+
         feedback.hidden = false;
         feedback.classList.toggle("is-correct", data.isCorrect);
         feedback.classList.toggle("is-incorrect", !data.isCorrect);
         feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
+    }
+
+    function showLevelUpToast(level) {
+        if (!level) return;
+        let toast = document.getElementById("level-up-toast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "level-up-toast";
+            toast.className = "achievement-toast level-up-toast";
+            document.body.appendChild(toast);
+        }
+        toast.classList.remove("achievement-toast-hide");
+        toast.innerHTML = `<p class="achievement-toast-item">⬆️ עלית לרמה <strong>${level}</strong>!</p>`;
+        setTimeout(() => toast.classList.add("achievement-toast-hide"), 5000);
+    }
+
+    function showDailyCompleteModal(score, total) {
+        const modal = document.getElementById("daily-complete-modal");
+        const scoreEl = document.getElementById("daily-complete-score");
+        if (!modal) return;
+        if (scoreEl) scoreEl.textContent = `ציון: ${score}/${total}`;
+        modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeDailyCompleteModal() {
+        const modal = document.getElementById("daily-complete-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function triggerHaptic(isCorrect) {
+        if (!isCorrect || !navigator.vibrate) return;
+        try { navigator.vibrate(20); } catch { /* unsupported */ }
+    }
+
+    function isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName?.toLowerCase();
+        return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+    }
+
+    function bindKeyboardShortcuts() {
+        document.addEventListener("keydown", (e) => {
+            if (isTypingTarget(document.activeElement)) return;
+            if (document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open")) return;
+
+            if (e.key === "Enter" && answerChecked && !quizBusy) {
+                const nextBtn = document.getElementById("next-question-btn");
+                if (nextBtn && !nextBtn.disabled) {
+                    e.preventDefault();
+                    nextBtn.click();
+                }
+                return;
+            }
+
+            if (answerChecked || quizBusy) return;
+            const idx = parseInt(e.key, 10);
+            if (idx < 1 || idx > 4) return;
+            const buttons = [...document.querySelectorAll("#answers-grid .answer-btn")];
+            const btn = buttons[idx - 1];
+            if (btn && !btn.disabled) {
+                e.preventDefault();
+                btn.click();
+            }
+        });
+    }
+
+    function bindDailyCompleteModal() {
+        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
+        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
     }
 
     function setInputValue(input, value) {
@@ -625,9 +729,19 @@
         showAnswerFeedback(data);
 
         playFeedbackSound(data.isCorrect);
-        if (data.stats) applyStatsData(data.stats);
+        triggerHaptic(data.isCorrect);
+        if (data.stats) {
+            applyStatsData(
+                { ...data.stats, xpGain: data.feedback?.xpGain ?? 0 },
+                { pulse: Boolean(data.isCorrect && data.feedback?.xpGain > 0) }
+            );
+        }
         updateStreakBadge(data.stats?.streak ?? 0);
         showAchievementToast(data.achievements);
+        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
+        if (data.feedback?.dailyComplete) {
+            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
+        }
 
         if (data.showFeedbackPrompt && data.feedbackCampaignId) {
             openFeedbackModal(data.feedbackCampaignId, data.feedbackMilestone);
@@ -765,7 +879,9 @@
             form.requestSubmit(submitter);
             return;
         }
-        if (window.showAppAlert) {
+        if (window.showAppToast) {
+            window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
+        } else if (window.showAppAlert) {
             await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
         }
     }
@@ -850,7 +966,9 @@
             form.submit();
             return;
         }
-        if (window.showAppAlert) {
+        if (window.showAppToast) {
+            window.showAppToast("שגיאה בטעינת השאלה הבאה. נסה שוב.");
+        } else if (window.showAppAlert) {
             await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
         }
     }
@@ -1148,11 +1266,19 @@
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            await window.showAppAlert("הדיווח נשלח בהצלחה!");
+            if (window.showAppToast) {
+                window.showAppToast("תודה, קיבלנו את הדיווח! 🙏");
+            } else {
+                await window.showAppAlert("תודה, קיבלנו את הדיווח!");
+            }
             form.reset();
             return;
         }
-        await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+        if (window.showAppToast) {
+            window.showAppToast("אירעה שגיאה בשליחת הדיווח.");
+        } else {
+            await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+        }
     }
 
     function bindReportForm() {
@@ -1165,7 +1291,11 @@
             try {
                 await postReportForm(form, buildReportFormPayload(formData), token);
             } catch {
-                await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+                if (window.showAppToast) {
+                    window.showAppToast("אירעה שגיאה בשליחת הדיווח.");
+                } else {
+                    await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+                }
             }
         });
     }
@@ -1238,6 +1368,8 @@
         bindAchievementToast();
         bindAnswerFeedback();
         bindStatsAdvancedPanel();
+        bindDailyCompleteModal();
+        bindKeyboardShortcuts();
 
         bindQuestionImageLoad(document.getElementById("main-question-image"), scheduleQuizViewportAdjust);
         window.addEventListener("resize", scheduleQuizViewportAdjust);
@@ -1261,4 +1393,6 @@
         if (document.hidden) stopAutoUpdate();
         else startAutoUpdate();
     });
+
+    window.applyLevelProgressLive = applyLevelProgressLive;
 })();
