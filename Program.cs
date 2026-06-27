@@ -922,7 +922,7 @@ api.MapGet("/dashboard-feedback", async context =>
             return;
         }
 
-        var entries = await feedbackService.GetAllMilestoneEntriesAsync();
+        var entries = await feedbackService.GetSubmittedFeedbackAsync();
         await WriteJson(context, new
         {
             campaignId = FeedbackCampaigns.MilestoneCampaignPrefix,

@@ -204,6 +204,36 @@ public class UserFeedbackService
         }
     }
 
+    public async Task<List<UserFeedbackEntry>> GetSubmittedFeedbackAsync(int limit = 500)
+    {
+        if (!_enabled)
+            return new List<UserFeedbackEntry>();
+
+        try
+        {
+            var milestoneLike = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}*");
+            var legacyCampaign = Uri.EscapeDataString(FeedbackCampaigns.LegacyCampaignId);
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at" +
+                $"&rating=gte.1" +
+                $"&or=(campaign_id.like.{milestoneLike},campaign_id.eq.{legacyCampaign})" +
+                $"&order=created_at.desc&limit={limit}");
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[UserFeedbackService] GetSubmittedFeedback failed: {res.StatusCode}");
+                return new List<UserFeedbackEntry>();
+            }
+
+            var json = await res.Content.ReadAsStringAsync();
+            return ParseEntries(json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserFeedbackService] GetSubmittedFeedback exception: {ex.Message}");
+            return new List<UserFeedbackEntry>();
+        }
+    }
+
     public async Task<List<UserFeedbackEntry>> GetAllMilestoneEntriesAsync(int limit = 500)
     {
         if (!_enabled)
@@ -211,9 +241,12 @@ public class UserFeedbackService
 
         try
         {
-            var prefix = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}%");
+            var milestoneLike = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}*");
+            var legacyCampaign = Uri.EscapeDataString(FeedbackCampaigns.LegacyCampaignId);
             var res = await _client.GetAsync(
-                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at&campaign_id=like.{prefix}&order=created_at.desc&limit={limit}");
+                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at" +
+                $"&or=(campaign_id.like.{milestoneLike},campaign_id.eq.{legacyCampaign})" +
+                $"&order=created_at.desc&limit={limit}");
             if (!res.IsSuccessStatusCode)
             {
                 Console.WriteLine($"[UserFeedbackService] GetAllMilestoneEntries failed: {res.StatusCode}");
