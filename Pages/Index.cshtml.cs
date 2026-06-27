@@ -682,7 +682,9 @@ public class IndexModel : PageModel
         var streak = UpdateAnswerStreak();
         var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
-        var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
+        var xpGain = IsCorrect
+            ? QuizGamification.XpForCorrectAnswer(practiceMode, practiceDifficulty, streak)
+            : 0;
         _lastXpGain = xpGain;
 
         RecordPracticeProgress(user, streak, practiceMode, practiceDifficulty, xpGain);
@@ -983,11 +985,6 @@ public class IndexModel : PageModel
         try { await _authService.UpdateUserAsync(user); }
         catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
     }
-
-    private static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty) =>
-        practiceMode == "daily"
-            ? QuizGamification.DailyChallengeXpPerCorrect
-            : QuizGamification.XpForDifficulty(practiceDifficulty);
 
     private void UpdateRapidAnswerCounters()
     {
