@@ -171,7 +171,8 @@ public class IndexModel : PageModel
                 if (!string.IsNullOrEmpty(campaignId) && _feedbackService != null && _feedbackService.IsEnabled)
                 {
                     var alreadySubmitted = await _feedbackService.HasSubmittedAsync(user.Username, campaignId);
-                    if (!alreadySubmitted)
+                    var achievementCount = GetUnlockedAchievementCount(user.Username);
+                    if (!alreadySubmitted && FeedbackCampaigns.IsEligible(achievementCount))
                     {
                         ShowFeedbackModal = true;
                         FeedbackCampaignId = campaignId;
@@ -449,6 +450,15 @@ public class IndexModel : PageModel
 
         if (mode == "daily")
             EnsureDailyChallengeSession();
+    }
+
+    private int GetUnlockedAchievementCount(string username)
+    {
+        if (_userProgress == null || string.IsNullOrWhiteSpace(username))
+            return 0;
+
+        var achievements = _userProgress.Load(username)?.Achievements;
+        return achievements?.Count ?? 0;
     }
 
     private void LoadPendingAchievements()

@@ -815,6 +815,15 @@ api.MapPost("/feedback/submit", async context =>
         }
 
         var username = context.Session.GetString("Username")!;
+
+        var progress = context.RequestServices.GetService<UserProgressService>();
+        var achievementCount = progress?.Load(username)?.Achievements?.Count ?? 0;
+        if (!FeedbackCampaigns.IsEligible(achievementCount))
+        {
+            await WritePlainError(context, 403, "Not eligible");
+            return;
+        }
+
         var (success, alreadySubmitted) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
         if (alreadySubmitted)
         {

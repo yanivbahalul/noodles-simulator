@@ -9,16 +9,21 @@ public static class FeedbackCampaigns
     public const string Title = "איך אתה מרגיש עם Noodles Simulator?";
     public const string Subtitle = "הדירוג והמשוב שלך יעזרו לנו לשפר";
 
-    /// <summary>When true, only Admin sees the feedback modal (for testing). Set false before launch.</summary>
-    public const bool AdminPreviewOnly = true;
+    public const int MinAchievementsRequired = 5;
+
+    /// <summary>When true, only Admin sees the feedback modal (for testing).</summary>
+    public const bool AdminPreviewOnly = false;
 
     private static readonly TimeZoneInfo IsraelTimeZone = ResolveIsraelTimeZone();
 
-    private static readonly DateTime June2026StartsAtUtc = TimeZoneInfo.ConvertTimeToUtc(
-        new DateTime(2026, 6, 28, 16, 0, 0, DateTimeKind.Unspecified),
+    private static readonly DateTime CampaignStartsAtUtc = TimeZoneInfo.ConvertTimeToUtc(
+        new DateTime(2026, 6, 27, 16, 0, 0, DateTimeKind.Unspecified),
         IsraelTimeZone);
 
-    public static bool IsActive(DateTime utcNow) => utcNow >= June2026StartsAtUtc;
+    public static bool IsActive(DateTime utcNow) => utcNow >= CampaignStartsAtUtc;
+
+    public static bool IsEligible(int unlockedAchievementCount) =>
+        unlockedAchievementCount >= MinAchievementsRequired;
 
     public static string GetActiveCampaignId(DateTime utcNow) =>
         IsActive(utcNow) ? June2026 : "";
