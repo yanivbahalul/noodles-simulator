@@ -31,6 +31,10 @@ public static class FeedbackCampaigns
         return GetActiveCampaignId(utcNow);
     }
 
+    /// <summary>Campaign id for admin dashboard / feedback list (includes preview submissions).</summary>
+    public static string GetDashboardCampaignId(DateTime utcNow) =>
+        IsActive(utcNow) || AdminPreviewOnly ? June2026 : "";
+
     private static TimeZoneInfo ResolveIsraelTimeZone()
     {
         try

@@ -120,8 +120,8 @@ public class DashboardModel : PageModel
                 .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
                 .DefaultIfEmpty(0).Average() * 100;
 
-            FeedbackCampaignId = FeedbackCampaigns.GetActiveCampaignId(DateTime.UtcNow) ?? FeedbackCampaigns.June2026;
-            if (_feedbackService != null && _feedbackService.IsEnabled)
+            FeedbackCampaignId = FeedbackCampaigns.GetDashboardCampaignId(DateTime.UtcNow);
+            if (_feedbackService != null && _feedbackService.IsEnabled && !string.IsNullOrEmpty(FeedbackCampaignId))
                 FeedbackEntries = await _feedbackService.GetAllForCampaignAsync(FeedbackCampaignId);
         }
         catch (Exception ex)

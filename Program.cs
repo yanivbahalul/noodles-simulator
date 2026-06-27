@@ -846,7 +846,7 @@ api.MapGet("/dashboard-feedback", async context =>
 
     try
     {
-        var campaignId = FeedbackCampaigns.GetActiveCampaignId(DateTime.UtcNow);
+        var campaignId = FeedbackCampaigns.GetDashboardCampaignId(DateTime.UtcNow);
         if (string.IsNullOrWhiteSpace(campaignId))
         {
             await WriteJson(context, new { campaignId = "", entries = Array.Empty<object>() });
