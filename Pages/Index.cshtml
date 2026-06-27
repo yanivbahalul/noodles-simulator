@@ -48,7 +48,7 @@
 </head>
 <body>
 
-<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+<img src="/assets/background.gif" alt="רקע" class="background-gif" loading="lazy" fetchpriority="low" decoding="async" />
 
 <partial name="Shared/_TopBar" />
 <partial name="Shared/_LogoHeader" />
@@ -71,11 +71,8 @@
             }
         </p>
         <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden") aria-label="רצף תשובות נכונות">
-            <span class="streak-fire-wrap" aria-hidden="true">
-                <span class="streak-fire-container" id="streak-fire-container"></span>
-                <span class="streak-smog-container" id="streak-smog-container"></span>
-            </span>
-            <span class="streak-badge-text" id="streak-badge-text">@Model.CurrentStreak 🔥</span>
+            <img src="/images/streak/flame-icon.gif?v=3" alt="" class="streak-flame-bg" width="300" height="300" decoding="async" aria-hidden="true" />
+            <span class="streak-badge-text" id="streak-badge-text">@Model.CurrentStreak</span>
         </span>
     </div>
     <div class="level-progress-live" id="level-progress-live" aria-label="התקדמות רמה">
@@ -106,7 +103,7 @@
 <div id="quiz-page-data" data-answer-checked="@(Model.AnswerChecked ? "1" : "0")" hidden></div>
 
 <div class="quiz-container">
-    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
+    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="eager" fetchpriority="high" id="main-question-image" class="quiz-main-image" />
 
     <form method="post" id="quiz-answer-form">
         @Html.AntiForgeryToken()
@@ -394,6 +391,7 @@
 </div>
 
 <script src="/js/dialog.js"></script>
+<script src="/js/request-channels.js" asp-append-version="true"></script>
 <script src="/js/index-page.js" asp-append-version="true"></script>
 </body>
 </html>

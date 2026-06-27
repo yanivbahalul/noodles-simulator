@@ -33,7 +33,7 @@
         modal.classList.remove("difficulty-modal-open");
         const noticeId = prompt?.dataset.noticeId;
         if (!noticeId) return;
-        fetch("/api/notices/dismiss", {
+        window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
@@ -41,7 +41,7 @@
     }
 
     function logPromptShown(prompt, details = {}) {
-        fetch("/api/activity/prompt-shown", {
+        window.RequestChannels.backgroundFetch("/api/activity/prompt-shown", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt, ...details })
@@ -95,7 +95,7 @@
     }
 
     function dismissGitHubStarNotice(noticeId) {
-        return fetch("/api/notices/dismiss", {
+        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
@@ -295,6 +295,7 @@
 
     function setQuizBusy(on) {
         quizBusy = on;
+        window.RequestChannels?.notifyQuizBusy(on);
         setQuizLoading(on);
         const nextBtn = document.getElementById("next-question-btn");
         if (nextBtn) nextBtn.disabled = on;
@@ -353,7 +354,7 @@
     }
 
     async function fetchNextQuestionData() {
-        const res = await fetch("/Index?handler=PrefetchNextQuestion");
+        const res = await window.RequestChannels.quizFetch("/Index?handler=PrefetchNextQuestion");
         if (res.status === 204 || !res.ok) return null;
         const data = await res.json();
         return data?.questionImage ? data : null;
@@ -516,32 +517,6 @@
         img.addEventListener("error", onLoad, { once: true });
     }
 
-    let streakFireInitialized = false;
-
-    function createStreakParticles(container, num, extraClass = "") {
-        if (!container || container.dataset.ready === "1") return;
-        for (let i = 0; i < num; i += 1) {
-            const particle = document.createElement("span");
-            particle.className = `streak-particle${extraClass ? ` ${extraClass}` : ""}`;
-            const span = Math.max(num - 1, 1);
-            particle.style.left = `calc((100% - 1.1em) * ${i / span})`;
-            particle.style.animationDelay = `${(Math.random() * 2.8).toFixed(2)}s`;
-            particle.style.animationDuration = `${(2.1 + Math.random() * 1.4).toFixed(2)}s`;
-            container.appendChild(particle);
-        }
-        container.dataset.ready = "1";
-    }
-
-    function initStreakFireParticles() {
-        if (streakFireInitialized) return;
-        const fireContainer = document.getElementById("streak-fire-container");
-        const smogContainer = document.getElementById("streak-smog-container");
-        if (!fireContainer || !smogContainer) return;
-        createStreakParticles(fireContainer, 22);
-        createStreakParticles(smogContainer, 12, "streak-particle--smog");
-        streakFireInitialized = true;
-    }
-
     function updateStreakBadge(streak, options = {}) {
         const badge = document.getElementById("streak-badge");
         const text = document.getElementById("streak-badge-text");
@@ -550,7 +525,7 @@
         const value = Number(streak) || 0;
         if (value > 0) {
             badge.hidden = false;
-            if (text) text.textContent = `${value} 🔥`;
+            if (text) text.textContent = String(value);
             badge.classList.toggle("streak-badge--hot", value >= 7);
             if (options.pulse) {
                 badge.classList.remove("streak-badge--burst");
@@ -815,6 +790,8 @@
             const img = document.createElement("img");
             img.src = a.imageUrl;
             img.alt = "תשובה";
+            img.loading = "eager";
+            img.fetchPriority = "high";
             if (a.fileName) img.dataset.answerFile = a.fileName;
             btn.appendChild(img);
             grid.appendChild(btn);
@@ -885,7 +862,7 @@
     }
 
     async function submitQuizAnswer(questionImage, answer, token) {
-        const res = await fetch("/Index?handler=SubmitAnswer", {
+        const res = await window.RequestChannels.quizFetch("/Index?handler=SubmitAnswer", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -979,7 +956,7 @@
     }
 
     async function fetchNextQuestionResponse() {
-        const res = await fetch("/Index?handler=NextQuestion");
+        const res = await window.RequestChannels.quizFetch("/Index?handler=NextQuestion");
         const data = await res.json();
         return { res, data };
     }
@@ -1043,7 +1020,7 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch(`/api/stats-data?_=${Date.now()}`);
+            const res = await window.RequestChannels.backgroundFetch(`/api/stats-data?_=${Date.now()}`);
             if (!res.ok) throw new Error("stats fetch failed");
             applyStatsData(await res.json());
         } catch {
@@ -1053,7 +1030,7 @@
 
     async function fetchOnlineCount() {
         try {
-            const res = await fetch(`/api/online-count?_=${Date.now()}`);
+            const res = await window.RequestChannels.backgroundFetch(`/api/online-count?_=${Date.now()}`);
             if (!res.ok) throw new Error("online fetch failed");
             applyOnlineCount(await res.json());
         } catch {
@@ -1401,7 +1378,6 @@
         bindGitHubStarModal();
         bindDifficultyChoices();
         bindSoundToggle();
-        initStreakFireParticles();
         syncStreakBadgeFromPage();
         bindAchievementToast();
         bindAnswerFeedback();
@@ -1421,9 +1397,15 @@
         });
     });
 
+    function scheduleBackgroundRefresh() {
+        window.RequestChannels?.scheduleBackground(async () => {
+            await fetchStats();
+            await fetchOnlineCount();
+        });
+    }
+
     window.addEventListener("load", () => {
-        fetchStats();
-        fetchOnlineCount();
+        scheduleBackgroundRefresh();
         startAutoUpdate();
     });
 
