@@ -182,7 +182,7 @@ public class IndexModel : PageModel
                 if (GitHubStarPrompt.ShouldPrompt(user))
                 {
                     ShowGitHubStarModal = true;
-                    GitHubStarMilestone = user.TotalAnswered;
+                    GitHubStarMilestone = GitHubStarPrompt.GetActiveMilestone(user.TotalAnswered);
                 }
             }
 
@@ -332,7 +332,7 @@ public class IndexModel : PageModel
             await PopulateUserStatsAsync(auth.User);
             ShowGitHubStarModal = GitHubStarPrompt.ShouldPrompt(auth.User);
             if (ShowGitHubStarModal)
-                GitHubStarMilestone = auth.User.TotalAnswered;
+                GitHubStarMilestone = GitHubStarPrompt.GetActiveMilestone(auth.User.TotalAnswered);
             await PopulateUrlsAsync();
             return new JsonResult(BuildSubmitAnswerResponse());
         }

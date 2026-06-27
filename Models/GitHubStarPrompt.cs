@@ -14,7 +14,19 @@ public static class GitHubStarPrompt
     public const string AcceptButton = "יאללה";
     public const string LaterButton = "אולי אחר כך";
 
-    public static string NoticeIdForMilestone(int totalAnswered) => $"github-star-{totalAnswered}";
+    public static string NoticeIdForMilestone(int milestone) => $"github-star-{milestone}";
+
+    /// <summary>
+    /// The milestone bucket for the user's current answer count (100 for 100–199, 200 for 200–299, …).
+    /// Returns 0 if the user has not yet reached the first milestone.
+    /// </summary>
+    public static int GetActiveMilestone(int totalAnswered)
+    {
+        if (totalAnswered < MilestoneInterval)
+            return 0;
+
+        return totalAnswered / MilestoneInterval * MilestoneInterval;
+    }
 
     public static bool IsGitHubStarNotice(string? noticeId)
     {
@@ -26,10 +38,11 @@ public static class GitHubStarPrompt
 
     public static bool ShouldPrompt(User? user)
     {
-        if (user == null || user.TotalAnswered <= 0)
+        if (user == null)
             return false;
 
-        if (user.TotalAnswered % MilestoneInterval != 0)
+        var milestone = GetActiveMilestone(user.TotalAnswered);
+        if (milestone == 0)
             return false;
 
         var dismissed = user.DismissedNotices;
@@ -38,7 +51,7 @@ public static class GitHubStarPrompt
             if (dismissed.Contains(OptedInNoticeId, StringComparer.Ordinal))
                 return false;
 
-            if (dismissed.Contains(NoticeIdForMilestone(user.TotalAnswered), StringComparer.Ordinal))
+            if (dismissed.Contains(NoticeIdForMilestone(milestone), StringComparer.Ordinal))
                 return false;
         }
 
