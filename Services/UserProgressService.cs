@@ -719,6 +719,28 @@ public class UserProgressService
     public (int TotalAnswered, int CorrectAnswers) GetAnswerTotals(string username)
     {
         var data = Load(username);
+        return SumQuestionStats(data);
+    }
+
+    public QuizStatsSnapshot GetQuizStatsSnapshot(string username)
+    {
+        var data = Load(username);
+        var (total, correct) = SumQuestionStats(data);
+        var xp = data?.Xp ?? 0;
+        var level = QuizGamification.LevelFromXp(xp);
+        return new QuizStatsSnapshot
+        {
+            CorrectAnswers = correct,
+            TotalAnswered = total,
+            Xp = xp,
+            Level = level,
+            XpProgressPercent = QuizGamification.XpProgressPercent(xp),
+            XpToNextLevel = QuizGamification.XpToNextLevel(xp)
+        };
+    }
+
+    private static (int TotalAnswered, int CorrectAnswers) SumQuestionStats(UserProgressData data)
+    {
         if (data?.QuestionStats == null || data.QuestionStats.Count == 0)
             return (0, 0);
 
@@ -731,6 +753,16 @@ public class UserProgressService
         }
 
         return (total, correct);
+    }
+
+    public sealed class QuizStatsSnapshot
+    {
+        public int CorrectAnswers { get; set; }
+        public int TotalAnswered { get; set; }
+        public int Xp { get; set; }
+        public int Level { get; set; }
+        public int XpProgressPercent { get; set; }
+        public int XpToNextLevel { get; set; }
     }
 
     private static void EnsureDay(UserProgressData data)

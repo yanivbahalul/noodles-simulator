@@ -168,25 +168,17 @@
         if (data?.level !== undefined) {
             setText("live-level", data.level);
             setText("stat-level-value", data.level);
+            setText("stat-level-label", data.level);
         }
         if (data?.xpProgressPercent !== undefined) {
             const fill = document.getElementById("live-xp-fill");
             if (fill) fill.style.width = `${data.xpProgressPercent}%`;
         }
-        if (data?.xp !== undefined || data?.xpToNextLevel !== undefined || data?.level !== undefined) {
+        if (data?.xpToNextLevel !== undefined) {
             const meta = document.getElementById("live-xp-meta");
-            const level = Number(data.level ?? document.getElementById("live-level")?.textContent ?? 1);
-            const xp = data.xp ?? parseInt(document.getElementById("stat-xp-value")?.textContent ?? "0", 10);
-            const toNext = data.xpToNextLevel;
-            if (meta) {
-                if (toNext !== undefined && data.xp !== undefined) {
-                    meta.textContent = `${data.xp} XP · +${toNext} לרמה ${level + 1}`;
-                } else if (toNext !== undefined) {
-                    meta.textContent = `${xp} XP · +${toNext} לרמה ${level + 1}`;
-                }
-            }
-            if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+            if (meta) meta.textContent = `נותר ${data.xpToNextLevel} XP לרמה ההבאה`;
         }
+        if (data?.xp !== undefined) setText("stat-xp-value", data.xp);
         if (options.pulse && data?.xpGain > 0) pulseLevelBar();
     }
 
@@ -199,11 +191,16 @@
     }
 
     function applyStatsData(data, options = {}) {
-        if (data?.correct === undefined) return;
-        setText("stat-correct-panel", data.correct);
-        setText("stat-total-panel", data.total);
-        setText("stat-success-panel", `${data.successRate}%`);
-        if (data.streak !== undefined) setText("stat-streak", data.streak);
+        if (!data) return;
+        if (data.correct !== undefined) {
+            setText("stat-correct-panel", data.correct);
+            setText("stat-total-panel", data.total);
+            setText("stat-success-panel", `${data.successRate}%`);
+        }
+        if (data.streak !== undefined) {
+            setText("stat-streak", data.streak);
+            updateStreakBadge(data.streak);
+        }
         applyLevelProgressLive(data, options);
     }
 
@@ -256,7 +253,18 @@
     function bindAchievementToast() {
         const toast = document.getElementById("achievement-toast");
         if (!toast) return;
-        setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
+        toast.querySelectorAll(".achievement-toast-item").forEach((item, index) => {
+            const text = item.textContent?.trim();
+            if (!text) return;
+            setTimeout(() => {
+                window.pushQuizNotify?.({
+                    type: "achievement",
+                    message: text,
+                    durationMs: 6000
+                });
+            }, index * 120);
+        });
+        toast.remove();
     }
 
     function bindAnswerFeedback() {
@@ -508,28 +516,59 @@
         img.addEventListener("error", onLoad, { once: true });
     }
 
-    function ensureStreakBadgeElement(stack) {
-        const existing = document.getElementById("streak-badge");
-        if (existing) return existing;
-        if (!stack) return null;
-        const badge = document.createElement("span");
-        badge.id = "streak-badge";
-        badge.className = "streak-badge";
-        stack.appendChild(badge);
-        return badge;
+    let streakFireInitialized = false;
+
+    function createStreakParticles(container, num, extraClass = "") {
+        if (!container || container.dataset.ready === "1") return;
+        for (let i = 0; i < num; i += 1) {
+            const particle = document.createElement("span");
+            particle.className = `streak-particle${extraClass ? ` ${extraClass}` : ""}`;
+            const span = Math.max(num - 1, 1);
+            particle.style.left = `calc((100% - 1.1em) * ${i / span})`;
+            particle.style.animationDelay = `${(Math.random() * 2.8).toFixed(2)}s`;
+            particle.style.animationDuration = `${(2.1 + Math.random() * 1.4).toFixed(2)}s`;
+            container.appendChild(particle);
+        }
+        container.dataset.ready = "1";
     }
 
-    function updateStreakBadge(streak) {
+    function initStreakFireParticles() {
+        if (streakFireInitialized) return;
+        const fireContainer = document.getElementById("streak-fire-container");
+        const smogContainer = document.getElementById("streak-smog-container");
+        if (!fireContainer || !smogContainer) return;
+        createStreakParticles(fireContainer, 22);
+        createStreakParticles(smogContainer, 12, "streak-particle--smog");
+        streakFireInitialized = true;
+    }
+
+    function updateStreakBadge(streak, options = {}) {
         const badge = document.getElementById("streak-badge");
-        if (streak > 0) {
-            const activeBadge = ensureStreakBadgeElement(document.querySelector(".practice-mode-stack"));
-            if (activeBadge) {
-                activeBadge.hidden = false;
-                activeBadge.textContent = `${streak} 🔥`;
+        const text = document.getElementById("streak-badge-text");
+        if (!badge) return;
+
+        const value = Number(streak) || 0;
+        if (value > 0) {
+            badge.hidden = false;
+            if (text) text.textContent = `${value} 🔥`;
+            badge.classList.toggle("streak-badge--hot", value >= 7);
+            if (options.pulse) {
+                badge.classList.remove("streak-badge--burst");
+                void badge.offsetWidth;
+                badge.classList.add("streak-badge--burst");
+                setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
             }
             return;
         }
-        if (badge) badge.hidden = true;
+
+        badge.hidden = true;
+        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
+    }
+
+    function syncStreakBadgeFromPage() {
+        const stat = document.getElementById("stat-streak");
+        const parsed = parseInt(stat?.textContent ?? "0", 10);
+        updateStreakBadge(Number.isFinite(parsed) ? parsed : 0);
     }
 
     function updatePracticeModeBadge(data) {
@@ -543,20 +582,17 @@
     }
 
     function showAchievementToast(achievements) {
-        if (!achievements?.length) return;
-        let toast = document.getElementById("achievement-toast");
-        if (!toast) {
-            toast = document.createElement("div");
-            toast.id = "achievement-toast";
-            toast.className = "achievement-toast";
-            const quizContainer = document.querySelector(".quiz-container");
-            quizContainer?.parentNode?.insertBefore(toast, quizContainer);
-        }
-        toast.classList.remove("achievement-toast-hide");
-        toast.innerHTML = achievements.map((a) =>
-            `<p class="achievement-toast-item">${escapeHtml(a.emoji)} הישג חדש: <strong>${escapeHtml(a.title)}</strong> — ${escapeHtml(a.description)}</p>`
-        ).join("");
-        setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
+        if (!achievements?.length || !window.pushQuizNotify) return;
+        achievements.forEach((a, index) => {
+            setTimeout(() => {
+                window.pushQuizNotify({
+                    type: "achievement",
+                    title: "הישג חדש",
+                    message: `${a.emoji} <strong>${escapeHtml(a.title)}</strong> — ${escapeHtml(a.description)}`,
+                    durationMs: 6000
+                });
+            }, index * 120);
+        });
     }
 
     function answerFileFromUrl(url) {
@@ -628,17 +664,13 @@
     }
 
     function showLevelUpToast(level) {
-        if (!level) return;
-        let toast = document.getElementById("level-up-toast");
-        if (!toast) {
-            toast = document.createElement("div");
-            toast.id = "level-up-toast";
-            toast.className = "achievement-toast level-up-toast";
-            document.body.appendChild(toast);
-        }
-        toast.classList.remove("achievement-toast-hide");
-        toast.innerHTML = `<p class="achievement-toast-item">⬆️ עלית לרמה <strong>${level}</strong>!</p>`;
-        setTimeout(() => toast.classList.add("achievement-toast-hide"), 5000);
+        if (!level || !window.pushQuizNotify) return;
+        window.pushQuizNotify({
+            type: "levelUp",
+            title: "עלית רמה!",
+            message: `⬆️ עלית לרמה <strong>${level}</strong>!`,
+            durationMs: 5500
+        });
     }
 
     function showDailyCompleteModal(score, total) {
@@ -730,15 +762,22 @@
 
         playFeedbackSound(data.isCorrect);
         triggerHaptic(data.isCorrect);
-        if (data.stats) {
-            applyStatsData(
-                { ...data.stats, xpGain: data.feedback?.xpGain ?? 0 },
-                { pulse: Boolean(data.isCorrect && data.feedback?.xpGain > 0) }
+        if (data.stats || data.feedback?.levelUpTo) {
+            const statsPayload = {
+                ...(data.stats ?? {}),
+                xpGain: data.feedback?.xpGain ?? 0
+            };
+            if (data.feedback?.levelUpTo) {
+                statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
+            }
+            const shouldPulse = Boolean(
+                data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
             );
+            applyStatsData(statsPayload, { pulse: shouldPulse });
         }
-        updateStreakBadge(data.stats?.streak ?? 0);
-        showAchievementToast(data.achievements);
+        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
         if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
+        showAchievementToast(data.achievements);
         if (data.feedback?.dailyComplete) {
             showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
         }
@@ -1024,10 +1063,7 @@
 
     function startAutoUpdate() {
         stopAutoUpdate();
-        updateInterval = setInterval(() => {
-            fetchStats();
-            fetchOnlineCount();
-        }, 5000);
+        updateInterval = setInterval(fetchOnlineCount, 30000);
     }
 
     function stopAutoUpdate() {
@@ -1365,6 +1401,8 @@
         bindGitHubStarModal();
         bindDifficultyChoices();
         bindSoundToggle();
+        initStreakFireParticles();
+        syncStreakBadgeFromPage();
         bindAchievementToast();
         bindAnswerFeedback();
         bindStatsAdvancedPanel();

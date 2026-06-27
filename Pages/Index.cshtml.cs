@@ -328,8 +328,6 @@ public class IndexModel : PageModel
             SaveAnswerFlashToSession();
             ClearPrefetch();
             await PopulateUserStatsAsync(auth.User);
-            var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
-            await TryResolveFeedbackPromptAsync(auth.User, isAdmin);
             ShowGitHubStarModal = GitHubStarPrompt.ShouldPrompt(auth.User);
             if (ShowGitHubStarModal)
                 GitHubStarMilestone = GitHubStarPrompt.GetActiveMilestone(auth.User.TotalAnswered);
@@ -395,15 +393,14 @@ public class IndexModel : PageModel
 
         if (_userProgress != null)
         {
-            var progress = _userProgress.Load(user.Username);
-            var (progTotal, progCorrect) = _userProgress.GetAnswerTotals(user.Username);
-            UserCorrect = Math.Max(user.CorrectAnswers, progCorrect);
-            UserTotal = Math.Max(user.TotalAnswered, progTotal);
-            UserXp = Math.Max(user.Xp, progress.Xp);
+            var snap = _userProgress.GetQuizStatsSnapshot(user.Username);
+            UserCorrect = Math.Max(user.CorrectAnswers, snap.CorrectAnswers);
+            UserTotal = Math.Max(user.TotalAnswered, snap.TotalAnswered);
+            UserXp = Math.Max(user.Xp, snap.Xp);
             user.Xp = UserXp;
-            user.Level = QuizGamification.LevelFromXp(UserXp);
-            UserLevel = user.Level;
-            XpProgressPercent = QuizGamification.XpProgressPercent(UserXp);
+            user.Level = snap.Level;
+            UserLevel = snap.Level;
+            XpProgressPercent = snap.XpProgressPercent;
         }
         else
         {
@@ -967,7 +964,7 @@ public class IndexModel : PageModel
         }
     }
 
-    private async Task FinalizeAnswerSubmissionAsync(User user, int streak)
+    private Task FinalizeAnswerSubmissionAsync(User user, int streak)
     {
         if (_achievements != null)
             NewlyUnlockedAchievements.AddRange(_achievements.CheckPracticeAchievements(user.Username, streak, user.TotalAnswered, user.Xp));
@@ -975,10 +972,16 @@ public class IndexModel : PageModel
         if (NewlyUnlockedAchievements.Count > 0)
             HttpContext.Session.SetString("PendingAchievements", JsonSerializer.Serialize(NewlyUnlockedAchievements, AppJson.Options));
 
-        try { await _authService.UpdateUserAsync(user); }
-        catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
+        _ = SyncUserToAuthAsync(user);
 
         UpdateRapidAnswerCounters();
+        return Task.CompletedTask;
+    }
+
+    private async Task SyncUserToAuthAsync(User user)
+    {
+        try { await _authService.UpdateUserAsync(user); }
+        catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
     }
 
     private static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty) =>
@@ -1617,51 +1620,8 @@ public class IndexModel : PageModel
         _dailyFinalScore = 0;
     }
 
-    private int? GetQuestionSuccessRatePercent()
-    {
-        if (_stats == null || string.IsNullOrEmpty(QuestionImage))
-            return null;
-
-        var rate = _stats.GetSuccessRate(QuestionImage);
-        if (rate <= 0)
-            return null;
-
-        return (int)Math.Round(rate * 100);
-    }
-
-    private int GetWeeklyRank(string username)
-    {
-        if (_userProgress == null || string.IsNullOrEmpty(username))
-            return 0;
-
-        var board = _userProgress.GetWeeklyLeaderboard(50);
-        for (var i = 0; i < board.Count; i++)
-        {
-            if (string.Equals(board[i].Username, username, StringComparison.OrdinalIgnoreCase))
-                return i + 1;
-        }
-
-        return 0;
-    }
-
-    private string GetSocialHint(string username)
-    {
-        if (!IsCorrect)
-            return null;
-
-        var rank = GetWeeklyRank(username);
-        if (rank > 0 && rank <= 15)
-            return $"מקום {rank} בטבלה השבועית 🏆";
-
-        if (UserTotal >= 5 && UserSuccessRate >= 80)
-            return $"אחוז הצלחה שלך: {UserSuccessRate}% 📈";
-
-        return null;
-    }
-
     private object BuildSubmitAnswerResponse()
     {
-        var username = HttpContext.Session.GetString("Username") ?? "";
         var achievements = NewlyUnlockedAchievements
             .Select(key =>
             {
@@ -1706,8 +1666,7 @@ public class IndexModel : PageModel
                 xp = UserXp,
                 level = UserLevel,
                 xpProgressPercent = XpProgressPercent,
-                xpToNextLevel = QuizGamification.XpToNextLevel(UserXp),
-                weeklyRank = GetWeeklyRank(username)
+                xpToNextLevel = QuizGamification.XpToNextLevel(UserXp)
             },
             feedback = new
             {
@@ -1716,9 +1675,7 @@ public class IndexModel : PageModel
                 brokenStreak = _brokenStreakAt,
                 dailyComplete = _dailyJustCompleted,
                 dailyScore = _dailyFinalScore,
-                dailyTotal = DailyTotal,
-                questionSuccessRate = GetQuestionSuccessRatePercent(),
-                socialHint = GetSocialHint(username)
+                dailyTotal = DailyTotal
             },
             achievements,
             redirect = (string)null,

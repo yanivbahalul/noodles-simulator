@@ -33,7 +33,7 @@ public class AuthService
     private readonly UserStatsService _stats;
     private int _cachedOnlineCount = -1;
     private DateTime _cachedOnlineCountAt = DateTime.MinValue;
-    private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan PresenceTouchMinInterval = TimeSpan.FromSeconds(60);
     private readonly ConcurrentDictionary<string, DateTime> _lastPresenceByUser = new();
 
