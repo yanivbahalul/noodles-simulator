@@ -25,6 +25,7 @@ public class AuthService
     private const string UserSelectAuth = UserSelectPublic + ",Password";
 
     private readonly HttpClient _client;
+    private readonly HttpClient _adminClient;
     private readonly string _url;
     private readonly string _apiKey;
     private const string PasswordHashPrefix = "pbkdf2$";
@@ -49,6 +50,18 @@ public class AuthService
         };
         _client.DefaultRequestHeaders.Add("apikey", _apiKey);
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+
+        var serviceKey = SupabaseConfiguration.ServiceRoleApiKey(config);
+        if (!string.IsNullOrWhiteSpace(serviceKey) && serviceKey != _apiKey)
+        {
+            _adminClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            _adminClient.DefaultRequestHeaders.Add("apikey", serviceKey);
+            _adminClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {serviceKey}");
+        }
+        else
+        {
+            _adminClient = _client;
+        }
     }
 
     public async Task<User?> AuthenticateAsync(string username, string password)
@@ -429,12 +442,21 @@ public class AuthService
 
     public async Task<bool> DeleteUserAsync(string username)
     {
+        if (string.IsNullOrWhiteSpace(username))
+            return false;
+
         try
         {
-            var safeUsername = Uri.EscapeDataString(username);
+            var safeUsername = Uri.EscapeDataString(username.Trim());
             var request = new HttpRequestMessage(HttpMethod.Delete, $"{_url}/rest/v1/users?Username=eq.{safeUsername}");
-            request.Headers.Add("Prefer", "return=representation");
-            var response = await _client.SendAsync(request);
+            request.Headers.Add("Prefer", "return=minimal");
+            var response = await _adminClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DeleteUserAsync Error] {response.StatusCode} | {body}");
+            }
+
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

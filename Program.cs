@@ -150,6 +150,14 @@ builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
 builder.Services.AddSingleton<DashboardDataService>();
+builder.Services.AddSingleton<UserDeletionService>(sp =>
+    new UserDeletionService(
+        sp.GetRequiredService<AuthService>(),
+        sp.GetService<TestSessionService>(),
+        sp.GetService<UserProgressStore>(),
+        sp.GetService<ActivityEventService>(),
+        sp.GetService<UserProgressService>(),
+        sp.GetService<UserStatsService>()));
 builder.Services.AddSingleton<SystemHealthService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
@@ -607,6 +615,48 @@ api.MapPost("/dashboard-user-action", async context =>
     catch (Exception ex)
     {
         await WriteServerError(context, "Dashboard User Action API Error", ex);
+    }
+});
+
+api.MapPost("/dashboard-user-delete", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var deletion = context.RequestServices.GetService<UserDeletionService>();
+        if (deletion == null)
+        {
+            await WritePlainError(context, 503, "User deletion service not available");
+            return;
+        }
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        var root = doc.RootElement;
+        var username = root.TryGetProperty("username", out var u) ? u.GetString() : null;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            await WritePlainError(context, 400, "Missing username");
+            return;
+        }
+
+        var (success, error) = await deletion.DeleteUserCompletelyAsync(username);
+        if (!success)
+        {
+            var status = string.Equals(error, "User not found", StringComparison.Ordinal) ? 404 : 400;
+            await WritePlainError(context, status, error ?? "Delete failed");
+            return;
+        }
+
+        await WriteJson(context, new { success = true, username = username.Trim() });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard User Delete API Error", ex);
     }
 });
 

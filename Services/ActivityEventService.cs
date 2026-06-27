@@ -85,6 +85,26 @@ public class ActivityEventService
         }
     }
 
+    public async Task DeleteByUsernameAsync(string username)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(username)) return;
+
+        try
+        {
+            var safe = Uri.EscapeDataString(username.Trim());
+            var res = await _client.DeleteAsync($"{_url}/rest/v1/activity_events?username=eq.{safe}");
+            if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                Console.WriteLine($"[ActivityEventService] DeleteByUsername failed: {res.StatusCode} | {body}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityEventService] DeleteByUsername exception: {ex.Message}");
+        }
+    }
+
     public async Task<List<ActivityEvent>> GetRecentAsync(int limit = 50)
     {
         if (!_enabled) return new List<ActivityEvent>();

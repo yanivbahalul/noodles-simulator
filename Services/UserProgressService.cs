@@ -93,6 +93,25 @@ public class UserProgressService
 
     public void ClearRequestCache() => RequestCache.Value = null;
 
+    public void DeleteLocal(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return;
+
+        var cache = RequestCache.Value;
+        cache?.Remove(username);
+
+        try
+        {
+            var path = PathFor(username);
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressService] DeleteLocal failed for {username}: {ex.Message}");
+        }
+    }
+
     private Dictionary<string, UserProgressData> GetRequestCache()
     {
         var cache = RequestCache.Value;

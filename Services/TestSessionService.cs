@@ -401,6 +401,45 @@ public class TestSessionService
         }
     }
 
+    public async Task DeleteUserSessionsAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return;
+
+        try
+        {
+            var sessions = await GetUserSessionsAsync(username, 500, includeBlobs: false);
+            foreach (var session in sessions)
+            {
+                if (_storage != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(session.QuestionsStoragePath))
+                    {
+                        try { await _storage.DeleteAsync(session.QuestionsStoragePath); }
+                        catch (Exception ex) { Console.WriteLine($"[DeleteUserSessionsAsync] storage questions: {ex.Message}"); }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(session.AnswersStoragePath))
+                    {
+                        try { await _storage.DeleteAsync(session.AnswersStoragePath); }
+                        catch (Exception ex) { Console.WriteLine($"[DeleteUserSessionsAsync] storage answers: {ex.Message}"); }
+                    }
+                }
+            }
+
+            var safe = Uri.EscapeDataString(username.Trim());
+            var res = await _client.DeleteAsync($"{_url}/rest/v1/test_sessions?Username=eq.{safe}");
+            if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DeleteUserSessionsAsync Error] {res.StatusCode} | {body}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DeleteUserSessionsAsync Exception] {ex}");
+        }
+    }
+
     private static string SessionFullSelectQuery() => $"select={SessionFullSelect}";
 
     private async Task<TestSession?> FetchSessionAsync(string token, string select)

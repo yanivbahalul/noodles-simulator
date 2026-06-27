@@ -329,6 +329,10 @@
             <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${escapeHtml(u.username)}" data-value="${!u.isBanned}">
                 ${u.isBanned ? "בטל חסימה" : "חסום משתמש"}
             </button>
+            ${canDeleteUser(u.username) ? `
+            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${escapeHtml(u.username)}">
+                מחק משתמש לצמיתות
+            </button>` : ""}
         `;
 
         actions.querySelectorAll(".dashboard-action-btn").forEach((btn) => {
@@ -390,7 +394,34 @@
         </div>`;
     }
 
+    function canDeleteUser(username) {
+        return username && username.toLowerCase() !== "admin";
+    }
+
     async function runUserAction(action, username, value) {
+        if (action === "delete-user") {
+            if (!canDeleteUser(username)) return;
+            const confirmed = confirm(`האם למחוק את המשתמש "${username}" לצמיתות?\n\nפעולה זו בלתי הפיכה ותמחק את כל הנתונים שלו מהמערכת.`);
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch("/api/dashboard-user-delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username })
+                });
+                if (!res.ok) {
+                    const msg = await res.text();
+                    throw new Error(msg || "failed");
+                }
+                closeUserModal();
+                fetchDashboardData();
+            } catch (err) {
+                alert(`מחיקת המשתמש נכשלה${err?.message ? `: ${err.message}` : ""}`);
+            }
+            return;
+        }
+
         const payload = { username };
         if (action === "toggle-cheater") payload.isCheater = value;
         if (action === "toggle-ban") payload.isBanned = value;
