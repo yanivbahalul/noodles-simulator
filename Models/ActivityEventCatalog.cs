@@ -113,10 +113,11 @@ public static class ActivityEventCatalog
             ["total"] = total
         });
 
-    public static void LogQuestionReport(ActivityEventService svc, string username, string questionId) =>
+    public static void LogQuestionReport(ActivityEventService svc, string username, string questionId, string explanation = null) =>
         svc?.Log(username, QuestionReport, new Dictionary<string, object>
         {
-            ["questionId"] = questionId ?? ""
+            ["questionId"] = questionId ?? "",
+            ["explanation"] = explanation ?? ""
         });
 
     public static void LogAdminAction(ActivityEventService svc, string adminUsername, string targetUsername, string action) =>

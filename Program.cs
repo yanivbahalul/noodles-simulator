@@ -137,6 +137,11 @@ var statsPath = isProd
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
 builder.Services.AddSingleton(new QuestionStatsService(statsPath));
 
+var questionReportsPath = isProd
+    ? Path.Combine("/data-keys", "question_reports.json")
+    : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_reports.json");
+builder.Services.AddSingleton(new QuestionReportService(questionReportsPath));
+
 var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
@@ -155,6 +160,7 @@ builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
 builder.Services.AddSingleton<UserFeedbackService>();
 builder.Services.AddSingleton<DashboardDataService>();
+builder.Services.AddSingleton<AdminUserSupportService>();
 builder.Services.AddSingleton<UserDeletionService>(sp =>
     new UserDeletionService(
         sp.GetRequiredService<AuthService>(),
@@ -703,6 +709,139 @@ api.MapPost("/dashboard-user-delete", async context =>
     }
 });
 
+api.MapPost("/dashboard-report-status", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var reports = context.RequestServices.GetService<QuestionReportService>();
+        if (reports == null)
+        {
+            await WritePlainError(context, 503, "Report service not available");
+            return;
+        }
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        var root = doc.RootElement;
+        var id = root.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+        var status = root.TryGetProperty("status", out var statusEl) ? statusEl.GetString() : null;
+
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(status))
+        {
+            await WritePlainError(context, 400, "Missing id or status");
+            return;
+        }
+
+        var ok = string.Equals(status, QuestionReportService.StatusResolved, StringComparison.OrdinalIgnoreCase)
+            ? reports.MarkResolved(id)
+            : string.Equals(status, QuestionReportService.StatusOpen, StringComparison.OrdinalIgnoreCase)
+                ? reports.Reopen(id)
+                : false;
+
+        if (!ok)
+        {
+            await WritePlainError(context, 404, "Report not found or invalid status");
+            return;
+        }
+
+        InvalidateDashboardCaches(context.RequestServices);
+        await WriteJson(context, new { success = true, id, status = status.ToLowerInvariant() });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard Report Status API Error", ex);
+    }
+});
+
+api.MapPost("/dashboard-user-reset", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var support = context.RequestServices.GetService<AdminUserSupportService>();
+        if (support == null)
+        {
+            await WritePlainError(context, 503, "Support service not available");
+            return;
+        }
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        var username = doc.RootElement.TryGetProperty("username", out var u) ? u.GetString() : null;
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            await WritePlainError(context, 400, "Missing username");
+            return;
+        }
+
+        var (success, error) = await support.ResetUserProgressAsync(username);
+        if (!success)
+        {
+            var status = string.Equals(error, "User not found", StringComparison.Ordinal) ? 404 : 400;
+            await WritePlainError(context, status, error ?? "Reset failed");
+            return;
+        }
+
+        InvalidateDashboardCaches(context.RequestServices);
+        await WriteJson(context, new { success = true, username = username.Trim() });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard User Reset API Error", ex);
+    }
+});
+
+api.MapPost("/dashboard-exam-expire", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var support = context.RequestServices.GetService<AdminUserSupportService>();
+        if (support == null)
+        {
+            await WritePlainError(context, 503, "Support service not available");
+            return;
+        }
+
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        var token = doc.RootElement.TryGetProperty("token", out var t) ? t.GetString() : null;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await WritePlainError(context, 400, "Missing token");
+            return;
+        }
+
+        var (success, error) = await support.ExpireExamAsync(token);
+        if (!success)
+        {
+            var status = string.Equals(error, "Exam not found", StringComparison.Ordinal) ? 404 : 400;
+            await WritePlainError(context, status, error ?? "Expire failed");
+            return;
+        }
+
+        InvalidateDashboardCaches(context.RequestServices);
+        await WriteJson(context, new { success = true, token = token.Trim() });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard Exam Expire API Error", ex);
+    }
+});
+
 api.MapGet("/leaderboard-data", async context =>
 {
     try
@@ -1032,12 +1171,6 @@ api.MapGet("/dashboard-feedback", async context =>
 
     try
     {
-        if (!FeedbackCampaigns.IsDashboardFeedbackActive(DateTime.UtcNow))
-        {
-            await WriteJson(context, new { campaignId = "", entries = Array.Empty<object>() });
-            return;
-        }
-
         var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
         if (feedbackService == null || !feedbackService.IsEnabled)
         {
@@ -1190,6 +1323,10 @@ if (!Directory.Exists(reportsDir))
 var reportsJson = Path.Combine(reportsDir, "reports.json");
 if (!File.Exists(reportsJson))
     File.WriteAllText(reportsJson, "[]");
+
+var questionReportsJson = Path.Combine(reportsDir, "question_reports.json");
+if (!File.Exists(questionReportsJson))
+    File.WriteAllText(questionReportsJson, "[]");
 
 if (!Directory.Exists(progressDir))
     Directory.CreateDirectory(progressDir);

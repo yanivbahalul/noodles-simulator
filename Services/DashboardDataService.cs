@@ -16,9 +16,15 @@ public class DashboardDataService
     private readonly UserQuestionStatsStore _questionStatsStore;
     private readonly TestSessionService _testSessions;
     private readonly ActivityEventService _activityEvents;
+    private readonly QuestionReportService _questionReports;
+    private readonly QuestionDifficultyService _difficulty;
+    private readonly SystemHealthService _systemHealth;
     private readonly object _cacheLock = new();
     private DashboardSnapshot _cached;
     private DateTime _cachedAt = DateTime.MinValue;
+    private SystemHealthSummary _healthCached;
+    private DateTime _healthCachedAt = DateTime.MinValue;
+    private static readonly TimeSpan HealthCacheTtl = TimeSpan.FromSeconds(60);
 
     public DashboardDataService(
         AuthService auth,
@@ -26,7 +32,10 @@ public class DashboardDataService
         UserProgressService progressService = null,
         UserQuestionStatsStore questionStatsStore = null,
         TestSessionService testSessions = null,
-        ActivityEventService activityEvents = null)
+        ActivityEventService activityEvents = null,
+        QuestionReportService questionReports = null,
+        QuestionDifficultyService difficulty = null,
+        SystemHealthService systemHealth = null)
     {
         _auth = auth;
         _progressStore = progressStore;
@@ -34,6 +43,9 @@ public class DashboardDataService
         _questionStatsStore = questionStatsStore;
         _testSessions = testSessions;
         _activityEvents = activityEvents;
+        _questionReports = questionReports;
+        _difficulty = difficulty;
+        _systemHealth = systemHealth;
     }
 
     public class UserRow
@@ -90,6 +102,55 @@ public class DashboardDataService
         public int ActiveThisWeek { get; set; }
         public int AnswersThisWeek { get; set; }
         public double WeeklySuccessRate { get; set; }
+        public int NewUsersToday { get; set; }
+        public int NewUsersThisWeek { get; set; }
+        public int Inactive7Days { get; set; }
+        public int Inactive30Days { get; set; }
+        public int OpenQuestionReports { get; set; }
+    }
+
+    public class RetentionSummary
+    {
+        public int NewUsersToday { get; set; }
+        public int NewUsersThisWeek { get; set; }
+        public int Inactive7Days { get; set; }
+        public int Inactive30Days { get; set; }
+    }
+
+    public class SystemHealthSummary
+    {
+        public bool AllOk { get; set; }
+        public string CheckedAtIso { get; set; }
+        public List<SystemHealthCheckRow> Checks { get; set; } = new();
+    }
+
+    public class SystemHealthCheckRow
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public bool Ok { get; set; }
+        public string Detail { get; set; } = "";
+    }
+
+    public class QuestionReportRow
+    {
+        public string Id { get; set; } = "";
+        public string Username { get; set; } = "";
+        public string QuestionId { get; set; } = "";
+        public string Explanation { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string CreatedAtIso { get; set; }
+        public string ResolvedAtIso { get; set; }
+    }
+
+    public class ProblematicQuestionRow
+    {
+        public string QuestionId { get; set; } = "";
+        public string Difficulty { get; set; } = "";
+        public double SuccessRate { get; set; }
+        public int TotalAttempts { get; set; }
+        public int OpenReports { get; set; }
+        public string Reason { get; set; } = "";
     }
 
     public class DashboardSnapshot
@@ -101,6 +162,10 @@ public class DashboardDataService
         public List<ActiveExamRow> ActiveExams { get; set; } = new();
         public List<ActivityRow> RecentActivity { get; set; } = new();
         public List<ActivityRow> LiveActivity { get; set; } = new();
+        public RetentionSummary Retention { get; set; } = new();
+        public SystemHealthSummary Health { get; set; } = new();
+        public List<QuestionReportRow> QuestionReports { get; set; } = new();
+        public List<ProblematicQuestionRow> ProblematicQuestions { get; set; } = new();
     }
 
     public void InvalidateCache()
@@ -190,6 +255,10 @@ public class DashboardDataService
         var activeExams = await BuildActiveExamsAsync();
         var recentActivity = await BuildActivityFeedAsync(100);
         var liveActivity = await BuildActivityFeedAsync(50);
+        var retention = await BuildRetentionAsync(allUsers, todayStartUtc, weekStartUtc);
+        var health = await GetHealthSummaryAsync();
+        var questionReports = BuildQuestionReports(50);
+        var problematic = await BuildProblematicQuestionsAsync();
 
         return new DashboardSnapshot
         {
@@ -205,15 +274,190 @@ public class DashboardDataService
                 DailySuccessRate = dailySuccessRate,
                 ActiveThisWeek = activeThisWeek,
                 AnswersThisWeek = answersThisWeek,
-                WeeklySuccessRate = weeklySuccessRate
+                WeeklySuccessRate = weeklySuccessRate,
+                NewUsersToday = retention.NewUsersToday,
+                NewUsersThisWeek = retention.NewUsersThisWeek,
+                Inactive7Days = retention.Inactive7Days,
+                Inactive30Days = retention.Inactive30Days,
+                OpenQuestionReports = _questionReports?.OpenCount ?? 0
             },
             AllUsersList = userRows,
             OnlineUsersList = online,
             TopUsersList = top,
             ActiveExams = activeExams,
             RecentActivity = recentActivity,
-            LiveActivity = liveActivity
+            LiveActivity = liveActivity,
+            Retention = retention,
+            Health = health,
+            QuestionReports = questionReports,
+            ProblematicQuestions = problematic
         };
+    }
+
+    private async Task<RetentionSummary> BuildRetentionAsync(List<User> allUsers, DateTime todayStartUtc, DateTime weekStartUtc)
+    {
+        var inactive7Cutoff = DateTime.UtcNow.AddDays(-7);
+        var inactive30Cutoff = DateTime.UtcNow.AddDays(-30);
+
+        var inactive7 = allUsers.Count(u =>
+            !u.IsBanned && !u.IsCheater &&
+            u.TotalAnswered > 0 &&
+            u.LastSeen.HasValue &&
+            u.LastSeen.Value.ToUniversalTime() < inactive7Cutoff);
+
+        var inactive30 = allUsers.Count(u =>
+            !u.IsBanned && !u.IsCheater &&
+            u.TotalAnswered > 0 &&
+            u.LastSeen.HasValue &&
+            u.LastSeen.Value.ToUniversalTime() < inactive30Cutoff);
+
+        var newToday = 0;
+        var newWeek = 0;
+        if (_activityEvents != null && _activityEvents.IsEnabled)
+        {
+            newToday = await _activityEvents.CountEventsSinceAsync(ActivityEventCatalog.Register, todayStartUtc);
+            newWeek = await _activityEvents.CountEventsSinceAsync(ActivityEventCatalog.Register, weekStartUtc);
+        }
+
+        return new RetentionSummary
+        {
+            NewUsersToday = newToday,
+            NewUsersThisWeek = newWeek,
+            Inactive7Days = inactive7,
+            Inactive30Days = inactive30
+        };
+    }
+
+    private async Task<SystemHealthSummary> GetHealthSummaryAsync()
+    {
+        lock (_cacheLock)
+        {
+            if (_healthCached != null && DateTime.UtcNow - _healthCachedAt < HealthCacheTtl)
+                return _healthCached;
+        }
+
+        if (_systemHealth == null)
+        {
+            return new SystemHealthSummary
+            {
+                AllOk = false,
+                CheckedAtIso = DateTime.UtcNow.ToString("o"),
+                Checks = new List<SystemHealthCheckRow>()
+            };
+        }
+
+        try
+        {
+            var report = await _systemHealth.RunAsync();
+            var summary = new SystemHealthSummary
+            {
+                AllOk = report.AllOk,
+                CheckedAtIso = report.CheckedAtUtc.ToUniversalTime().ToString("o"),
+                Checks = report.Checks.Select(c => new SystemHealthCheckRow
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Ok = c.Ok,
+                    Detail = c.Detail
+                }).ToList()
+            };
+
+            lock (_cacheLock)
+            {
+                _healthCached = summary;
+                _healthCachedAt = DateTime.UtcNow;
+            }
+
+            return summary;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DashboardDataService] Health check failed: {ex.Message}");
+            return new SystemHealthSummary
+            {
+                AllOk = false,
+                CheckedAtIso = DateTime.UtcNow.ToString("o"),
+                Checks = new List<SystemHealthCheckRow>
+                {
+                    new() { Id = "health", Name = "בדיקת מערכת", Ok = false, Detail = ex.Message }
+                }
+            };
+        }
+    }
+
+    private List<QuestionReportRow> BuildQuestionReports(int limit)
+    {
+        if (_questionReports == null) return new List<QuestionReportRow>();
+
+        return _questionReports.GetAll(limit).Select(r => new QuestionReportRow
+        {
+            Id = r.Id,
+            Username = r.Username,
+            QuestionId = r.QuestionId,
+            Explanation = r.Explanation,
+            Status = r.Status,
+            CreatedAtIso = r.CreatedAtUtc.ToUniversalTime().ToString("o"),
+            ResolvedAtIso = r.ResolvedAtUtc?.ToUniversalTime().ToString("o")
+        }).ToList();
+    }
+
+    public async Task<List<ProblematicQuestionRow>> GetProblematicQuestionsAsync() =>
+        await BuildProblematicQuestionsAsync();
+
+    private async Task<List<ProblematicQuestionRow>> BuildProblematicQuestionsAsync()
+    {
+        if (_difficulty == null) return new List<ProblematicQuestionRow>();
+
+        var openReports = _questionReports?.GetOpenCountsByQuestion()
+                        ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        List<QuestionDifficulty> questions;
+        try
+        {
+            questions = await _difficulty.GetAllQuestionsAsync(500);
+        }
+        catch
+        {
+            return new List<ProblematicQuestionRow>();
+        }
+
+        var rows = new List<ProblematicQuestionRow>();
+        foreach (var q in questions)
+        {
+            openReports.TryGetValue(q.QuestionFile, out var reportCount);
+            var reason = BuildProblemReason(q, reportCount);
+            if (reason == null) continue;
+
+            rows.Add(new ProblematicQuestionRow
+            {
+                QuestionId = q.QuestionFile,
+                Difficulty = q.Difficulty,
+                SuccessRate = Math.Round((double)q.SuccessRate, 1),
+                TotalAttempts = q.TotalAttempts,
+                OpenReports = reportCount,
+                Reason = reason
+            });
+        }
+
+        return rows
+            .OrderByDescending(r => r.OpenReports)
+            .ThenBy(r => r.SuccessRate)
+            .ThenByDescending(r => r.TotalAttempts)
+            .Take(30)
+            .ToList();
+    }
+
+    private static string BuildProblemReason(QuestionDifficulty q, int openReports)
+    {
+        if (openReports >= 2)
+            return $"{openReports} דיווחים פתוחים";
+        if (openReports >= 1 && q.SuccessRate < 50)
+            return "דיווח פתוח + הצלחה נמוכה";
+        if (q.TotalAttempts >= 5 && q.SuccessRate < 25)
+            return "אחוז הצלחה נמוך מאוד";
+        if (q.TotalAttempts >= 8 && q.SuccessRate < 35)
+            return "קושי גבוה במדגם";
+        return null;
     }
 
     private static UserRow MapUserRow(User u)
@@ -420,12 +664,55 @@ public class DashboardDataService
             activeThisWeek = s.ActiveThisWeek,
             answersThisWeek = s.AnswersThisWeek,
             weeklySuccessRate = s.WeeklySuccessRate,
+            newUsersToday = s.NewUsersToday,
+            newUsersThisWeek = s.NewUsersThisWeek,
+            inactive7Days = s.Inactive7Days,
+            inactive30Days = s.Inactive30Days,
+            openQuestionReports = s.OpenQuestionReports,
             allUsersList = snapshot.AllUsersList.Select(ToApiUser).ToList(),
             onlineUsersList = snapshot.OnlineUsersList.Select(ToApiUser).ToList(),
             topUsersList = snapshot.TopUsersList.Select(ToApiUser).ToList(),
             activeExams = snapshot.ActiveExams.Select(ToApiExam).ToList(),
             recentActivity = snapshot.RecentActivity.Select(ToApiActivity).ToList(),
-            liveActivity = snapshot.LiveActivity.Select(ToApiActivity).ToList()
+            liveActivity = snapshot.LiveActivity.Select(ToApiActivity).ToList(),
+            retention = new
+            {
+                newUsersToday = snapshot.Retention.NewUsersToday,
+                newUsersThisWeek = snapshot.Retention.NewUsersThisWeek,
+                inactive7Days = snapshot.Retention.Inactive7Days,
+                inactive30Days = snapshot.Retention.Inactive30Days
+            },
+            health = new
+            {
+                allOk = snapshot.Health.AllOk,
+                checkedAtIso = snapshot.Health.CheckedAtIso,
+                checks = snapshot.Health.Checks.Select(c => new
+                {
+                    id = c.Id,
+                    name = c.Name,
+                    ok = c.Ok,
+                    detail = c.Detail
+                })
+            },
+            questionReports = snapshot.QuestionReports.Select(r => new
+            {
+                id = r.Id,
+                username = r.Username,
+                questionId = r.QuestionId,
+                explanation = r.Explanation,
+                status = r.Status,
+                createdAtIso = r.CreatedAtIso,
+                resolvedAtIso = r.ResolvedAtIso
+            }),
+            problematicQuestions = snapshot.ProblematicQuestions.Select(q => new
+            {
+                questionId = q.QuestionId,
+                difficulty = q.Difficulty,
+                successRate = q.SuccessRate,
+                totalAttempts = q.TotalAttempts,
+                openReports = q.OpenReports,
+                reason = q.Reason
+            })
         };
     }
 

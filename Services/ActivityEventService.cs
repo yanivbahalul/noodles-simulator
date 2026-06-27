@@ -172,6 +172,34 @@ public class ActivityEventService
         }
     }
 
+    public async Task<int> CountEventsSinceAsync(string eventType, DateTime sinceUtc)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(eventType))
+            return 0;
+
+        try
+        {
+            var since = Uri.EscapeDataString(sinceUtc.ToUniversalTime().ToString("o"));
+            var type = Uri.EscapeDataString(eventType);
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/activity_events?select=id&event_type=eq.{type}&created_at=gte.{since}&limit=10000");
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[ActivityEventService] CountEventsSince failed: {res.StatusCode}");
+                return 0;
+            }
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.GetArrayLength();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityEventService] CountEventsSince exception: {ex.Message}");
+            return 0;
+        }
+    }
+
     public async Task<List<ActivityEvent>> GetRecentAsync(int limit = 50)
     {
         if (!_enabled) return new List<ActivityEvent>();

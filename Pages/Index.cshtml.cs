@@ -25,6 +25,7 @@ public class IndexModel : PageModel
     private readonly AchievementService _achievements;
     private readonly QuestionDifficultyService _difficultyService;
     private readonly ActivityEventService _activityEvents;
+    private readonly QuestionReportService _questionReports;
     private readonly UserFeedbackService _feedbackService;
 
     private static List<string> _localImagesCache;
@@ -79,7 +80,7 @@ public class IndexModel : PageModel
         }
     }
 
-    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null, UserProgressService userProgress = null, AchievementService achievements = null, QuestionDifficultyService difficultyService = null, ActivityEventService activityEvents = null, UserFeedbackService feedbackService = null)
+    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null, UserProgressService userProgress = null, AchievementService achievements = null, QuestionDifficultyService difficultyService = null, ActivityEventService activityEvents = null, UserFeedbackService feedbackService = null, QuestionReportService questionReports = null)
     {
         _authService = authService;
         _storage = storage;
@@ -89,6 +90,7 @@ public class IndexModel : PageModel
         _achievements = achievements;
         _difficultyService = difficultyService;
         _activityEvents = activityEvents;
+        _questionReports = questionReports;
         _feedbackService = feedbackService;
     }
 
@@ -259,7 +261,10 @@ public class IndexModel : PageModel
             var reportSubject = ErrorReportBuilder.BuildSubject(payload.Username);
 
             await TrySendReportEmailAsync(reportSubject, htmlBody);
-            ActivityEventCatalog.LogQuestionReport(_activityEvents, payload.Username, payload.QuestionImage);
+
+            _questionReports?.Add(payload);
+
+            ActivityEventCatalog.LogQuestionReport(_activityEvents, payload.Username, payload.QuestionImage, payload.Explanation);
             return new JsonResult(new { success = true });
         }
         catch (Exception ex)

@@ -71,6 +71,11 @@ public class TestResultsModel : PageModel
             return RedirectToPage("/MyExams");
         }
 
+        if (string.Equals(session.Status, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            return RedirectToPage("/Test", new { token });
+        }
+
         ReviewToken = token;
         await LoadFromTestSession(session);
         await ProcessGamificationOnceAsync(username, session, token);

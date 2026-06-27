@@ -331,8 +331,6 @@ public class TestModel : PageModel
                 displayQuestionNumber = DisplayQuestionNumber,
                 totalQuestions = TotalQuestions,
                 progressPercent = ProgressPercent,
-                score = session.Score,
-                maxScore = session.MaxScore,
                 answers = (ShuffledAnswers ?? new Dictionary<string, string>())
                     .Select(kv => new
                     {

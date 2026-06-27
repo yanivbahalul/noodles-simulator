@@ -15,12 +15,21 @@ public class DashboardModel : PageModel
     private readonly AuthService _authService;
     private readonly QuestionDifficultyService _difficultyService;
     private readonly UserFeedbackService _feedbackService;
+    private readonly QuestionReportService _questionReports;
+    private readonly DashboardDataService _dashboardData;
 
-    public DashboardModel(AuthService authService, QuestionDifficultyService difficultyService = null, UserFeedbackService feedbackService = null)
+    public DashboardModel(
+        AuthService authService,
+        QuestionDifficultyService difficultyService = null,
+        UserFeedbackService feedbackService = null,
+        QuestionReportService questionReports = null,
+        DashboardDataService dashboardData = null)
     {
         _authService = authService;
         _difficultyService = difficultyService;
         _feedbackService = feedbackService;
+        _questionReports = questionReports;
+        _dashboardData = dashboardData;
     }
 
     public List<User> AllUsers { get; set; } = new();
@@ -36,6 +45,9 @@ public class DashboardModel : PageModel
     public int HardCount { get; set; }
 
     public List<UserFeedbackService.UserFeedbackEntry> FeedbackEntries { get; set; } = new();
+    public List<QuestionReportService.QuestionReportEntry> QuestionReports { get; set; } = new();
+    public List<DashboardDataService.ProblematicQuestionRow> ProblematicQuestions { get; set; } = new();
+    public int OpenQuestionReportsCount { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -119,10 +131,15 @@ public class DashboardModel : PageModel
                 .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
                 .DefaultIfEmpty(0).Average() * 100;
 
-            FeedbackEntries = _feedbackService != null && _feedbackService.IsEnabled &&
-                              FeedbackCampaigns.IsDashboardFeedbackActive(DateTime.UtcNow)
+            FeedbackEntries = _feedbackService != null && _feedbackService.IsEnabled
                 ? await _feedbackService.GetSubmittedFeedbackAsync()
                 : new List<UserFeedbackService.UserFeedbackEntry>();
+
+            QuestionReports = _questionReports?.GetAll(100) ?? new List<QuestionReportService.QuestionReportEntry>();
+            OpenQuestionReportsCount = _questionReports?.OpenCount ?? 0;
+            ProblematicQuestions = _dashboardData != null
+                ? await _dashboardData.GetProblematicQuestionsAsync()
+                : new List<DashboardDataService.ProblematicQuestionRow>();
         }
         catch (Exception ex)
         {

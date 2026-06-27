@@ -19,7 +19,7 @@
 
     <img src="/assets/background.gif" class="background-gif" alt="רקע" />
     <main class="dashboard-page">
-    <h1 class="dashboard-title">📊 ממשק ניהול - Dashboard</h1>
+    <h1 class="dashboard-title">📊 ממשק ניהול</h1>
 
     @if (ViewData["SuccessMessage"] != null)
     {
@@ -28,354 +28,374 @@
         </div>
     }
 
-    <h2 class="dashboard-section-title">✅ סטטיסטיקה כללית <span id="last-update" class="dashboard-last-update">(מתעדכן...)</span></h2>
-    <div class="dashboard-stat-rows">
-        <ul class="dashboard-stat-row" aria-label="נתונים כלליים">
-            <li>👥 משתמשים רשומים: <strong id="all-users-count">@Model.AllUsers.Count</strong></li>
-            <li>🟢 מחוברים כרגע: <strong id="online-users-count">@Model.OnlineUsers.Count</strong></li>
-            <li>📈 ממוצע הצלחה: <strong id="average-success-rate">@Model.AverageSuccessRate.ToString("0.0")%</strong></li>
-            <li>🚩 מסומנים כ־Cheaters: <strong id="cheaters-count">@Model.Cheaters.Count</strong></li>
-            <li>🔒 חסומים: <strong id="banned-users-count">@Model.BannedUsers.Count</strong></li>
+    <nav class="dashboard-tabs" role="tablist" aria-label="אזורי ניהול">
+        <button type="button" class="dashboard-tab is-active" role="tab" aria-selected="true" data-dashboard-tab="overview">סקירה</button>
+        <button type="button" class="dashboard-tab" role="tab" aria-selected="false" data-dashboard-tab="users">משתמשים</button>
+        <button type="button" class="dashboard-tab" role="tab" aria-selected="false" data-dashboard-tab="questions">שאלות</button>
+        <button type="button" class="dashboard-tab" role="tab" aria-selected="false" data-dashboard-tab="reports">
+            דיווחים
+            @if (Model.OpenQuestionReportsCount > 0)
+            {
+                <span class="dashboard-tab-badge" id="open-reports-badge">@Model.OpenQuestionReportsCount</span>
+            }
+            else
+            {
+                <span class="dashboard-tab-badge dashboard-tab-badge-hidden" id="open-reports-badge" hidden>0</span>
+            }
+        </button>
+    </nav>
+
+    <!-- סקירה -->
+    <section class="dashboard-tab-panel is-active" data-dashboard-panel="overview">
+        <h2 class="dashboard-section-title">✅ סטטיסטיקה כללית <span id="last-update" class="dashboard-last-update">(מתעדכן...)</span></h2>
+        <div class="dashboard-stat-rows">
+            <ul class="dashboard-stat-row" aria-label="נתונים כלליים">
+                <li>👥 משתמשים רשומים: <strong id="all-users-count">@Model.AllUsers.Count</strong></li>
+                <li>🟢 מחוברים כרגע: <strong id="online-users-count">@Model.OnlineUsers.Count</strong></li>
+                <li>📈 ממוצע הצלחה: <strong id="average-success-rate">@Model.AverageSuccessRate.ToString("0.0")%</strong></li>
+                <li>🚩 Cheaters: <strong id="cheaters-count">@Model.Cheaters.Count</strong></li>
+                <li>🔒 חסומים: <strong id="banned-users-count">@Model.BannedUsers.Count</strong></li>
+                <li>📩 דיווחים פתוחים: <strong id="open-reports-count">@Model.OpenQuestionReportsCount</strong></li>
+            </ul>
+            <div class="dashboard-stat-row-pair">
+                <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים יומיים">
+                    <li>📅 פעילים היום: <strong id="active-today-count">—</strong></li>
+                    <li>✏️ תשובות נכונות היום: <strong id="answers-today-count">—</strong></li>
+                    <li>📈 ממוצע הצלחה יומי: <strong id="daily-success-rate">—</strong></li>
+                </ul>
+                <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים שבועיים">
+                    <li>📆 פעילים השבוע: <strong id="active-week-count">—</strong></li>
+                    <li>✏️ תשובות נכונות השבוע: <strong id="answers-week-count">—</strong></li>
+                    <li>📈 ממוצע הצלחה שבועי: <strong id="weekly-success-rate">—</strong></li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 class="dashboard-section-title">📈 שימור משתמשים</h2>
+        <ul class="dashboard-stat-row dashboard-retention-row" aria-label="שימור">
+            <li>🆕 חדשים היום: <strong id="new-users-today">—</strong></li>
+            <li>🆕 חדשים השבוע: <strong id="new-users-week">—</strong></li>
+            <li>😴 לא פעילים 7+ ימים: <strong id="inactive-7-count">—</strong></li>
+            <li>😴 לא פעילים 30+ ימים: <strong id="inactive-30-count">—</strong></li>
         </ul>
-        <div class="dashboard-stat-row-pair">
-            <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים יומיים">
-                <li>📅 פעילים היום: <strong id="active-today-count">—</strong></li>
-                <li>✏️ תשובות נכונות היום: <strong id="answers-today-count">—</strong></li>
-                <li>📈 ממוצע הצלחה יומי: <strong id="daily-success-rate">—</strong></li>
-            </ul>
-            <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים שבועיים">
-                <li>📆 פעילים השבוע: <strong id="active-week-count">—</strong></li>
-                <li>✏️ תשובות נכונות השבוע: <strong id="answers-week-count">—</strong></li>
-                <li>📈 ממוצע הצלחה שבועי: <strong id="weekly-success-rate">—</strong></li>
-            </ul>
+
+        <h2 class="dashboard-section-title">🩺 סטטוס מערכת <a href="/SystemCheck" class="dashboard-inline-link">בדיקה מלאה</a></h2>
+        <div id="system-health-widget" class="dashboard-health-widget">
+            <p class="dashboard-empty-hint">טוען סטטוס...</p>
         </div>
-    </div>
 
-    <h2 class="dashboard-section-title">⚡ פעילות חיה</h2>
-    <div class="dashboard-activity-toolbar">
-        <div class="dashboard-filter-group" id="live-activity-filters" role="group" aria-label="סינון פעילות חיה">
-            <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="admin">ניהול</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+        <h2 class="dashboard-section-title">⚡ פעילות חיה</h2>
+        <div class="dashboard-activity-toolbar">
+            <div class="dashboard-filter-group" id="live-activity-filters" role="group" aria-label="סינון פעילות חיה">
+                <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+            </div>
         </div>
-    </div>
-    <div class="dashboard-activity-feed" id="live-activity-feed">
-        <p class="dashboard-empty-hint">טוען פעילות...</p>
-    </div>
-
-    <h2 class="dashboard-section-title">🕐 פעילות אחרונה</h2>
-    <div class="dashboard-activity-toolbar">
-        <div class="dashboard-filter-group" id="recent-activity-filters" role="group" aria-label="סינון פעילות אחרונה">
-            <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="admin">ניהול</button>
-            <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+        <div class="dashboard-activity-feed" id="live-activity-feed">
+            <p class="dashboard-empty-hint">טוען פעילות...</p>
         </div>
-    </div>
-    <div class="dashboard-activity-feed" id="recent-activity-feed">
-        <p class="dashboard-empty-hint">טוען פעילות...</p>
-    </div>
 
-    <h2 class="dashboard-section-title">📝 מבחנים פעילים</h2>
-    <div class="dashboard-table-shell">
-    <table id="active-exams-table" class="dashboard-table">
-        <tr>
-            <th>משתמש</th>
-            <th>התחיל</th>
-            <th>עודכן</th>
-            <th>שאלה</th>
-            <th>ציון</th>
-            <th>נותר</th>
-        </tr>
-    </table>
-    </div>
-
-    <h2 class="dashboard-section-title">👥 כל המשתמשים</h2>
-    <div class="dashboard-toolbar">
-        <input type="search" id="user-search" class="dashboard-search" placeholder="חיפוש לפי שם משתמש..." aria-label="חיפוש משתמש" />
-        <div class="dashboard-filter-group" role="group" aria-label="סינון משתמשים">
-            <button type="button" class="dashboard-filter-btn is-active" data-filter="all">הכל</button>
-            <button type="button" class="dashboard-filter-btn" data-filter="online">מחוברים</button>
-            <button type="button" class="dashboard-filter-btn" data-filter="today">פעילים היום</button>
-            <button type="button" class="dashboard-filter-btn" data-filter="cheaters">Cheaters</button>
-            <button type="button" class="dashboard-filter-btn" data-filter="banned">חסומים</button>
+        <h2 class="dashboard-section-title">🕐 פעילות אחרונה</h2>
+        <div class="dashboard-activity-toolbar">
+            <div class="dashboard-filter-group" id="recent-activity-filters" role="group" aria-label="סינון פעילות אחרונה">
+                <button type="button" class="dashboard-filter-btn is-active" data-activity-filter="all">הכל</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="progress">התקדמות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="exam">מבחנים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="achievement">הישגים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="answer">תשובות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="prompts">הודעות</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="report">דיווחים</button>
+                <button type="button" class="dashboard-filter-btn" data-activity-filter="login">התחברות</button>
+            </div>
         </div>
-    </div>
-    <div class="dashboard-table-shell">
-    <table id="all-users-table" class="dashboard-table dashboard-table-wide">
-        <tr>
-            <th class="dashboard-sticky-col">משתמש</th>
-            <th>סטטוס</th>
-            <th>נראה לאחרונה</th>
-            <th>רמה</th>
-            <th>XP</th>
-            <th>היום</th>
-            <th>השבוע</th>
-            <th>נענו</th>
-            <th>נכונות</th>
-            <th>הצלחה</th>
-            <th>מבחן מיטבי</th>
-            <th>דגלים</th>
-        </tr>
-    </table>
-    </div>
+        <div class="dashboard-activity-feed" id="recent-activity-feed">
+            <p class="dashboard-empty-hint">טוען פעילות...</p>
+        </div>
+    </section>
 
-    <h2 class="dashboard-section-title">📶 משתמשים מחוברים כרגע</h2>
-    <div class="dashboard-table-shell">
-    <table id="online-users-table" class="dashboard-table">
-        <tr>
-            <th>מיקום</th>
-            <th>שם משתמש</th>
-            <th>נענו</th>
-            <th>נכונות</th>
-            <th>הצלחה</th>
-        </tr>
-        @for (int i = 0; i < Model.OnlineUsers.Count; i++)
-        {
-            var user = Model.OnlineUsers[i];
+    <!-- משתמשים -->
+    <section class="dashboard-tab-panel" data-dashboard-panel="users" hidden>
+        <h2 class="dashboard-section-title">📝 מבחנים פעילים</h2>
+        <div class="dashboard-table-shell">
+        <table id="active-exams-table" class="dashboard-table">
             <tr>
-                <td>@(i + 1)</td>
-                <td>@user.Username</td>
-                <td>@user.TotalAnswered</td>
-                <td>@user.CorrectAnswers</td>
-                <td>@(user.TotalAnswered > 0 ? ((double)user.CorrectAnswers / user.TotalAnswered).ToString("0%") : "N/A")</td>
+                <th>משתמש</th>
+                <th>התחיל</th>
+                <th>עודכן</th>
+                <th>שאלה</th>
+                <th>ציון</th>
+                <th>נותר</th>
+                <th>פעולה</th>
             </tr>
-        }
-    </table>
-    </div>
+        </table>
+        </div>
 
-    <h2 class="dashboard-section-title">🏆 טבלת מובילים</h2>
-    <div class="dashboard-table-shell">
-    <table id="top-users-table" class="dashboard-table">
-        <tr>
-            <th>מיקום</th>
-            <th>שם משתמש</th>
-            <th>נענו</th>
-            <th>נכונות</th>
-            <th>הצלחה</th>
-        </tr>
-        @for (int i = 0; i < Model.TopUsers.Count; i++)
-        {
-            var user = Model.TopUsers[i];
+        <h2 class="dashboard-section-title">👥 כל המשתמשים</h2>
+        <div class="dashboard-toolbar">
+            <input type="search" id="user-search" class="dashboard-search" placeholder="חיפוש לפי שם משתמש..." aria-label="חיפוש משתמש" />
+            <div class="dashboard-filter-group" role="group" aria-label="סינון משתמשים">
+                <button type="button" class="dashboard-filter-btn is-active" data-filter="all">הכל</button>
+                <button type="button" class="dashboard-filter-btn" data-filter="online">מחוברים</button>
+                <button type="button" class="dashboard-filter-btn" data-filter="today">פעילים היום</button>
+                <button type="button" class="dashboard-filter-btn" data-filter="cheaters">Cheaters</button>
+                <button type="button" class="dashboard-filter-btn" data-filter="banned">חסומים</button>
+                <button type="button" class="dashboard-filter-btn" data-filter="inactive7">לא פעילים 7+ ימים</button>
+            </div>
+        </div>
+        <div class="dashboard-table-shell">
+        <table id="all-users-table" class="dashboard-table dashboard-table-wide">
             <tr>
-                <td>@(i + 1)</td>
-                <td>@user.Username</td>
-                <td>@user.TotalAnswered</td>
-                <td>@user.CorrectAnswers</td>
-                <td>@(user.TotalAnswered > 0 ? ((double)user.CorrectAnswers / user.TotalAnswered).ToString("0%") : "N/A")</td>
+                <th class="dashboard-sticky-col">משתמש</th>
+                <th>סטטוס</th>
+                <th>נראה לאחרונה</th>
+                <th>רמה</th>
+                <th>XP</th>
+                <th>היום</th>
+                <th>השבוע</th>
+                <th>נענו</th>
+                <th>נכונות</th>
+                <th>הצלחה</th>
+                <th>מבחן מיטבי</th>
+                <th>דגלים</th>
             </tr>
-        }
-    </table>
-    </div>
+        </table>
+        </div>
+    </section>
 
-    <h2 class="dashboard-section-title">🚨 Cheaters</h2>
-    <div class="dashboard-table-shell">
-    <table class="dashboard-table">
-        <tr><th>שם משתמש</th><th>נענו</th><th>נכונות</th><th>הצלחה</th></tr>
-        @foreach (var user in Model.Cheaters)
-        {
-            <tr>
-                <td>@user.Username</td>
-                <td>@user.TotalAnswered</td>
-                <td>@user.CorrectAnswers</td>
-                <td>@(user.TotalAnswered > 0 ? ((double)user.CorrectAnswers / user.TotalAnswered).ToString("0%") : "N/A")</td>
-            </tr>
-        }
-    </table>
-    </div>
-
-    <h2 class="dashboard-section-title">🔒 חסומים</h2>
-    <div class="dashboard-table-shell">
-    <table class="dashboard-table">
-        <tr><th>שם משתמש</th><th>נענו</th><th>נכונות</th><th>הצלחה</th></tr>
-        @foreach (var user in Model.BannedUsers)
-        {
-            <tr>
-                <td>@user.Username</td>
-                <td>@user.TotalAnswered</td>
-                <td>@user.CorrectAnswers</td>
-                <td>@(user.TotalAnswered > 0 ? ((double)user.CorrectAnswers / user.TotalAnswered).ToString("0%") : "N/A")</td>
-            </tr>
-        }
-    </table>
-    </div>
-
-<script src="/js/dashboard-page.js?v=9"></script>
-
-<!-- Difficulty Management Section -->
-<h2 class="dashboard-section-title">🎯 ניהול רמות קושי</h2>
-
-@if (TempData["DifficultyMessage"] != null)
-{
-    <div class="dashboard-alert dashboard-alert-inline dashboard-alert-soft-success">
-        <strong class="dashboard-alert-text-success">✅ @TempData["DifficultyMessage"]</strong>
-    </div>
-}
-
-@if (TempData["DifficultyError"] != null)
-{
-    <div class="dashboard-alert dashboard-alert-inline dashboard-alert-soft-error">
-        <strong class="dashboard-alert-text-error">❌ @TempData["DifficultyError"]</strong>
-    </div>
-}
-
-<div class="difficulty-panel">
-    <div class="difficulty-panel-header">
-        <h3 class="difficulty-panel-title">סיכום רמות קושי</h3>
-        <p class="difficulty-panel-range">
-            Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%
-        </p>
-        <p class="difficulty-panel-hint">
-            לחץ «חשב מחדש» לעדכון ידני · הנתונים נטענים מ-Supabase
-        </p>
-        <form method="post" asp-page-handler="RecalculateDifficulties" id="recalculate-difficulties-form" class="difficulty-recalc-form">
-            @Html.AntiForgeryToken()
-            <button type="submit" id="recalculate-difficulties-btn" class="btn btn-sm btn-outline-secondary">חשב מחדש רמות קושי</button>
-        </form>
-    </div>
-    
-    <div class="difficulty-grid">
-        <button id="difficulty-card-easy" type="button" data-difficulty="easy" aria-pressed="false"
-             class="difficulty-card difficulty-card-easy" aria-label="סנן שאלות קלות">
-            <div class="difficulty-card-count difficulty-card-count-easy">@Model.EasyCount</div>
-            <div class="difficulty-card-label difficulty-card-label-easy">🟢 קלות</div>
-        </button>
-        <button id="difficulty-card-medium" type="button" data-difficulty="medium" aria-pressed="false"
-             class="difficulty-card difficulty-card-medium" aria-label="סנן שאלות בינוניות">
-            <div class="difficulty-card-count difficulty-card-count-medium">@Model.MediumCount</div>
-            <div class="difficulty-card-label difficulty-card-label-medium">🟡 בינוניות</div>
-        </button>
-        <button id="difficulty-card-hard" type="button" data-difficulty="hard" aria-pressed="false"
-             class="difficulty-card difficulty-card-hard" aria-label="סנן שאלות קשות">
-            <div class="difficulty-card-count difficulty-card-count-hard">@Model.HardCount</div>
-            <div class="difficulty-card-label difficulty-card-label-hard">🔴 קשות</div>
-        </button>
-    </div>
-    
-    @if (Model.DifficultyQuestions.Any())
-    {
-        <h4 id="difficulty-title" class="difficulty-title">רשימת שאלות (מעודכן אוטומטית)</h4>
-        <div id="difficulty-table-container" class="difficulty-table-container">
-            <table class="difficulty-table">
+    <!-- שאלות -->
+    <section class="dashboard-tab-panel" data-dashboard-panel="questions" hidden>
+        <h2 class="dashboard-section-title">⚠️ שאלות בעייתיות</h2>
+        <p class="dashboard-section-hint">שאלות עם דיווחים פתוחים, אחוז הצלחה נמוך, או שילוב של השניים.</p>
+        <div class="dashboard-table-shell">
+            <table id="problematic-questions-table" class="dashboard-table">
                 <thead>
                     <tr>
-                        <th class="difficulty-col-question">שאלה</th>
-                        <th>רמת קושי</th>
-                        <th>אחוז הצלחה</th>
+                        <th>שאלה</th>
+                        <th>סיבה</th>
+                        <th>קושי</th>
+                        <th>הצלחה</th>
                         <th>ניסיונות</th>
-                        <th>נכונות</th>
-                        <th>עדכון אחרון</th>
+                        <th>דיווחים</th>
+                        <th></th>
                     </tr>
                 </thead>
-                <tbody id="difficulty-questions-tbody">
-                    @foreach (var q in Model.DifficultyQuestions.Take(500))
+                <tbody id="problematic-questions-tbody">
+                    @if (Model.ProblematicQuestions.Any())
                     {
-                        var diffText = q.Difficulty switch
+                        @foreach (var q in Model.ProblematicQuestions)
                         {
-                            "easy" => "קל",
-                            "medium" => "בינוני",
-                            "hard" => "קשה",
-                            _ => q.Difficulty
-                        };
-                        var diffClass = q.Difficulty switch
-                        {
-                            "easy" => "difficulty-badge-easy",
-                            "medium" => "difficulty-badge-medium",
-                            "hard" => "difficulty-badge-hard",
-                            _ => "difficulty-badge-default"
-                        };
-                        
-                        <tr class="difficulty-row" data-difficulty="@q.Difficulty">
+                            var diffText = q.Difficulty switch { "easy" => "קל", "medium" => "בינוני", "hard" => "קשה", _ => q.Difficulty };
+                            <tr>
+                                <td class="difficulty-question-cell"><span class="difficulty-question-text">@q.QuestionId</span></td>
+                                <td>@q.Reason</td>
+                                <td>@diffText</td>
+                                <td>@q.SuccessRate.ToString("F1")%</td>
+                                <td>@q.TotalAttempts</td>
+                                <td>@q.OpenReports</td>
+                                <td><a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)&from=dashboard" target="_blank" class="difficulty-question-link" title="הצג שאלה">🔍</a></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="dashboard-empty-cell">אין שאלות בעייתיות כרגע</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="dashboard-section-title">🎯 ניהול רמות קושי</h2>
+
+        @if (TempData["DifficultyMessage"] != null)
+        {
+            <div class="dashboard-alert dashboard-alert-inline dashboard-alert-soft-success">
+                <strong class="dashboard-alert-text-success">✅ @TempData["DifficultyMessage"]</strong>
+            </div>
+        }
+
+        @if (TempData["DifficultyError"] != null)
+        {
+            <div class="dashboard-alert dashboard-alert-inline dashboard-alert-soft-error">
+                <strong class="dashboard-alert-text-error">❌ @TempData["DifficultyError"]</strong>
+            </div>
+        }
+
+        <div class="difficulty-panel">
+            <div class="difficulty-panel-header">
+                <h3 class="difficulty-panel-title">סיכום רמות קושי</h3>
+                <p class="difficulty-panel-range">Easy ≥ 65% · Medium 35–65% · Hard &lt; 35%</p>
+                <p class="difficulty-panel-hint">לחץ «חשב מחדש» לעדכון ידני · הנתונים נטענים מ-Supabase</p>
+                <form method="post" asp-page-handler="RecalculateDifficulties" id="recalculate-difficulties-form" class="difficulty-recalc-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" id="recalculate-difficulties-btn" class="btn btn-sm btn-outline-secondary">חשב מחדש רמות קושי</button>
+                </form>
+            </div>
+
+            <div class="difficulty-grid">
+                <button id="difficulty-card-easy" type="button" data-difficulty="easy" aria-pressed="false"
+                     class="difficulty-card difficulty-card-easy" aria-label="סנן שאלות קלות">
+                    <div class="difficulty-card-count difficulty-card-count-easy">@Model.EasyCount</div>
+                    <div class="difficulty-card-label difficulty-card-label-easy">🟢 קלות</div>
+                </button>
+                <button id="difficulty-card-medium" type="button" data-difficulty="medium" aria-pressed="false"
+                     class="difficulty-card difficulty-card-medium" aria-label="סנן שאלות בינוניות">
+                    <div class="difficulty-card-count difficulty-card-count-medium">@Model.MediumCount</div>
+                    <div class="difficulty-card-label difficulty-card-label-medium">🟡 בינוניות</div>
+                </button>
+                <button id="difficulty-card-hard" type="button" data-difficulty="hard" aria-pressed="false"
+                     class="difficulty-card difficulty-card-hard" aria-label="סנן שאלות קשות">
+                    <div class="difficulty-card-count difficulty-card-count-hard">@Model.HardCount</div>
+                    <div class="difficulty-card-label difficulty-card-label-hard">🔴 קשות</div>
+                </button>
+            </div>
+
+            @if (Model.DifficultyQuestions.Any())
+            {
+                <h4 id="difficulty-title" class="difficulty-title">רשימת שאלות (מעודכן אוטומטית)</h4>
+                <div id="difficulty-table-container" class="difficulty-table-container">
+                    <table class="difficulty-table">
+                        <thead>
+                            <tr>
+                                <th class="difficulty-col-question">שאלה</th>
+                                <th>רמת קושי</th>
+                                <th>אחוז הצלחה</th>
+                                <th>ניסיונות</th>
+                                <th>נכונות</th>
+                                <th>עדכון אחרון</th>
+                            </tr>
+                        </thead>
+                        <tbody id="difficulty-questions-tbody">
+                            @foreach (var q in Model.DifficultyQuestions.Take(500))
+                            {
+                                var diffText = q.Difficulty switch { "easy" => "קל", "medium" => "בינוני", "hard" => "קשה", _ => q.Difficulty };
+                                var diffClass = q.Difficulty switch { "easy" => "difficulty-badge-easy", "medium" => "difficulty-badge-medium", "hard" => "difficulty-badge-hard", _ => "difficulty-badge-default" };
+                                <tr class="difficulty-row" data-difficulty="@q.Difficulty">
+                                    <td class="difficulty-question-cell">
+                                        <span class="difficulty-question-content">
+                                            <span class="difficulty-question-text">@q.QuestionFile</span>
+                                            <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionFile)&from=dashboard" target="_blank" title="הצג שאלה" class="difficulty-question-link">🔍</a>
+                                        </span>
+                                    </td>
+                                    <td><span class="difficulty-badge @diffClass">@diffText</span></td>
+                                    <td class="difficulty-success">@q.SuccessRate.ToString("F1")%</td>
+                                    <td>@q.TotalAttempts</td>
+                                    <td>@q.CorrectAttempts</td>
+                                    <td class="difficulty-updated">@q.LastUpdated.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p id="difficulty-count" class="difficulty-count">מציג את כל @Model.DifficultyQuestions.Count השאלות</p>
+            }
+            else
+            {
+                <div class="difficulty-empty">
+                    <p>אין עדיין נתוני רמות קושי במערכת</p>
+                    <p class="difficulty-empty-note">השאלות יתווספו אוטומטית כשמשתמשים יענו עליהן</p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- דיווחים -->
+    <section class="dashboard-tab-panel" data-dashboard-panel="reports" hidden>
+        <h2 class="dashboard-section-title">📩 תור דיווחי שאלות</h2>
+        <div class="dashboard-toolbar">
+            <div class="dashboard-filter-group" id="report-status-filters" role="group" aria-label="סינון דיווחים">
+                <button type="button" class="dashboard-filter-btn is-active" data-report-filter="open">פתוחים</button>
+                <button type="button" class="dashboard-filter-btn" data-report-filter="resolved">טופלו</button>
+                <button type="button" class="dashboard-filter-btn" data-report-filter="all">הכל</button>
+            </div>
+        </div>
+        <div class="dashboard-table-shell">
+            <table id="question-reports-table" class="dashboard-table dashboard-table-wide">
+                <thead>
+                    <tr>
+                        <th>תאריך</th>
+                        <th>משתמש</th>
+                        <th>שאלה</th>
+                        <th>תוכן</th>
+                        <th>סטטוס</th>
+                        <th>פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="question-reports-tbody">
+                    @foreach (var r in Model.QuestionReports)
+                    {
+                        var statusLabel = r.Status == QuestionReportService.StatusResolved ? "טופל" : "פתוח";
+                        var statusClass = r.Status == QuestionReportService.StatusResolved ? "dashboard-badge-ok" : "dashboard-badge-warn";
+                        <tr data-report-id="@r.Id" data-report-status="@r.Status">
+                            <td>@r.CreatedAtUtc.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                            <td>@r.Username</td>
                             <td class="difficulty-question-cell">
                                 <span class="difficulty-question-content">
-                                    <span class="difficulty-question-text">@q.QuestionFile</span>
-                                    <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionFile)&from=dashboard" 
-                                       target="_blank"
-                                       title="הצג שאלה"
-                                       class="difficulty-question-link">
-                                        🔍
-                                    </a>
+                                    <span class="difficulty-question-text" title="@r.QuestionId">@r.QuestionId</span>
+                                    <a href="/QuestionView?id=@Uri.EscapeDataString(r.QuestionId)&from=dashboard" target="_blank" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                                 </span>
                             </td>
+                            <td>@(string.IsNullOrWhiteSpace(r.Explanation) ? "—" : r.Explanation)</td>
+                            <td><span class="dashboard-badge @statusClass">@statusLabel</span></td>
                             <td>
-                                <span class="difficulty-badge @diffClass">
-                                    @diffText
-                                </span>
+                                @if (r.Status == QuestionReportService.StatusOpen)
+                                {
+                                    <button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="resolve" data-report-id="@r.Id">סמן טופל</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="reopen" data-report-id="@r.Id">פתח מחדש</button>
+                                }
                             </td>
-                            <td class="difficulty-success">@q.SuccessRate.ToString("F1")%</td>
-                            <td>@q.TotalAttempts</td>
-                            <td>@q.CorrectAttempts</td>
-                            <td class="difficulty-updated">@q.LastUpdated.ToLocalTime().ToString("dd/MM HH:mm")</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-        
-        <p id="difficulty-count" class="difficulty-count">
-            מציג את כל @Model.DifficultyQuestions.Count השאלות
-        </p>
-    }
-    else
-    {
-        <div class="difficulty-empty">
-            <p>אין עדיין נתוני רמות קושי במערכת</p>
-            <p class="difficulty-empty-note">השאלות יתווספו אוטומטית כשמשתמשים יענו עליהן</p>
-        </div>
-    }
-</div>
+        @if (!Model.QuestionReports.Any())
+        {
+            <p class="dashboard-empty-hint" id="question-reports-empty">עדיין אין דיווחי שאלות — יופיעו כאן אחרי דיווח מהאתר</p>
+        }
 
-<h2 class="dashboard-section-title">💬 חוות דעת משתמשים</h2>
-<p class="dashboard-feedback-summary">
-    @Model.FeedbackEntries.Count תגובות
-</p>
-@if (Model.FeedbackEntries.Count > 0)
-{
-    <div class="dashboard-table-shell">
-        <table class="dashboard-table" id="feedback-table">
-            <thead>
-                <tr>
-                    <th>תאריך</th>
-                    <th>משתמש</th>
-                    <th>דירוג</th>
-                    <th>משוב</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var entry in Model.FeedbackEntries)
-                {
-                    var stars = new string('★', entry.Rating) + new string('☆', 5 - entry.Rating);
-                    <tr>
-                        <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>@entry.Username</td>
-                        <td><span class="feedback-rating-stars" aria-label="דירוג @entry.Rating מתוך 5">@stars</span></td>
-                        <td>@(string.IsNullOrWhiteSpace(entry.Message) ? "—" : entry.Message)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
-else
-{
-    <p class="dashboard-empty-hint">עדיין אין תגובות</p>
-}
-
-@if (Model.AllUsers.Any(u => u.Username == "Admin"))
-{
-    // הוסרה הצגת דיווחי טעויות בשאלות לפי בקשת המשתמש
-}
+        <h2 class="dashboard-section-title">💬 חוות דעת משתמשים</h2>
+        <p class="dashboard-feedback-summary"><span id="feedback-count">@Model.FeedbackEntries.Count</span> תגובות</p>
+        @if (Model.FeedbackEntries.Count > 0)
+        {
+            <div class="dashboard-table-shell">
+                <table class="dashboard-table" id="feedback-table">
+                    <thead>
+                        <tr>
+                            <th>תאריך</th>
+                            <th>משתמש</th>
+                            <th>דירוג</th>
+                            <th>משוב</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedback-tbody">
+                        @foreach (var entry in Model.FeedbackEntries)
+                        {
+                            var stars = new string('★', entry.Rating) + new string('☆', 5 - entry.Rating);
+                            <tr>
+                                <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@entry.Username</td>
+                                <td><span class="feedback-rating-stars" aria-label="דירוג @entry.Rating מתוך 5">@stars</span></td>
+                                <td>@(string.IsNullOrWhiteSpace(entry.Message) ? "—" : entry.Message)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="dashboard-empty-hint" id="feedback-empty">עדיין אין תגובות</p>
+        }
+    </section>
 
     </main>
 
@@ -393,6 +413,7 @@ else
     </div>
 </div>
 
+<script src="/js/dashboard-page.js?v=10"></script>
 <partial name="Shared/_SiteFooter" />
 </body>
 </html>

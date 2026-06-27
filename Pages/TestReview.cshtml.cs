@@ -38,7 +38,23 @@ public class TestReviewModel : PageModel
         int i = 0;
         int.TryParse(Request.Query["i"], out i);
         ReviewToken = Request.Query["token"].ToString();
-        var state = await GetStateAsync(username);
+        if (string.IsNullOrWhiteSpace(ReviewToken))
+        {
+            return RedirectToPage("/MyExams");
+        }
+
+        var session = await _testSession.GetSessionAsync(ReviewToken);
+        if (session?.Username != username)
+        {
+            return RedirectToPage("/MyExams");
+        }
+
+        if (string.Equals(session.Status, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            return RedirectToPage("/Test", new { token = ReviewToken });
+        }
+
+        var state = BuildStateFromSession(session);
         if (state == null || state.Questions == null || i < 0 || i >= state.Questions.Count)
         {
             return RedirectToPage("/MyExams");
@@ -55,29 +71,17 @@ public class TestReviewModel : PageModel
         return Page();
     }
 
-    private async Task<TestState> GetStateAsync(string username)
+    private static TestState BuildStateFromSession(TestSession session)
     {
-        if (_testSession == null)
-        {
+        if (session == null)
             return null;
-        }
 
-        var token = Request.Query["token"].ToString();
-        if (!string.IsNullOrWhiteSpace(token))
+        return new TestState
         {
-            var session = await _testSession.GetSessionAsync(token);
-            if (session?.Username == username)
-            {
-                return new TestState
-                {
-                    StartedUtc = session.StartedUtc,
-                    CurrentIndex = session.CurrentIndex,
-                    Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
-                    Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>()
-                };
-            }
-        }
-
-        return null;
+            StartedUtc = session.StartedUtc,
+            CurrentIndex = session.CurrentIndex,
+            Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
+            Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>()
+        };
     }
 }
