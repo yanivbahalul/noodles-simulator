@@ -172,7 +172,12 @@
         }
         if (data?.xpProgressPercent !== undefined) {
             const fill = document.getElementById("live-xp-fill");
-            if (fill) fill.style.width = `${data.xpProgressPercent}%`;
+            if (fill) {
+                const nextWidth = `${data.xpProgressPercent}%`;
+                if (fill.style.getPropertyValue("--xp-progress") !== nextWidth) {
+                    fill.style.setProperty("--xp-progress", nextWidth);
+                }
+            }
         }
         if (data?.xpToNextLevel !== undefined) {
             const meta = document.getElementById("live-xp-meta");
@@ -180,6 +185,21 @@
         }
         if (data?.xp !== undefined) setText("stat-xp-value", data.xp);
         if (options.pulse && data?.xpGain > 0) pulseLevelBar();
+    }
+
+    function enableLevelProgressTransitions() {
+        const fill = document.getElementById("live-xp-fill");
+        if (!fill) return;
+        fill.classList.add("level-progress-live-fill--animate");
+    }
+
+    async function initLevelProgressLive() {
+        try {
+            await fetchStats();
+        } catch {
+            // keep server-rendered values
+        }
+        enableLevelProgressTransitions();
     }
 
     function pulseLevelBar() {
@@ -199,7 +219,9 @@
         }
         if (data.streak !== undefined) {
             setText("stat-streak", data.streak);
-            updateStreakBadge(data.streak);
+            if (!options.skipStreakUpdate) {
+                updateStreakBadge(data.streak, { pulse: options.streakPulse });
+            }
         }
         applyLevelProgressLive(data, options);
     }
@@ -748,7 +770,10 @@
             const shouldPulse = Boolean(
                 data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
             );
-            applyStatsData(statsPayload, { pulse: shouldPulse });
+            applyStatsData(statsPayload, {
+                pulse: shouldPulse,
+                skipStreakUpdate: true
+            });
         }
         updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
         if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
@@ -1385,6 +1410,8 @@
         bindDailyCompleteModal();
         bindKeyboardShortcuts();
 
+        void initLevelProgressLive();
+
         bindQuestionImageLoad(document.getElementById("main-question-image"), scheduleQuizViewportAdjust);
         window.addEventListener("resize", scheduleQuizViewportAdjust);
         schedulePrefetchNextQuestion();
@@ -1398,10 +1425,7 @@
     });
 
     function scheduleBackgroundRefresh() {
-        window.RequestChannels?.scheduleBackground(async () => {
-            await fetchStats();
-            await fetchOnlineCount();
-        });
+        window.RequestChannels?.scheduleBackground(fetchOnlineCount);
     }
 
     window.addEventListener("load", () => {

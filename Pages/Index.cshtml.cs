@@ -398,9 +398,9 @@ public class IndexModel : PageModel
             UserTotal = Math.Max(user.TotalAnswered, snap.TotalAnswered);
             UserXp = Math.Max(user.Xp, snap.Xp);
             user.Xp = UserXp;
-            user.Level = snap.Level;
-            UserLevel = snap.Level;
-            XpProgressPercent = snap.XpProgressPercent;
+            UserLevel = QuizGamification.LevelFromXp(UserXp);
+            user.Level = UserLevel;
+            XpProgressPercent = QuizGamification.XpProgressPercent(UserXp);
         }
         else
         {

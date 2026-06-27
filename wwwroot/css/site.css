@@ -564,7 +564,7 @@ button.answer-btn,
 }
 
 .streak-badge {
-    --streak-flame-size: 56px;
+    --streak-flame-size: 34px;
     position: relative;
     display: inline-block;
     width: var(--streak-flame-size);
@@ -592,11 +592,11 @@ button.answer-btn,
 .streak-badge-text {
     position: absolute;
     left: 50%;
-    top: 68%;
+    top: 74%;
     transform: translate(-50%, -50%);
     z-index: 1;
     font-weight: 800;
-    font-size: 15px;
+    font-size: 12px;
     line-height: 1;
     color: #fff;
     letter-spacing: -0.03em;
@@ -607,11 +607,11 @@ button.answer-btn,
 }
 
 .streak-badge--hot {
-    --streak-flame-size: 64px;
+    --streak-flame-size: 38px;
 }
 
 .streak-badge--hot .streak-badge-text {
-    font-size: 17px;
+    font-size: 13px;
 }
 
 .streak-badge--burst .streak-badge-text {
@@ -619,8 +619,8 @@ button.answer-btn,
 }
 
 @keyframes streakBadgeBurst {
-    0%, 100% { transform: scale(1); }
-    40% { transform: scale(1.1); }
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    40% { transform: translate(-50%, -50%) scale(1.1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -649,6 +649,18 @@ button.answer-btn,
     gap: 8px;
     flex-wrap: wrap;
     overflow: visible;
+}
+
+.practice-mode-streak {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    line-height: 0;
+}
+
+.practice-mode-streak:has(#streak-badge[hidden]) {
+    display: none;
 }
 
 .practice-mode-stack .practice-mode-badge {
@@ -690,11 +702,23 @@ button.answer-btn,
     direction: ltr;
 }
 
+@property --xp-progress {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}
+
 .level-progress-live-fill {
+    width: var(--xp-progress, 0%);
+    max-width: 100%;
     height: 100%;
     background: linear-gradient(90deg, #ffd700, #ff9800);
     border-radius: 999px;
-    transition: width 0.45s ease;
+    transition: none;
+}
+
+.level-progress-live-fill--animate {
+    transition: --xp-progress 0.45s ease;
 }
 
 .level-progress-live-fill--pulse {

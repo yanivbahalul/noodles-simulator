@@ -70,6 +70,8 @@
                 <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
             }
         </p>
+    </div>
+    <div class="practice-mode-streak">
         <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden") aria-label="רצף תשובות נכונות">
             <img src="/images/streak/flame-icon.gif?v=3" alt="" class="streak-flame-bg" width="300" height="300" decoding="async" aria-hidden="true" />
             <span class="streak-badge-text" id="streak-badge-text">@Model.CurrentStreak</span>
@@ -78,7 +80,7 @@
     <div class="level-progress-live" id="level-progress-live" aria-label="התקדמות רמה">
         <span class="level-progress-live-label">רמה <strong id="live-level">@Model.UserLevel</strong></span>
         <div class="level-progress-live-track" aria-hidden="true">
-            <div class="level-progress-live-fill" id="live-xp-fill" style="width: @Model.XpProgressPercent%"></div>
+            <div class="level-progress-live-fill" id="live-xp-fill" style="--xp-progress: @Model.XpProgressPercent%"></div>
         </div>
         <span class="level-progress-live-meta" id="live-xp-meta">
             נותר @QuizGamification.XpToNextLevel(Model.UserXp) XP לרמה ההבאה
