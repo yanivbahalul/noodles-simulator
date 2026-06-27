@@ -303,7 +303,7 @@ public class IndexModel : PageModel
 
             var lastSubmitted = HttpContext.Session.GetString(LastSubmittedQuestionKey);
             if (!string.IsNullOrEmpty(lastSubmitted)
-                && string.Equals(lastSubmitted, questionImage, StringComparison.Ordinal)
+                && string.Equals(lastSubmitted, questionImage, StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(FlashQuestionKey)))
             {
                 await TryRestoreAnswerFlashAsync();
@@ -313,12 +313,7 @@ public class IndexModel : PageModel
             }
 
             ParseSubmittedAnswer(questionImage, answer);
-            if (string.IsNullOrEmpty(CorrectAnswerKey) || ShuffledAnswers == null || ShuffledAnswers.Count == 0)
-            {
-                await LoadPracticeQuestionFromSessionAsync();
-                if (string.Equals(HttpContext.Session.GetString(PracticeQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase))
-                    TryHydrateModelFromPracticeSession();
-            }
+            TryRecoverQuestionStateForSubmit(questionImage, answer);
 
             await ProcessSubmittedAnswerCoreAsync(auth.User);
 
@@ -671,24 +666,46 @@ public class IndexModel : PageModel
         SelectedAnswer = answer;
         AnswerChecked = true;
         QuestionImage = questionImage;
+        TryLoadQuestionStateForSubmit(questionImage);
+        ReevaluateSubmittedAnswer(answer);
+    }
 
-        if (!TryLoadQuestionStateForSubmit(questionImage))
+    private void TryRecoverQuestionStateForSubmit(string questionImage, string answer)
+    {
+        if (!string.IsNullOrEmpty(CorrectAnswerKey)
+            && ShuffledAnswers != null
+            && ShuffledAnswers.Count > 0
+            && ShuffledAnswers.ContainsKey(answer))
+            return;
+
+        if (string.Equals(HttpContext.Session.GetString(PracticeQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
+            && TryHydrateModelFromPracticeSession())
         {
-            IsCorrect = false;
-            CorrectAnswerKey = "";
-            ShuffledAnswers = new Dictionary<string, string>();
+            ReevaluateSubmittedAnswer(answer);
             return;
         }
 
-        SavePracticeQuestionState();
+        if (string.Equals(HttpContext.Session.GetString(FlashQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
+            && TryHydrateModelFromFlash(persistToPractice: true))
+            ReevaluateSubmittedAnswer(answer);
+    }
 
-        if (string.IsNullOrEmpty(CorrectAnswerKey) || !ShuffledAnswers.ContainsKey(answer))
+    private void ReevaluateSubmittedAnswer(string answer)
+    {
+        SelectedAnswer = answer;
+        AnswerChecked = true;
+
+        if (string.IsNullOrEmpty(CorrectAnswerKey)
+            || ShuffledAnswers == null
+            || ShuffledAnswers.Count == 0
+            || !ShuffledAnswers.ContainsKey(answer))
         {
             IsCorrect = false;
             return;
         }
 
         IsCorrect = string.Equals(answer, CorrectAnswerKey, StringComparison.Ordinal);
+        SavePracticeQuestionState();
     }
 
     private bool TryLoadQuestionStateForSubmit(string questionImage)
@@ -768,7 +785,7 @@ public class IndexModel : PageModel
     private void EnrichReportFromSession(ErrorReportBuilder.ReportPayload payload)
     {
         var flashQuestion = HttpContext.Session.GetString(FlashQuestionKey);
-        if (!string.Equals(flashQuestion, payload.QuestionImage, StringComparison.Ordinal))
+        if (!string.Equals(flashQuestion, payload.QuestionImage, StringComparison.OrdinalIgnoreCase))
             return;
 
         var optionsJson = HttpContext.Session.GetString(FlashAnswersKey);
@@ -780,15 +797,20 @@ public class IndexModel : PageModel
         {
             var options = JsonSerializer.Deserialize<Dictionary<string, string>>(optionsJson, AppJson.Options)
                           ?? new Dictionary<string, string>();
-            payload.AnswersDict = options;
-            if (options.TryGetValue(correctKey, out var correctFile))
+            if (payload.AnswersDict.Count == 0)
+                payload.AnswersDict = options;
+            if (string.IsNullOrWhiteSpace(payload.CorrectAnswer)
+                && options.TryGetValue(correctKey, out var correctFile))
                 payload.CorrectAnswer = correctFile;
         }
         catch (JsonException) { /* ignore */ }
 
-        var selected = HttpContext.Session.GetString(FlashSelectedKey);
-        if (!string.IsNullOrWhiteSpace(selected) && payload.AnswersDict.TryGetValue(selected, out var selectedFile))
-            payload.SelectedAnswer = selectedFile;
+        if (string.IsNullOrWhiteSpace(payload.SelectedAnswer))
+        {
+            var selected = HttpContext.Session.GetString(FlashSelectedKey);
+            if (!string.IsNullOrWhiteSpace(selected))
+                payload.SelectedAnswer = selected;
+        }
     }
 
     private void ApplyAnswerToUserStats(User user)

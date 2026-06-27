@@ -24,6 +24,17 @@
         }
     };
     var isFreePractice = string.IsNullOrEmpty(Model.PracticeMode) || Model.PracticeMode == "normal";
+
+    var reportCorrectAnswer = "";
+    var reportAnswersJson = "";
+    if (Model.AnswerChecked
+        && !string.IsNullOrEmpty(Model.CorrectAnswerKey)
+        && Model.ShuffledAnswers != null
+        && Model.ShuffledAnswers.TryGetValue(Model.CorrectAnswerKey, out var reportCorrectFile))
+    {
+        reportCorrectAnswer = reportCorrectFile;
+        reportAnswersJson = System.Text.Json.JsonSerializer.Serialize(Model.ShuffledAnswers);
+    }
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -110,7 +121,7 @@
     @if (Model.AnswerChecked)
     {
         <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")" id="answer-feedback">
-            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
+            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה — התשובה הנכונה מסומנת בירוק")
         </p>
     }
     else
@@ -290,6 +301,8 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="questionImage" value="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)" />
         <input type="hidden" name="selectedAnswer" value="@Model.SelectedAnswer" />
+        <input type="hidden" name="correctAnswer" value="@reportCorrectAnswer" />
+        <input type="hidden" name="answers" value="@reportAnswersJson" />
         <label for="explanation" class="report-label">יש טעות בשאלה? תקלה באתר? דווח לנו!</label>
         <textarea name="explanation" id="explanation" required placeholder="נא לפרט מה לא תקין..." class="report-textarea"></textarea>
         <button type="submit" class="next-question-btn report-submit-btn">דווח על טעות בשאלה</button>

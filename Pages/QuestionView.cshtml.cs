@@ -41,13 +41,15 @@ public class QuestionViewModel : PageModel
         
         // Get selected and correct answer from query parameters (from error report email)
         SelectedAnswerKey = Request.Query["selected"].ToString();
+        var selectedFile = Request.Query["selectedFile"].ToString();
         var correctParam = Request.Query["correct"].ToString();
         if (!string.IsNullOrWhiteSpace(correctParam))
         {
             CorrectAnswerKey = correctParam;
         }
         
-        ShowAnswerResults = !string.IsNullOrWhiteSpace(SelectedAnswerKey);
+        ShowAnswerResults = !string.IsNullOrWhiteSpace(SelectedAnswerKey)
+                            || !string.IsNullOrWhiteSpace(selectedFile);
 
         // Build answer guesses from naming convention: [q, correct, a, b, c] are contiguous in sorted list
         // We attempt to find corresponding answers by scanning storage list and matching group containing the question id
@@ -73,6 +75,18 @@ public class QuestionViewModel : PageModel
                     var val = group[k];
                     if (!string.IsNullOrWhiteSpace(val) && signed.TryGetValue(val, out var au))
                         AnswerImageUrls[key] = au;
+                }
+
+                if (!string.IsNullOrWhiteSpace(selectedFile))
+                {
+                    for (int k = 1; k < group.Count && k - 1 < keys.Length; k++)
+                    {
+                        if (string.Equals(group[k], selectedFile, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SelectedAnswerKey = keys[k - 1];
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -100,6 +114,18 @@ public class QuestionViewModel : PageModel
                     var val = group[k];
                     if (!string.IsNullOrWhiteSpace(val))
                         AnswerImageUrls[key] = $"/images/{val}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(selectedFile))
+                {
+                    for (int k = 1; k < group.Count && k - 1 < keys.Length; k++)
+                    {
+                        if (string.Equals(group[k], selectedFile, StringComparison.OrdinalIgnoreCase))
+                        {
+                            SelectedAnswerKey = keys[k - 1];
+                            break;
+                        }
+                    }
                 }
             }
         }

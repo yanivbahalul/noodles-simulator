@@ -105,29 +105,52 @@ public static class ErrorReportBuilder
 
         private static string BuildAnswersListHtml(ReportPayload payload)
         {
-            var abcd = new[] { "A", "B", "C", "D" };
-            var allAnswers = payload.AnswersDict.Values.ToList();
-            var correctIdx = allAnswers.IndexOf(payload.CorrectAnswer);
-
-            var selectedAnswerValue = string.Empty;
-            if (!string.IsNullOrWhiteSpace(payload.SelectedAnswer)
-                && payload.AnswersDict.TryGetValue(payload.SelectedAnswer, out var selectedValue))
+            if (payload.AnswersDict.Count == 0)
             {
-                selectedAnswerValue = selectedValue;
+                if (!string.IsNullOrWhiteSpace(payload.CorrectAnswer))
+                {
+                    var safeCorrect = WebUtility.HtmlEncode(payload.CorrectAnswer);
+                    return $"<span style='color: #28a745; font-weight: bold;'>תשובה נכונה: {safeCorrect}</span><br/>";
+                }
+
+                return "<span style='color: #888;'>—</span>";
             }
 
+            var selectedFile = ResolveSelectedAnswerFile(payload);
             var answersList = new StringBuilder();
-            var safeCorrectAnswer = WebUtility.HtmlEncode(payload.CorrectAnswer ?? string.Empty);
-            answersList.Append($"<span style='color: #28a745; font-weight: bold;'>A:</span> <span style='color: #28a745; font-weight: bold;'>{safeCorrectAnswer}</span><br/>");
+            var letters = new[] { "A", "B", "C", "D" };
+            var index = 0;
 
-            var distractors = allAnswers.Where((_, i) => i != correctIdx).ToList();
-            for (var i = 0; i < Math.Min(3, distractors.Count); i++)
+            foreach (var kv in payload.AnswersDict)
             {
-                var letter = abcd[i + 1];
-                var distractor = WebUtility.HtmlEncode(distractors[i] ?? string.Empty);
-                var isSelected = selectedAnswerValue == distractors[i];
-                var style = isSelected ? "font-weight: bold; color: #ffc107;" : "";
-                answersList.Append($"<span style='{style}'>{letter}: {distractor}</span><br/>");
+                if (index >= letters.Length)
+                    break;
+
+                var file = kv.Value ?? string.Empty;
+                var isCorrect = !string.IsNullOrWhiteSpace(payload.CorrectAnswer)
+                    && string.Equals(file, payload.CorrectAnswer, StringComparison.OrdinalIgnoreCase);
+                var isSelected = !string.IsNullOrWhiteSpace(selectedFile)
+                    && string.Equals(file, selectedFile, StringComparison.OrdinalIgnoreCase);
+
+                var styles = new List<string>();
+                if (isCorrect)
+                    styles.Add("color: #28a745; font-weight: bold;");
+                if (isSelected && !isCorrect)
+                    styles.Add("color: #ffc107; font-weight: bold;");
+                if (isSelected && isCorrect)
+                    styles.Add("text-decoration: underline;");
+
+                var styleAttr = styles.Count > 0 ? $" style='{string.Join(" ", styles)}'" : "";
+                var label = isCorrect ? " (נכונה)" : isSelected ? " (נבחרה)" : "";
+                answersList.Append(
+                    $"<span{styleAttr}>{letters[index]}: {WebUtility.HtmlEncode(file)}{label}</span><br/>");
+                index++;
+            }
+
+            if (index == 0 && !string.IsNullOrWhiteSpace(payload.CorrectAnswer))
+            {
+                answersList.Append(
+                    $"<span style='color: #28a745; font-weight: bold;'>תשובה נכונה: {WebUtility.HtmlEncode(payload.CorrectAnswer)}</span><br/>");
             }
 
             return answersList.ToString();
@@ -136,16 +159,33 @@ public static class ErrorReportBuilder
         private static string BuildQuestionViewUrl(string baseUrl, ReportPayload payload)
         {
             var queryParams = new NameValueCollection { ["id"] = payload.QuestionImage };
-            if (!string.IsNullOrWhiteSpace(payload.SelectedAnswer)
-                && payload.AnswersDict.ContainsKey(payload.SelectedAnswer))
-            {
-                queryParams.Add("selected", payload.SelectedAnswer);
-            }
+
+            var selectedFile = ResolveSelectedAnswerFile(payload);
+            if (!string.IsNullOrWhiteSpace(selectedFile))
+                queryParams.Add("selectedFile", selectedFile);
+
             queryParams.Add("correct", "correct");
 
             var queryString = string.Join("&",
-                queryParams.AllKeys.Select(key => $"{Uri.EscapeDataString(key!)}={Uri.EscapeDataString(queryParams[key!])}"));
+                queryParams.AllKeys.Select(key =>
+                    $"{Uri.EscapeDataString(key!)}={Uri.EscapeDataString(queryParams[key!] ?? string.Empty)}"));
             return $"{baseUrl}/QuestionView?{queryString}";
+        }
+
+        private static string ResolveSelectedAnswerFile(ReportPayload payload)
+        {
+            if (string.IsNullOrWhiteSpace(payload.SelectedAnswer))
+                return string.Empty;
+
+            if (payload.AnswersDict.TryGetValue(payload.SelectedAnswer, out var selectedByKey)
+                && !string.IsNullOrWhiteSpace(selectedByKey))
+                return selectedByKey;
+
+            if (payload.AnswersDict.Values.Any(v =>
+                    string.Equals(v, payload.SelectedAnswer, StringComparison.OrdinalIgnoreCase)))
+                return payload.SelectedAnswer;
+
+            return payload.SelectedAnswer;
         }
 
         private static Dictionary<string, string> ParseAnswersDict(string? answersJson)

@@ -549,7 +549,31 @@
         feedback.hidden = false;
         feedback.classList.toggle("is-correct", data.isCorrect);
         feedback.classList.toggle("is-incorrect", !data.isCorrect);
-        feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
+        feedback.textContent = data.isCorrect
+            ? "תשובה נכונה!"
+            : "תשובה שגויה — התשובה הנכונה מסומנת בירוק";
+    }
+
+    function syncReportFormFromAnswerResult(data) {
+        const form = document.getElementById("report-form");
+        if (!form || !data) return;
+
+        const qInput = form.querySelector('input[name="questionImage"]');
+        const sInput = form.querySelector('input[name="selectedAnswer"]');
+        const cInput = form.querySelector('input[name="correctAnswer"]');
+        const aInput = form.querySelector('input[name="answers"]');
+        const quizQuestion = document.getElementById("quiz-question-image")?.value;
+
+        if (qInput) qInput.value = quizQuestion || data.questionImageOriginalName || data.questionImage || "";
+        if (sInput) sInput.value = data.selectedKey ?? "";
+        if (cInput) cInput.value = data.correctAnswerFile ?? "";
+        if (aInput && data.answers?.length) {
+            const dict = {};
+            data.answers.forEach((a) => {
+                if (a.key) dict[a.key] = a.fileName ?? "";
+            });
+            aInput.value = JSON.stringify(dict);
+        }
     }
 
     function applyAnswerResult(data) {
@@ -565,8 +589,7 @@
             openGitHubStarModal(data.githubStarMilestone, data.githubStarUrl);
         }
 
-        const selectedInput = document.querySelector('#report-form input[name="selectedAnswer"]');
-        if (selectedInput) selectedInput.value = data.selectedKey ?? "";
+        syncReportFormFromAnswerResult(data);
         scheduleQuizViewportAdjust();
         schedulePrefetchNextQuestion();
     }
@@ -609,8 +632,12 @@
     function syncReportFormForQuestion(data) {
         const qInput = document.querySelector('#report-form input[name="questionImage"]');
         const sInput = document.querySelector('#report-form input[name="selectedAnswer"]');
+        const cInput = document.querySelector('#report-form input[name="correctAnswer"]');
+        const aInput = document.querySelector('#report-form input[name="answers"]');
         if (qInput) qInput.value = data.questionImageOriginalName ?? data.questionImage ?? "";
         if (sInput) sInput.value = "";
+        if (cInput) cInput.value = "";
+        if (aInput) aInput.value = "";
     }
 
     function setHiddenQuestionImage(questionImage) {
@@ -1001,7 +1028,8 @@
             const data = {};
             formData.forEach((value, key) => {
                 if (key === "__RequestVerificationToken") return;
-                if (key === "questionImage" || key === "explanation" || key === "selectedAnswer")
+                if (key === "questionImage" || key === "explanation" || key === "selectedAnswer"
+                    || key === "correctAnswer" || key === "answers")
                     data[key] = value;
             });
 
