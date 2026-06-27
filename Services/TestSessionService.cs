@@ -39,7 +39,13 @@ public class TestSessionService
     public static DateTime GetExamEndUtc(DateTime startedUtc) =>
         EnsureUtc(startedUtc).Add(ExamDuration);
 
-    public TestSessionService(IConfiguration config, SupabaseStorageService storage = null, ActivityEventService activityEvents = null)
+    public static int GetRemainingSeconds(DateTime startedUtc)
+    {
+        var remaining = GetExamEndUtc(startedUtc) - DateTime.UtcNow;
+        return remaining > TimeSpan.Zero ? (int)Math.Ceiling(remaining.TotalSeconds) : 0;
+    }
+
+    public TestSessionService(IConfiguration config, SupabaseStorageService? storage = null, ActivityEventService? activityEvents = null)
     {
         _storage = storage;
         _activityEvents = activityEvents;
@@ -163,7 +169,7 @@ public class TestSessionService
 
             if (_storage != null)
             {
-                session.QuestionsJson = questionsJson;
+                session.QuestionsJson = questionsJson ?? "[]";
                 session.AnswersJson = answersJson;
             }
 
@@ -297,7 +303,7 @@ public class TestSessionService
             return false;
 
         var ok = await UpdateSessionStatusAsync(session.Token, "expired");
-        if (ok)
+        if (ok && _activityEvents != null)
         {
             ActivityEventCatalog.LogExamExpired(
                 _activityEvents,

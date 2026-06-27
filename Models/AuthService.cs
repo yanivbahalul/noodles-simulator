@@ -30,14 +30,14 @@ public class AuthService
     private readonly string _url;
     private readonly string _apiKey;
     private const string PasswordHashPrefix = "pbkdf2$";
-    private readonly UserStatsService _stats;
+    private readonly UserStatsService? _stats;
     private int _cachedOnlineCount = -1;
     private DateTime _cachedOnlineCountAt = DateTime.MinValue;
     private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan PresenceTouchMinInterval = TimeSpan.FromSeconds(60);
     private readonly ConcurrentDictionary<string, DateTime> _lastPresenceByUser = new();
 
-    public AuthService(IConfiguration config, UserStatsService stats = null)
+    public AuthService(IConfiguration config, UserStatsService? stats = null)
     {
         _stats = stats;
         _url = SupabaseConfiguration.Url(config)

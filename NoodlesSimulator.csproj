@@ -4,6 +4,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>NoodlesSimulator</AssemblyName>
     <RootNamespace>NoodlesSimulator</RootNamespace>
+    <Nullable>annotations</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>

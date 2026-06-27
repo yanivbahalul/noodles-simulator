@@ -40,12 +40,16 @@
         }).catch(ignoreDismissError);
     }
 
+    function ignoreBackgroundError() {
+        // background telemetry is best-effort
+    }
+
     function logPromptShown(prompt, details = {}) {
         window.RequestChannels.backgroundFetch("/api/activity/prompt-shown", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt, ...details })
-        }).catch(() => {});
+        }).catch(ignoreBackgroundError);
     }
 
     function ensureFeedbackPrompt(campaignId, milestone) {
@@ -206,7 +210,7 @@
         const fill = document.getElementById("live-xp-fill");
         if (!fill) return;
         fill.classList.remove("level-progress-live-fill--pulse");
-        void fill.offsetWidth;
+        fill.getBoundingClientRect();
         fill.classList.add("level-progress-live-fill--pulse");
     }
 
@@ -551,7 +555,7 @@
             badge.classList.toggle("streak-badge--hot", value >= 7);
             if (options.pulse) {
                 badge.classList.remove("streak-badge--burst");
-                void badge.offsetWidth;
+                badge.getBoundingClientRect();
                 badge.classList.add("streak-badge--burst");
                 setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
             }
@@ -1410,7 +1414,7 @@
         bindDailyCompleteModal();
         bindKeyboardShortcuts();
 
-        void initLevelProgressLive();
+        initLevelProgressLive().catch(ignoreBackgroundError);
 
         bindQuestionImageLoad(document.getElementById("main-question-image"), scheduleQuizViewportAdjust);
         window.addEventListener("resize", scheduleQuizViewportAdjust);

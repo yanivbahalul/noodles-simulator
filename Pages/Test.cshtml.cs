@@ -44,6 +44,7 @@ public class TestModel : PageModel
         public int QuestionCount => TotalQuestions;
         public int ProgressPercent => TotalQuestions == 0 ? 0 : CurrentIndex * 100 / TotalQuestions;
         public string TestEndUtcString { get; set; }
+        public int TestRemainingSeconds { get; set; }
 
         public async Task<IActionResult> OnGet()
         {
@@ -330,6 +331,7 @@ public class TestModel : PageModel
                 displayQuestionNumber = DisplayQuestionNumber,
                 totalQuestions = TotalQuestions,
                 progressPercent = ProgressPercent,
+                remainingSeconds = TestRemainingSeconds,
                 answers = (ShuffledAnswers ?? new Dictionary<string, string>())
                     .Select(kv => new
                     {
@@ -549,6 +551,7 @@ public class TestModel : PageModel
 
             var end = TestSessionService.GetExamEndUtc(state.StartedUtc);
             TestEndUtcString = end.ToString("o");
+            TestRemainingSeconds = TestSessionService.GetRemainingSeconds(state.StartedUtc);
         }
 
         private void LogExamComplete(string username, int score, int maxScore)
