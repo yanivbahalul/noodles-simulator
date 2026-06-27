@@ -1498,6 +1498,12 @@ button.answer-btn,
     gap: 10px;
 }
 
+.stats-metrics-grid-row-spaced {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .stats-metric-card {
     display: flex;
     flex-direction: column;
