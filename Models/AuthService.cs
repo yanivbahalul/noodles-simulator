@@ -506,7 +506,7 @@ public class AuthService
     {
         try
         {
-            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered&limit=1000");
+            var res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,DismissedNotices&limit=1000");
             var json = await res.Content.ReadAsStringAsync();
             if (!res.IsSuccessStatusCode)
             {

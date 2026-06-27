@@ -60,7 +60,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
-        }).catch(ignoreDismissError);
+        }).then((res) => res.ok).catch(() => false);
     }
 
     function openGitHubStarModal(milestone, url) {
@@ -1017,32 +1017,38 @@
         const laterBtn = document.getElementById("github-star-later-btn");
         if (!modal || !acceptBtn || !laterBtn) return;
 
-        acceptBtn.addEventListener("click", () => {
+        acceptBtn.addEventListener("click", async () => {
             const url = modal.dataset.repoUrl || "https://github.com/yanivbahalul/noodles-simulator";
             window.open(url, "_blank", "noopener,noreferrer");
-            dismissGitHubStarNotice("github-star-opted-in");
-            closeGitHubStarModal();
-            document.getElementById("github-star-prompt")?.remove();
+            acceptBtn.disabled = true;
+            laterBtn.disabled = true;
+            const ok = await dismissGitHubStarNotice("github-star-opted-in");
+            if (ok) {
+                closeGitHubStarModal();
+                document.getElementById("github-star-prompt")?.remove();
+                return;
+            }
+            acceptBtn.disabled = false;
+            laterBtn.disabled = false;
         });
 
-        laterBtn.addEventListener("click", () => {
+        laterBtn.addEventListener("click", async () => {
             const milestone = parseInt(modal.dataset.milestone, 10);
-            if (milestone > 0) {
-                dismissGitHubStarNotice(`github-star-${milestone}`);
+            if (milestone <= 0) return;
+            acceptBtn.disabled = true;
+            laterBtn.disabled = true;
+            const ok = await dismissGitHubStarNotice(`github-star-${milestone}`);
+            if (ok) {
+                closeGitHubStarModal();
+                document.getElementById("github-star-prompt")?.remove();
+                return;
             }
-            closeGitHubStarModal();
-            document.getElementById("github-star-prompt")?.remove();
+            acceptBtn.disabled = false;
+            laterBtn.disabled = false;
         });
 
         modal.addEventListener("click", (e) => {
-            if (e.target === modal) {
-                const milestone = parseInt(modal.dataset.milestone, 10);
-                if (milestone > 0) {
-                    dismissGitHubStarNotice(`github-star-${milestone}`);
-                }
-                closeGitHubStarModal();
-                document.getElementById("github-star-prompt")?.remove();
-            }
+            if (e.target === modal) closeGitHubStarModal();
         });
 
         openGitHubStarModalIfPending();

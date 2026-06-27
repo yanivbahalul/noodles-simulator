@@ -24,6 +24,29 @@ public static class GitHubStarPrompt
 
     public static string NoticeIdForMilestone(int milestone) => $"github-star-{milestone}";
 
+    public static bool HasAccepted(User? user) =>
+        user?.DismissedNotices?.Contains(OptedInNoticeId, StringComparer.Ordinal) == true;
+
+    public static bool HasDismissedMilestone(User? user, int milestone) =>
+        milestone > 0 &&
+        user?.DismissedNotices?.Contains(NoticeIdForMilestone(milestone), StringComparer.Ordinal) == true;
+
+    public static bool IsValidDismissNoticeId(string? noticeId)
+    {
+        if (string.IsNullOrWhiteSpace(noticeId))
+            return false;
+
+        if (string.Equals(noticeId, OptedInNoticeId, StringComparison.Ordinal))
+            return true;
+
+        if (!noticeId.StartsWith("github-star-", StringComparison.Ordinal))
+            return false;
+
+        return int.TryParse(noticeId.AsSpan("github-star-".Length), out var milestone) &&
+               milestone >= MilestoneInterval &&
+               milestone % MilestoneInterval == 0;
+    }
+
     /// <summary>
     /// The milestone bucket for the user's current answer count (100 for 100–199, 200 for 200–299, …).
     /// Returns 0 if the user has not yet reached the first milestone.
@@ -36,32 +59,22 @@ public static class GitHubStarPrompt
         return totalAnswered / MilestoneInterval * MilestoneInterval;
     }
 
-    public static bool IsGitHubStarNotice(string? noticeId)
-    {
-        if (string.IsNullOrWhiteSpace(noticeId))
-            return false;
-
-        return noticeId.StartsWith("github-star-", StringComparison.Ordinal);
-    }
+    public static bool IsGitHubStarNotice(string? noticeId) => IsValidDismissNoticeId(noticeId);
 
     public static bool ShouldPrompt(User? user)
     {
         if (user == null)
             return false;
 
+        if (HasAccepted(user))
+            return false;
+
         var milestone = GetActiveMilestone(user.TotalAnswered);
         if (milestone == 0)
             return false;
 
-        var dismissed = user.DismissedNotices;
-        if (dismissed != null)
-        {
-            if (dismissed.Contains(OptedInNoticeId, StringComparer.Ordinal))
-                return false;
-
-            if (dismissed.Contains(NoticeIdForMilestone(milestone), StringComparer.Ordinal))
-                return false;
-        }
+        if (HasDismissedMilestone(user, milestone))
+            return false;
 
         return true;
     }
