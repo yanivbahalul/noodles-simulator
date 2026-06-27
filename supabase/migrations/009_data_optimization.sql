@@ -56,33 +56,46 @@ CREATE TRIGGER users_ensure_stats
     EXECUTE FUNCTION ensure_user_stats_row();
 
 -- Ensure every existing user has a stats row before dropping legacy columns.
-INSERT INTO user_stats ("Username", "Xp", "Level", "WeeklyCorrect", "WeekKey", "DailyCorrect", "DayKey",
-    "DailyChallengeScore", "DailyChallengeDate", "BestExamScore", "BestExamCorrect")
-SELECT
-    "Username",
-    COALESCE("Xp", 0),
-    COALESCE("Level", 1),
-    COALESCE("WeeklyCorrect", 0),
-    COALESCE("WeekKey", ''),
-    COALESCE("DailyCorrect", 0),
-    COALESCE("DayKey", ''),
-    COALESCE("DailyChallengeScore", 0),
-    COALESCE("DailyChallengeDate", ''),
-    COALESCE("BestExamScore", 0),
-    COALESCE("BestExamCorrect", 0)
-FROM users
-ON CONFLICT ("Username") DO UPDATE SET
-    "Xp" = GREATEST(user_stats."Xp", EXCLUDED."Xp"),
-    "Level" = GREATEST(user_stats."Level", EXCLUDED."Level"),
-    "WeeklyCorrect" = GREATEST(user_stats."WeeklyCorrect", EXCLUDED."WeeklyCorrect"),
-    "WeekKey" = CASE WHEN EXCLUDED."WeekKey" <> '' THEN EXCLUDED."WeekKey" ELSE user_stats."WeekKey" END,
-    "DailyCorrect" = GREATEST(user_stats."DailyCorrect", EXCLUDED."DailyCorrect"),
-    "DayKey" = CASE WHEN EXCLUDED."DayKey" <> '' THEN EXCLUDED."DayKey" ELSE user_stats."DayKey" END,
-    "DailyChallengeScore" = GREATEST(user_stats."DailyChallengeScore", EXCLUDED."DailyChallengeScore"),
-    "DailyChallengeDate" = CASE WHEN EXCLUDED."DailyChallengeDate" <> '' THEN EXCLUDED."DailyChallengeDate" ELSE user_stats."DailyChallengeDate" END,
-    "BestExamScore" = GREATEST(user_stats."BestExamScore", EXCLUDED."BestExamScore"),
-    "BestExamCorrect" = GREATEST(user_stats."BestExamCorrect", EXCLUDED."BestExamCorrect"),
-    "UpdatedAt" = now();
+-- Legacy gamification columns may already be gone (007 backfill or a partial 009 run).
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'Xp'
+    ) THEN
+        INSERT INTO user_stats ("Username", "Xp", "Level", "WeeklyCorrect", "WeekKey", "DailyCorrect", "DayKey",
+            "DailyChallengeScore", "DailyChallengeDate", "BestExamScore", "BestExamCorrect")
+        SELECT
+            "Username",
+            COALESCE("Xp", 0),
+            COALESCE("Level", 1),
+            COALESCE("WeeklyCorrect", 0),
+            COALESCE("WeekKey", ''),
+            COALESCE("DailyCorrect", 0),
+            COALESCE("DayKey", ''),
+            COALESCE("DailyChallengeScore", 0),
+            COALESCE("DailyChallengeDate", ''),
+            COALESCE("BestExamScore", 0),
+            COALESCE("BestExamCorrect", 0)
+        FROM users
+        ON CONFLICT ("Username") DO UPDATE SET
+            "Xp" = GREATEST(user_stats."Xp", EXCLUDED."Xp"),
+            "Level" = GREATEST(user_stats."Level", EXCLUDED."Level"),
+            "WeeklyCorrect" = GREATEST(user_stats."WeeklyCorrect", EXCLUDED."WeeklyCorrect"),
+            "WeekKey" = CASE WHEN EXCLUDED."WeekKey" <> '' THEN EXCLUDED."WeekKey" ELSE user_stats."WeekKey" END,
+            "DailyCorrect" = GREATEST(user_stats."DailyCorrect", EXCLUDED."DailyCorrect"),
+            "DayKey" = CASE WHEN EXCLUDED."DayKey" <> '' THEN EXCLUDED."DayKey" ELSE user_stats."DayKey" END,
+            "DailyChallengeScore" = GREATEST(user_stats."DailyChallengeScore", EXCLUDED."DailyChallengeScore"),
+            "DailyChallengeDate" = CASE WHEN EXCLUDED."DailyChallengeDate" <> '' THEN EXCLUDED."DailyChallengeDate" ELSE user_stats."DailyChallengeDate" END,
+            "BestExamScore" = GREATEST(user_stats."BestExamScore", EXCLUDED."BestExamScore"),
+            "BestExamCorrect" = GREATEST(user_stats."BestExamCorrect", EXCLUDED."BestExamCorrect"),
+            "UpdatedAt" = now();
+    ELSE
+        INSERT INTO user_stats ("Username")
+        SELECT "Username" FROM users
+        ON CONFLICT ("Username") DO NOTHING;
+    END IF;
+END $$;
 
 ALTER TABLE users DROP COLUMN IF EXISTS "Xp";
 ALTER TABLE users DROP COLUMN IF EXISTS "Level";
