@@ -8,9 +8,12 @@ data-keys/
 
 wwwroot/reports/*.json
 wwwroot/progress/*.json
-progress/*.json 
-scripts/load-test-50users.py
-scripts/*.sql
+progress/*.json
 
-# Supabase SQL — run manually in SQL editor, not versioned
-supabase/migrations/
+# Dev / testing — not needed for Railway deploy
+.mcp.json
+postman/
+scripts/
+
+# Supabase — local CLI + manual SQL editor, not versioned
+supabase/

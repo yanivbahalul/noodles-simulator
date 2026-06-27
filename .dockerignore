@@ -1,0 +1,14 @@
+.git
+.cursor
+.env
+data-keys
+.mcp.json
+postman
+scripts
+supabase
+bin
+obj
+out
+.deepsource.toml
+appsettings.Development.json
+Properties/launchSettings.json
