@@ -10,3 +10,7 @@ wwwroot/reports/*.json
 wwwroot/progress/*.json
 progress/*.json 
 scripts/load-test-50users.py
+scripts/*.sql
+
+# Supabase SQL — run manually in SQL editor, not versioned
+supabase/migrations/
