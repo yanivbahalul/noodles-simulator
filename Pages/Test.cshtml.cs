@@ -17,7 +17,6 @@ namespace NoodlesSimulator.Pages;
 public class TestModel : PageModel
 {
         private const int TotalQuestions = 17;
-        private static readonly TimeSpan TestDuration = TimeSpan.FromHours(2);
 
         private readonly SupabaseStorageService _storage;
         private readonly QuestionStatsService _stats;
@@ -127,7 +126,7 @@ public class TestModel : PageModel
 
             var testState = new TestState
             {
-                StartedUtc = session.StartedUtc,
+                StartedUtc = TestSessionService.EnsureUtc(session.StartedUtc),
                 Questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options) ?? new List<TestQuestion>(),
                 Answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>(),
                 CurrentIndex = session.CurrentIndex
@@ -310,7 +309,7 @@ public class TestModel : PageModel
 
             var state = new TestState
             {
-                StartedUtc = session.StartedUtc,
+                StartedUtc = TestSessionService.EnsureUtc(session.StartedUtc),
                 Questions = questions,
                 Answers = answers,
                 CurrentIndex = session.CurrentIndex
@@ -548,8 +547,8 @@ public class TestModel : PageModel
             QuestionImageUrl = resolved.QuestionUrl;
             AnswerImageUrls = resolved.AnswerUrls;
 
-            var end = state.StartedUtc.Add(TestDuration);
-            TestEndUtcString = end.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var end = TestSessionService.GetExamEndUtc(state.StartedUtc);
+            TestEndUtcString = end.ToString("o");
         }
 
         private void LogExamComplete(string username, int score, int maxScore)

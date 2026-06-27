@@ -132,6 +132,12 @@ public class IndexModel : PageModel
     public string QuestionImageOriginalName { get; set; }
     public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
+    private int _lastXpGain;
+    private int _levelUpTo;
+    private int _brokenStreakAt;
+    private bool _dailyJustCompleted;
+    private int _dailyFinalScore;
+
     public async Task<IActionResult> OnGetAsync()
     {
         try
@@ -322,8 +328,6 @@ public class IndexModel : PageModel
             SaveAnswerFlashToSession();
             ClearPrefetch();
             await PopulateUserStatsAsync(auth.User);
-            var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
-            await TryResolveFeedbackPromptAsync(auth.User, isAdmin);
             ShowGitHubStarModal = GitHubStarPrompt.ShouldPrompt(auth.User);
             if (ShowGitHubStarModal)
                 GitHubStarMilestone = GitHubStarPrompt.GetActiveMilestone(auth.User.TotalAnswered);
@@ -389,14 +393,13 @@ public class IndexModel : PageModel
 
         if (_userProgress != null)
         {
-            var progress = _userProgress.Load(user.Username);
-            var (progTotal, progCorrect) = _userProgress.GetAnswerTotals(user.Username);
-            UserCorrect = Math.Max(user.CorrectAnswers, progCorrect);
-            UserTotal = Math.Max(user.TotalAnswered, progTotal);
-            UserXp = Math.Max(user.Xp, progress.Xp);
+            var snap = _userProgress.GetQuizStatsSnapshot(user.Username);
+            UserCorrect = Math.Max(user.CorrectAnswers, snap.CorrectAnswers);
+            UserTotal = Math.Max(user.TotalAnswered, snap.TotalAnswered);
+            UserXp = Math.Max(user.Xp, snap.Xp);
             user.Xp = UserXp;
-            user.Level = QuizGamification.LevelFromXp(UserXp);
-            UserLevel = user.Level;
+            UserLevel = QuizGamification.LevelFromXp(UserXp);
+            user.Level = UserLevel;
             XpProgressPercent = QuizGamification.XpProgressPercent(UserXp);
         }
         else
@@ -673,12 +676,14 @@ public class IndexModel : PageModel
 
     private async Task ProcessSubmittedAnswerCoreAsync(User user)
     {
+        ResetAnswerFeedbackState();
         ApplyAnswerToUserStats(user);
 
         var streak = UpdateAnswerStreak();
         var practiceMode = HttpContext.Session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = HttpContext.Session.GetString("PracticeDifficulty") ?? "";
         var xpGain = IsCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
+        _lastXpGain = xpGain;
 
         RecordPracticeProgress(user, streak, practiceMode, practiceDifficulty, xpGain);
         SyncUserLevelFromProgress(user);
@@ -863,7 +868,8 @@ public class IndexModel : PageModel
 
     private int UpdateAnswerStreak()
     {
-        var streak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+        var previous = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
+        var streak = previous;
         if (IsCorrect)
         {
             streak++;
@@ -871,6 +877,8 @@ public class IndexModel : PageModel
         }
         else
         {
+            if (previous >= 3)
+                _brokenStreakAt = previous;
             streak = 0;
             HttpContext.Session.SetInt32("CurrentStreak", 0);
         }
@@ -936,6 +944,9 @@ public class IndexModel : PageModel
         _userProgress.RecordDailyChallengeComplete(user.Username, finalScore >= DailyTotal);
         NewlyUnlockedAchievements.AddRange(_achievements.CheckDailyAchievements(user.Username));
         ActivityEventCatalog.LogDailyComplete(_activityEvents, user.Username, finalScore, DailyTotal);
+        _dailyJustCompleted = true;
+        _dailyFinalScore = finalScore;
+        IsDailyComplete = true;
     }
 
     private void SyncUserLevelFromProgress(User user)
@@ -947,10 +958,13 @@ public class IndexModel : PageModel
         user.Xp = progress.Xp;
         user.Level = QuizGamification.LevelFromXp(user.Xp);
         if (user.Level > oldLevel)
+        {
+            _levelUpTo = user.Level;
             ActivityEventCatalog.LogLevelUp(_activityEvents, user.Username, user.Level);
+        }
     }
 
-    private async Task FinalizeAnswerSubmissionAsync(User user, int streak)
+    private Task FinalizeAnswerSubmissionAsync(User user, int streak)
     {
         if (_achievements != null)
             NewlyUnlockedAchievements.AddRange(_achievements.CheckPracticeAchievements(user.Username, streak, user.TotalAnswered, user.Xp));
@@ -958,10 +972,16 @@ public class IndexModel : PageModel
         if (NewlyUnlockedAchievements.Count > 0)
             HttpContext.Session.SetString("PendingAchievements", JsonSerializer.Serialize(NewlyUnlockedAchievements, AppJson.Options));
 
-        try { await _authService.UpdateUserAsync(user); }
-        catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
+        _ = SyncUserToAuthAsync(user);
 
         UpdateRapidAnswerCounters();
+        return Task.CompletedTask;
+    }
+
+    private async Task SyncUserToAuthAsync(User user)
+    {
+        try { await _authService.UpdateUserAsync(user); }
+        catch (Exception ex) { Console.WriteLine($"[OnPostAsync UpdateUserAsync Error] {ex.Message}"); }
     }
 
     private static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty) =>
@@ -1591,6 +1611,15 @@ public class IndexModel : PageModel
         }
     }
 
+    private void ResetAnswerFeedbackState()
+    {
+        _lastXpGain = 0;
+        _levelUpTo = 0;
+        _brokenStreakAt = 0;
+        _dailyJustCompleted = false;
+        _dailyFinalScore = 0;
+    }
+
     private object BuildSubmitAnswerResponse()
     {
         var achievements = NewlyUnlockedAchievements
@@ -1635,7 +1664,18 @@ public class IndexModel : PageModel
                 successRate = UserSuccessRate,
                 streak = CurrentStreak,
                 xp = UserXp,
-                level = UserLevel
+                level = UserLevel,
+                xpProgressPercent = XpProgressPercent,
+                xpToNextLevel = QuizGamification.XpToNextLevel(UserXp)
+            },
+            feedback = new
+            {
+                xpGain = _lastXpGain,
+                levelUpTo = _levelUpTo > 0 ? _levelUpTo : (int?)null,
+                brokenStreak = _brokenStreakAt,
+                dailyComplete = _dailyJustCompleted,
+                dailyScore = _dailyFinalScore,
+                dailyTotal = DailyTotal
             },
             achievements,
             redirect = (string)null,

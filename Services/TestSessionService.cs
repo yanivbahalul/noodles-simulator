@@ -26,7 +26,18 @@ public class TestSessionService
     private readonly string _apiKey;
     private readonly SupabaseStorageService? _storage;
     private readonly ActivityEventService? _activityEvents;
-    private static readonly TimeSpan TestDuration = TimeSpan.FromHours(2);
+    private static readonly TimeSpan TestDuration = ExamDuration;
+    public static readonly TimeSpan ExamDuration = TimeSpan.FromHours(3);
+
+    public static DateTime EnsureUtc(DateTime value)
+    {
+        if (value.Kind == DateTimeKind.Utc) return value;
+        if (value.Kind == DateTimeKind.Local) return value.ToUniversalTime();
+        return DateTime.SpecifyKind(value, DateTimeKind.Utc);
+    }
+
+    public static DateTime GetExamEndUtc(DateTime startedUtc) =>
+        EnsureUtc(startedUtc).Add(ExamDuration);
 
     public TestSessionService(IConfiguration config, SupabaseStorageService storage = null, ActivityEventService activityEvents = null)
     {
@@ -332,15 +343,13 @@ public class TestSessionService
     public bool IsExpired(TestSession session)
     {
         if (session == null) return true;
-        var end = session.StartedUtc.Add(TestDuration);
-        return DateTime.UtcNow >= end;
+        return DateTime.UtcNow >= GetExamEndUtc(session.StartedUtc);
     }
 
     public TimeSpan GetRemainingTime(TestSession session)
     {
         if (session == null) return TimeSpan.Zero;
-        var end = session.StartedUtc.Add(TestDuration);
-        var remaining = end - DateTime.UtcNow;
+        var remaining = GetExamEndUtc(session.StartedUtc) - DateTime.UtcNow;
         return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
     }
 

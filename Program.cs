@@ -1239,13 +1239,37 @@ api.MapGet("/stats-data", async context =>
 
     try
     {
+        var username = context.Session.GetString("Username")!;
+        var streak = context.Session.GetInt32("CurrentStreak") ?? 0;
+        var progressService = context.RequestServices.GetService<UserProgressService>();
+
+        if (progressService != null)
+        {
+            var snap = progressService.GetQuizStatsSnapshot(username);
+            var successRate = snap.TotalAnswered > 0
+                ? (int)Math.Round((double)snap.CorrectAnswers / snap.TotalAnswered * 100)
+                : 0;
+
+            await WriteJson(context, new
+            {
+                correct = snap.CorrectAnswers,
+                total = snap.TotalAnswered,
+                successRate,
+                streak,
+                level = snap.Level,
+                xp = snap.Xp,
+                xpProgressPercent = snap.XpProgressPercent,
+                xpToNextLevel = snap.XpToNextLevel
+            });
+            return;
+        }
+
         if (!TryResolveAuthService(context, out var authService))
         {
             await WritePlainError(context, 503, "AuthService not available");
             return;
         }
 
-        var username = context.Session.GetString("Username")!;
         var user = await authService.GetUserAsync(username);
         if (user == null)
         {
@@ -1253,31 +1277,22 @@ api.MapGet("/stats-data", async context =>
             return;
         }
 
-        var progressService = context.RequestServices.GetService<UserProgressService>();
-        var correct = user.CorrectAnswers;
-        var total = user.TotalAnswered;
         var xp = user.Xp;
-        var streak = context.Session.GetInt32("CurrentStreak") ?? 0;
         var level = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(xp);
+        var total = user.TotalAnswered;
+        var correct = user.CorrectAnswers;
+        var successRateFallback = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
 
-        if (progressService != null)
-        {
-            var progress = progressService.Load(username);
-            var (progTotal, progCorrect) = progressService.GetAnswerTotals(username);
-            correct = Math.Max(correct, progCorrect);
-            total = Math.Max(total, progTotal);
-            xp = Math.Max(xp, progress.Xp);
-        }
-
-        var successRate = total > 0 ? (int)Math.Round((double)correct / total * 100) : 0;
         await WriteJson(context, new
         {
             correct,
             total,
-            successRate,
+            successRate = successRateFallback,
             streak,
             level,
-            xp
+            xp,
+            xpProgressPercent = QuizGamification.XpProgressPercent(xp),
+            xpToNextLevel = QuizGamification.XpToNextLevel(xp)
         });
     }
     catch (Exception ex)

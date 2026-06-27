@@ -56,6 +56,77 @@
         ]);
     };
 
+    function ensureQuizNotifyStack() {
+        let stack = document.getElementById("quiz-notify-stack");
+        if (stack) return stack;
+
+        stack = document.createElement("div");
+        stack.id = "quiz-notify-stack";
+        stack.className = "quiz-notify-stack";
+        stack.setAttribute("aria-live", "polite");
+        stack.setAttribute("aria-relevant", "additions");
+        document.body.appendChild(stack);
+        return stack;
+    }
+
+    function dismissQuizNotifyCard(card) {
+        if (!card || card.dataset.dismissing === "1") return;
+        card.dataset.dismissing = "1";
+        card.classList.remove("quiz-notify-card--visible");
+        card.classList.add("quiz-notify-card--hide");
+        setTimeout(() => card.remove(), 280);
+    }
+
+    window.pushQuizNotify = function pushQuizNotify(options = {}) {
+        const {
+            type = "info",
+            title = "",
+            message = "",
+            durationMs = 5500
+        } = options;
+        const text = (message ?? "").trim();
+        if (!text && !title) return null;
+
+        const stack = ensureQuizNotifyStack();
+        const card = document.createElement("div");
+        card.className = `quiz-notify-card quiz-notify-card--${type}`;
+        card.innerHTML = title
+            ? `<p class="quiz-notify-title">${title}</p><p class="quiz-notify-message">${message ?? ""}</p>`
+            : `<p class="quiz-notify-message">${message ?? ""}</p>`;
+
+        stack.appendChild(card);
+        requestAnimationFrame(() => card.classList.add("quiz-notify-card--visible"));
+
+        const maxVisible = 6;
+        while (stack.children.length > maxVisible) {
+            dismissQuizNotifyCard(stack.firstElementChild);
+        }
+
+        const timer = setTimeout(() => dismissQuizNotifyCard(card), durationMs);
+        card.addEventListener("click", () => {
+            clearTimeout(timer);
+            dismissQuizNotifyCard(card);
+        });
+
+        return card;
+    };
+
+    window.showAppToast = function showAppToast(message, durationMs = 3200) {
+        let toast = document.getElementById("app-toast");
+        if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "app-toast";
+            toast.className = "app-toast";
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message ?? "";
+        toast.classList.add("app-toast-visible");
+        clearTimeout(window.__appToastTimer);
+        window.__appToastTimer = setTimeout(() => {
+            toast.classList.remove("app-toast-visible");
+        }, durationMs);
+    };
+
     window.bindConfirmEndTestButtons = function bindConfirmEndTestButtons(message) {
         document.querySelectorAll(".confirm-end-test-btn").forEach((btn) => {
             btn.addEventListener("click", async (e) => {

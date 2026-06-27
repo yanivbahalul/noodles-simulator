@@ -48,7 +48,7 @@
 </head>
 <body>
 
-<img src="/assets/background.gif" alt="רקע" class="background-gif" />
+<img src="/assets/background.gif" alt="רקע" class="background-gif" loading="lazy" fetchpriority="low" decoding="async" />
 
 <partial name="Shared/_TopBar" />
 <partial name="Shared/_LogoHeader" />
@@ -62,19 +62,35 @@
 </p>
 
 <div class="practice-mode-stack">
-    <p class="practice-mode-badge" id="practice-mode-badge">
-        @modeLabel
-        @if (Model.PracticeMode == "daily")
-        {
-            <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
-        }
-    </p>
-    <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden")>@Model.CurrentStreak 🔥</span>
+    <div class="practice-mode-top">
+        <p class="practice-mode-badge" id="practice-mode-badge">
+            @modeLabel
+            @if (Model.PracticeMode == "daily")
+            {
+                <span class="practice-mode-daily">@Model.DailyProgress/@Model.DailyTotal</span>
+            }
+        </p>
+    </div>
+    <div class="practice-mode-streak">
+        <span class="streak-badge" id="streak-badge" @(Model.CurrentStreak > 0 ? "" : "hidden") aria-label="רצף תשובות נכונות">
+            <img src="/images/streak/flame-icon.gif?v=3" alt="" class="streak-flame-bg" width="300" height="300" decoding="async" aria-hidden="true" />
+            <span class="streak-badge-text" id="streak-badge-text">@Model.CurrentStreak</span>
+        </span>
+    </div>
+    <div class="level-progress-live" id="level-progress-live" aria-label="התקדמות רמה">
+        <span class="level-progress-live-label">רמה <strong id="live-level">@Model.UserLevel</strong></span>
+        <div class="level-progress-live-track" aria-hidden="true">
+            <div class="level-progress-live-fill" id="live-xp-fill" style="--xp-progress: @Model.XpProgressPercent%"></div>
+        </div>
+        <span class="level-progress-live-meta" id="live-xp-meta">
+            נותר @QuizGamification.XpToNextLevel(Model.UserXp) XP לרמה ההבאה
+        </span>
+    </div>
 </div>
 
 @if (Model.NewlyUnlockedAchievements.Count > 0)
 {
-    <div id="achievement-toast" class="achievement-toast">
+    <div id="achievement-toast" class="achievement-toast" hidden>
         @foreach (var key in Model.NewlyUnlockedAchievements)
         {
             var def = NoodlesSimulator.Models.AchievementCatalog.Find(key);
@@ -89,7 +105,7 @@
 <div id="quiz-page-data" data-answer-checked="@(Model.AnswerChecked ? "1" : "0")" hidden></div>
 
 <div class="quiz-container">
-    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="lazy" id="main-question-image" class="quiz-main-image" />
+    <img src="@Model.QuestionImageUrl" alt="שאלה" loading="eager" fetchpriority="high" id="main-question-image" class="quiz-main-image" />
 
     <form method="post" id="quiz-answer-form">
         @Html.AntiForgeryToken()
@@ -128,6 +144,8 @@
     {
         <p class="quiz-answer-feedback" id="answer-feedback" hidden></p>
     }
+
+    <p class="quiz-keyboard-hint" id="quiz-keyboard-hint">קיצורים: 1–4 לבחירה · Enter לשאלה הבאה</p>
 
     <div class="button-row">
         <form class="inline-form-reset">
@@ -289,6 +307,17 @@
     </div>
 </div>
 
+<div id="daily-complete-modal" class="difficulty-modal daily-complete-modal">
+    <div class="difficulty-modal-content daily-complete-content">
+        <h2 class="difficulty-modal-title">🎯 סיימת אתגר יומי!</h2>
+        <p class="difficulty-modal-message" id="daily-complete-score"></p>
+        <p class="difficulty-modal-message daily-complete-sub">חזור מחר לאתגר חדש, או המשך בתרגול חופשי.</p>
+        <div class="difficulty-buttons difficulty-buttons-single">
+            <button type="button" class="difficulty-btn difficulty-easy" id="daily-complete-dismiss-btn">המשך</button>
+        </div>
+    </div>
+</div>
+
 <div id="image-modal" class="image-modal">
     <span class="close-modal" id="close-image-modal-btn">&times;</span>
     <img class="modal-content" id="modal-img" src="@Model.QuestionImageUrl" alt="שאלה מוגדלת" />
@@ -364,6 +393,7 @@
 </div>
 
 <script src="/js/dialog.js"></script>
+<script src="/js/request-channels.js" asp-append-version="true"></script>
 <script src="/js/index-page.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -564,29 +564,187 @@ button.answer-btn,
 }
 
 .streak-badge {
+    --streak-flame-size: 34px;
+    position: relative;
+    display: inline-block;
+    width: var(--streak-flame-size);
+    height: var(--streak-flame-size);
+    margin: 0;
+    padding: 0;
+    line-height: 0;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.streak-badge[hidden] {
+    display: none !important;
+}
+
+.streak-flame-bg {
     display: block;
-    width: fit-content;
-    margin: 0 auto;
-    padding: 2px 8px;
-    background: rgba(255, 120, 0, 0.25);
-    border: 1px solid rgba(255, 160, 0, 0.5);
-    border-radius: 12px;
-    font-size: 0.65em;
-    line-height: 1.3;
-    color: rgba(255, 255, 255, 0.9);
-    animation: answerPulse 1s ease infinite;
+    width: var(--streak-flame-size);
+    height: var(--streak-flame-size);
+    max-width: none;
+    max-height: none;
+    object-fit: fill;
+}
+
+.streak-badge-text {
+    position: absolute;
+    left: 50%;
+    top: 74%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    font-weight: 800;
+    font-size: 12px;
+    line-height: 1;
+    color: #fff;
+    letter-spacing: -0.03em;
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.9),
+        0 0 4px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+}
+
+.streak-badge--hot {
+    --streak-flame-size: 38px;
+}
+
+.streak-badge--hot .streak-badge-text {
+    font-size: 13px;
+}
+
+.streak-badge--burst .streak-badge-text {
+    animation: streakBadgeBurst 0.45s ease;
+}
+
+@keyframes streakBadgeBurst {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    40% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .streak-badge--burst .streak-badge-text {
+        animation: none;
+    }
 }
 
 .practice-mode-stack {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 5px;
+    margin-bottom: 6px;
+    padding: 8px var(--gutter-page, 12px) 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.practice-mode-top {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
-    margin-bottom: 4px;
+    flex-wrap: wrap;
+    overflow: visible;
+}
+
+.practice-mode-streak {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    line-height: 0;
+}
+
+.practice-mode-streak:has(#streak-badge[hidden]) {
+    display: none;
 }
 
 .practice-mode-stack .practice-mode-badge {
-    margin: 0 auto;
+    margin: 0;
+}
+
+.level-progress-live {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: min(100%, 420px);
+    padding: 3px 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 215, 0, 0.18);
+    border-radius: 999px;
+    box-sizing: border-box;
+}
+
+.level-progress-live-label {
+    flex: 0 0 auto;
+    font-size: 0.62em;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+}
+
+.level-progress-live-label strong {
+    color: #ffd700;
+    font-weight: 700;
+}
+
+.level-progress-live-track {
+    flex: 1 1 auto;
+    min-width: 48px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+    direction: ltr;
+}
+
+@property --xp-progress {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: 0%;
+}
+
+.level-progress-live-fill {
+    width: var(--xp-progress, 0%);
+    max-width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ff9800);
+    border-radius: 999px;
+    transition: none;
+}
+
+.level-progress-live-fill--animate {
+    transition: --xp-progress 0.45s ease;
+}
+
+.level-progress-live-fill--pulse {
+    animation: xpBarPulse 0.65s ease;
+}
+
+@keyframes xpBarPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.45); box-shadow: 0 0 6px rgba(255, 215, 0, 0.45); }
+}
+
+.level-progress-live-meta {
+    flex: 0 0 auto;
+    font-size: 0.58em;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+    .level-progress-live-meta {
+        display: none;
+    }
+
+    .level-progress-live {
+        width: min(100%, 280px);
+    }
 }
 
 .practice-mode-badge {
@@ -680,31 +838,94 @@ button.answer-btn,
     font-weight: 600;
 }
 
-.achievement-toast {
+.quiz-notify-stack {
     position: fixed;
-    top: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    max-width: 90vw;
-    padding: 14px 20px;
-    background: rgba(30, 30, 30, 0.95);
-    border: 2px solid #ffd700;
-    border-radius: var(--radius-md);
-    color: #fff;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    animation: slideDown 0.4s ease;
-}
-
-.achievement-toast-hide {
-    opacity: 0;
-    transition: opacity 0.5s;
+    top: 72px;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    z-index: 10040;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(340px, calc(100vw - 24px));
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
+    overflow-x: hidden;
     pointer-events: none;
 }
 
-@keyframes slideDown {
-    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+.quiz-notify-card {
+    pointer-events: auto;
+    padding: 10px 14px;
+    background: rgba(18, 18, 18, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-md);
+    color: #fff;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    font-size: var(--fs-sm, 0.85rem);
+    line-height: 1.45;
+    cursor: pointer;
+    transform: translateX(110%);
+    opacity: 0;
+    transition: transform 0.28s ease, opacity 0.28s ease;
+}
+
+.quiz-notify-card--visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.quiz-notify-card--hide {
+    transform: translateX(110%);
+    opacity: 0;
+}
+
+.quiz-notify-card--achievement {
+    border-color: rgba(255, 215, 0, 0.55);
+    box-shadow: 0 8px 28px rgba(255, 180, 0, 0.12);
+}
+
+.quiz-notify-card--levelUp {
+    border-color: rgba(85, 239, 196, 0.55);
+    box-shadow: 0 8px 28px rgba(85, 239, 196, 0.1);
+}
+
+.quiz-notify-title {
+    margin: 0 0 4px;
+    font-size: 0.78em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.72);
+    letter-spacing: 0.02em;
+}
+
+.quiz-notify-message {
+    margin: 0;
+}
+
+.quiz-notify-message strong {
+    color: #ffd700;
+    font-weight: 700;
+}
+
+.quiz-notify-card--levelUp .quiz-notify-message strong {
+    color: #55efc4;
+}
+
+@media (max-width: 540px) {
+    .quiz-notify-stack {
+        top: auto;
+        bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+        right: max(8px, env(safe-area-inset-right, 0px));
+        width: min(300px, calc(100vw - 16px));
+        max-height: 40vh;
+    }
+}
+
+.achievement-toast:not(.achievement-toast-inline) {
+    display: none;
+}
+
+.achievement-toast-hide {
+    display: none;
 }
 
 .achievement-toast-item {
@@ -832,9 +1053,17 @@ button.answer-btn,
 }
 
 .achievement-toast-inline {
+    display: block;
     position: static;
     transform: none;
     margin: 16px 0;
+    max-width: 100%;
+    padding: 14px 20px;
+    background: rgba(30, 30, 30, 0.95);
+    border: 2px solid #ffd700;
+    border-radius: var(--radius-md);
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 
@@ -1071,6 +1300,41 @@ button.answer-btn,
 
 .quiz-answer-feedback.is-correct { color: #32cd32; }
 .quiz-answer-feedback.is-incorrect { color: #ff4c4c; }
+
+.quiz-keyboard-hint {
+    margin: 8px 0 0;
+    text-align: center;
+    font-size: 0.78em;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    z-index: 10050;
+    max-width: min(90vw, 420px);
+    padding: 12px 18px;
+    background: rgba(20, 20, 20, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: var(--fs-base);
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.app-toast-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.daily-complete-sub {
+    opacity: 0.85;
+    font-size: 0.95em;
+}
 
 .report-container {
     display: flex;

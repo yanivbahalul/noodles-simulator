@@ -33,7 +33,7 @@
         modal.classList.remove("difficulty-modal-open");
         const noticeId = prompt?.dataset.noticeId;
         if (!noticeId) return;
-        fetch("/api/notices/dismiss", {
+        window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
@@ -41,7 +41,7 @@
     }
 
     function logPromptShown(prompt, details = {}) {
-        fetch("/api/activity/prompt-shown", {
+        window.RequestChannels.backgroundFetch("/api/activity/prompt-shown", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt, ...details })
@@ -95,7 +95,7 @@
     }
 
     function dismissGitHubStarNotice(noticeId) {
-        return fetch("/api/notices/dismiss", {
+        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
@@ -164,14 +164,66 @@
         if (el) el.textContent = value;
     }
 
-    function applyStatsData(data) {
-        if (data?.correct === undefined) return;
-        setText("stat-correct-panel", data.correct);
-        setText("stat-total-panel", data.total);
-        setText("stat-success-panel", `${data.successRate}%`);
-        if (data.streak !== undefined) setText("stat-streak", data.streak);
-        if (data.level !== undefined) setText("stat-level-value", data.level);
-        if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+    function applyLevelProgressLive(data, options = {}) {
+        if (data?.level !== undefined) {
+            setText("live-level", data.level);
+            setText("stat-level-value", data.level);
+            setText("stat-level-label", data.level);
+        }
+        if (data?.xpProgressPercent !== undefined) {
+            const fill = document.getElementById("live-xp-fill");
+            if (fill) {
+                const nextWidth = `${data.xpProgressPercent}%`;
+                if (fill.style.getPropertyValue("--xp-progress") !== nextWidth) {
+                    fill.style.setProperty("--xp-progress", nextWidth);
+                }
+            }
+        }
+        if (data?.xpToNextLevel !== undefined) {
+            const meta = document.getElementById("live-xp-meta");
+            if (meta) meta.textContent = `נותר ${data.xpToNextLevel} XP לרמה ההבאה`;
+        }
+        if (data?.xp !== undefined) setText("stat-xp-value", data.xp);
+        if (options.pulse && data?.xpGain > 0) pulseLevelBar();
+    }
+
+    function enableLevelProgressTransitions() {
+        const fill = document.getElementById("live-xp-fill");
+        if (!fill) return;
+        fill.classList.add("level-progress-live-fill--animate");
+    }
+
+    async function initLevelProgressLive() {
+        try {
+            await fetchStats();
+        } catch {
+            // keep server-rendered values
+        }
+        enableLevelProgressTransitions();
+    }
+
+    function pulseLevelBar() {
+        const fill = document.getElementById("live-xp-fill");
+        if (!fill) return;
+        fill.classList.remove("level-progress-live-fill--pulse");
+        void fill.offsetWidth;
+        fill.classList.add("level-progress-live-fill--pulse");
+    }
+
+    function applyStatsData(data, options = {}) {
+        if (!data) return;
+        if (data.correct !== undefined) {
+            setText("stat-correct-panel", data.correct);
+            setText("stat-total-panel", data.total);
+            setText("stat-success-panel", `${data.successRate}%`);
+        }
+        if (data.streak !== undefined) {
+            setText("stat-streak", data.streak);
+            if (!options.skipStreakUpdate) {
+                updateStreakBadge(data.streak, { pulse: options.streakPulse });
+            }
+        }
+        applyLevelProgressLive(data, options);
     }
 
     const FEEDBACK_TONES = {
@@ -223,14 +275,24 @@
     function bindAchievementToast() {
         const toast = document.getElementById("achievement-toast");
         if (!toast) return;
-        setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
+        toast.querySelectorAll(".achievement-toast-item").forEach((item, index) => {
+            const text = item.textContent?.trim();
+            if (!text) return;
+            setTimeout(() => {
+                window.pushQuizNotify?.({
+                    type: "achievement",
+                    message: text,
+                    durationMs: 6000
+                });
+            }, index * 120);
+        });
+        toast.remove();
     }
 
     function bindAnswerFeedback() {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback || feedback.hidden) return;
-        const isCorrect = feedback.classList.contains("is-correct");
-        playFeedbackSound(isCorrect);
+        playFeedbackSound(feedback.classList.contains("is-correct"));
     }
 
     function applyOnlineCount(data) {
@@ -255,6 +317,7 @@
 
     function setQuizBusy(on) {
         quizBusy = on;
+        window.RequestChannels?.notifyQuizBusy(on);
         setQuizLoading(on);
         const nextBtn = document.getElementById("next-question-btn");
         if (nextBtn) nextBtn.disabled = on;
@@ -313,7 +376,7 @@
     }
 
     async function fetchNextQuestionData() {
-        const res = await fetch("/Index?handler=PrefetchNextQuestion");
+        const res = await window.RequestChannels.quizFetch("/Index?handler=PrefetchNextQuestion");
         if (res.status === 204 || !res.ok) return null;
         const data = await res.json();
         return data?.questionImage ? data : null;
@@ -429,9 +492,11 @@
 
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
         const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
+        const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
             feedbackHeight +
+            hintHeight +
             32;
     }
 
@@ -474,28 +539,33 @@
         img.addEventListener("error", onLoad, { once: true });
     }
 
-    function ensureStreakBadgeElement(stack) {
-        const existing = document.getElementById("streak-badge");
-        if (existing) return existing;
-        if (!stack) return null;
-        const badge = document.createElement("span");
-        badge.id = "streak-badge";
-        badge.className = "streak-badge";
-        stack.appendChild(badge);
-        return badge;
-    }
-
-    function updateStreakBadge(streak) {
+    function updateStreakBadge(streak, options = {}) {
         const badge = document.getElementById("streak-badge");
-        if (streak > 0) {
-            const activeBadge = ensureStreakBadgeElement(document.querySelector(".practice-mode-stack"));
-            if (activeBadge) {
-                activeBadge.hidden = false;
-                activeBadge.textContent = `${streak} 🔥`;
+        const text = document.getElementById("streak-badge-text");
+        if (!badge) return;
+
+        const value = Number(streak) || 0;
+        if (value > 0) {
+            badge.hidden = false;
+            if (text) text.textContent = String(value);
+            badge.classList.toggle("streak-badge--hot", value >= 7);
+            if (options.pulse) {
+                badge.classList.remove("streak-badge--burst");
+                void badge.offsetWidth;
+                badge.classList.add("streak-badge--burst");
+                setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
             }
             return;
         }
-        if (badge) badge.hidden = true;
+
+        badge.hidden = true;
+        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
+    }
+
+    function syncStreakBadgeFromPage() {
+        const stat = document.getElementById("stat-streak");
+        const parsed = parseInt(stat?.textContent ?? "0", 10);
+        updateStreakBadge(Number.isFinite(parsed) ? parsed : 0);
     }
 
     function updatePracticeModeBadge(data) {
@@ -509,20 +579,17 @@
     }
 
     function showAchievementToast(achievements) {
-        if (!achievements?.length) return;
-        let toast = document.getElementById("achievement-toast");
-        if (!toast) {
-            toast = document.createElement("div");
-            toast.id = "achievement-toast";
-            toast.className = "achievement-toast";
-            const quizContainer = document.querySelector(".quiz-container");
-            quizContainer?.parentNode?.insertBefore(toast, quizContainer);
-        }
-        toast.classList.remove("achievement-toast-hide");
-        toast.innerHTML = achievements.map((a) =>
-            `<p class="achievement-toast-item">${escapeHtml(a.emoji)} הישג חדש: <strong>${escapeHtml(a.title)}</strong> — ${escapeHtml(a.description)}</p>`
-        ).join("");
-        setTimeout(() => toast.classList.add("achievement-toast-hide"), 6000);
+        if (!achievements?.length || !window.pushQuizNotify) return;
+        achievements.forEach((a, index) => {
+            setTimeout(() => {
+                window.pushQuizNotify({
+                    type: "achievement",
+                    title: "הישג חדש",
+                    message: `${a.emoji} <strong>${escapeHtml(a.title)}</strong> — ${escapeHtml(a.description)}`,
+                    durationMs: 6000
+                });
+            }, index * 120);
+        });
     }
 
     function answerFileFromUrl(url) {
@@ -586,10 +653,76 @@
     function showAnswerFeedback(data) {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback) return;
+
         feedback.hidden = false;
         feedback.classList.toggle("is-correct", data.isCorrect);
         feedback.classList.toggle("is-incorrect", !data.isCorrect);
         feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
+    }
+
+    function showLevelUpToast(level) {
+        if (!level || !window.pushQuizNotify) return;
+        window.pushQuizNotify({
+            type: "levelUp",
+            title: "עלית רמה!",
+            message: `⬆️ עלית לרמה <strong>${level}</strong>!`,
+            durationMs: 5500
+        });
+    }
+
+    function showDailyCompleteModal(score, total) {
+        const modal = document.getElementById("daily-complete-modal");
+        const scoreEl = document.getElementById("daily-complete-score");
+        if (!modal) return;
+        if (scoreEl) scoreEl.textContent = `ציון: ${score}/${total}`;
+        modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeDailyCompleteModal() {
+        const modal = document.getElementById("daily-complete-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function triggerHaptic(isCorrect) {
+        if (!isCorrect || !navigator.vibrate) return;
+        try { navigator.vibrate(20); } catch { /* unsupported */ }
+    }
+
+    function isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName?.toLowerCase();
+        return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+    }
+
+    function bindKeyboardShortcuts() {
+        document.addEventListener("keydown", (e) => {
+            if (isTypingTarget(document.activeElement)) return;
+            if (document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open")) return;
+
+            if (e.key === "Enter" && answerChecked && !quizBusy) {
+                const nextBtn = document.getElementById("next-question-btn");
+                if (nextBtn && !nextBtn.disabled) {
+                    e.preventDefault();
+                    nextBtn.click();
+                }
+                return;
+            }
+
+            if (answerChecked || quizBusy) return;
+            const idx = parseInt(e.key, 10);
+            if (idx < 1 || idx > 4) return;
+            const buttons = [...document.querySelectorAll("#answers-grid .answer-btn")];
+            const btn = buttons[idx - 1];
+            if (btn && !btn.disabled) {
+                e.preventDefault();
+                btn.click();
+            }
+        });
+    }
+
+    function bindDailyCompleteModal() {
+        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
+        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
     }
 
     function setInputValue(input, value) {
@@ -625,9 +758,29 @@
         showAnswerFeedback(data);
 
         playFeedbackSound(data.isCorrect);
-        if (data.stats) applyStatsData(data.stats);
-        updateStreakBadge(data.stats?.streak ?? 0);
+        triggerHaptic(data.isCorrect);
+        if (data.stats || data.feedback?.levelUpTo) {
+            const statsPayload = {
+                ...(data.stats ?? {}),
+                xpGain: data.feedback?.xpGain ?? 0
+            };
+            if (data.feedback?.levelUpTo) {
+                statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
+            }
+            const shouldPulse = Boolean(
+                data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
+            );
+            applyStatsData(statsPayload, {
+                pulse: shouldPulse,
+                skipStreakUpdate: true
+            });
+        }
+        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
+        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
         showAchievementToast(data.achievements);
+        if (data.feedback?.dailyComplete) {
+            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
+        }
 
         if (data.showFeedbackPrompt && data.feedbackCampaignId) {
             openFeedbackModal(data.feedbackCampaignId, data.feedbackMilestone);
@@ -662,6 +815,8 @@
             const img = document.createElement("img");
             img.src = a.imageUrl;
             img.alt = "תשובה";
+            img.loading = "eager";
+            img.fetchPriority = "high";
             if (a.fileName) img.dataset.answerFile = a.fileName;
             btn.appendChild(img);
             grid.appendChild(btn);
@@ -732,7 +887,7 @@
     }
 
     async function submitQuizAnswer(questionImage, answer, token) {
-        const res = await fetch("/Index?handler=SubmitAnswer", {
+        const res = await window.RequestChannels.quizFetch("/Index?handler=SubmitAnswer", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -765,7 +920,9 @@
             form.requestSubmit(submitter);
             return;
         }
-        if (window.showAppAlert) {
+        if (window.showAppToast) {
+            window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
+        } else if (window.showAppAlert) {
             await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
         }
     }
@@ -824,7 +981,7 @@
     }
 
     async function fetchNextQuestionResponse() {
-        const res = await fetch("/Index?handler=NextQuestion");
+        const res = await window.RequestChannels.quizFetch("/Index?handler=NextQuestion");
         const data = await res.json();
         return { res, data };
     }
@@ -850,7 +1007,9 @@
             form.submit();
             return;
         }
-        if (window.showAppAlert) {
+        if (window.showAppToast) {
+            window.showAppToast("שגיאה בטעינת השאלה הבאה. נסה שוב.");
+        } else if (window.showAppAlert) {
             await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
         }
     }
@@ -886,7 +1045,7 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch(`/api/stats-data?_=${Date.now()}`);
+            const res = await window.RequestChannels.backgroundFetch(`/api/stats-data?_=${Date.now()}`);
             if (!res.ok) throw new Error("stats fetch failed");
             applyStatsData(await res.json());
         } catch {
@@ -896,7 +1055,7 @@
 
     async function fetchOnlineCount() {
         try {
-            const res = await fetch(`/api/online-count?_=${Date.now()}`);
+            const res = await window.RequestChannels.backgroundFetch(`/api/online-count?_=${Date.now()}`);
             if (!res.ok) throw new Error("online fetch failed");
             applyOnlineCount(await res.json());
         } catch {
@@ -906,10 +1065,7 @@
 
     function startAutoUpdate() {
         stopAutoUpdate();
-        updateInterval = setInterval(() => {
-            fetchStats();
-            fetchOnlineCount();
-        }, 5000);
+        updateInterval = setInterval(fetchOnlineCount, 30000);
     }
 
     function stopAutoUpdate() {
@@ -1148,11 +1304,19 @@
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            await window.showAppAlert("הדיווח נשלח בהצלחה!");
+            if (window.showAppToast) {
+                window.showAppToast("תודה, קיבלנו את הדיווח! 🙏");
+            } else {
+                await window.showAppAlert("תודה, קיבלנו את הדיווח!");
+            }
             form.reset();
             return;
         }
-        await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+        if (window.showAppToast) {
+            window.showAppToast("אירעה שגיאה בשליחת הדיווח.");
+        } else {
+            await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+        }
     }
 
     function bindReportForm() {
@@ -1165,7 +1329,11 @@
             try {
                 await postReportForm(form, buildReportFormPayload(formData), token);
             } catch {
-                await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+                if (window.showAppToast) {
+                    window.showAppToast("אירעה שגיאה בשליחת הדיווח.");
+                } else {
+                    await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+                }
             }
         });
     }
@@ -1235,9 +1403,14 @@
         bindGitHubStarModal();
         bindDifficultyChoices();
         bindSoundToggle();
+        syncStreakBadgeFromPage();
         bindAchievementToast();
         bindAnswerFeedback();
         bindStatsAdvancedPanel();
+        bindDailyCompleteModal();
+        bindKeyboardShortcuts();
+
+        void initLevelProgressLive();
 
         bindQuestionImageLoad(document.getElementById("main-question-image"), scheduleQuizViewportAdjust);
         window.addEventListener("resize", scheduleQuizViewportAdjust);
@@ -1251,9 +1424,12 @@
         });
     });
 
+    function scheduleBackgroundRefresh() {
+        window.RequestChannels?.scheduleBackground(fetchOnlineCount);
+    }
+
     window.addEventListener("load", () => {
-        fetchStats();
-        fetchOnlineCount();
+        scheduleBackgroundRefresh();
         startAutoUpdate();
     });
 
@@ -1261,4 +1437,6 @@
         if (document.hidden) stopAutoUpdate();
         else startAutoUpdate();
     });
+
+    window.applyLevelProgressLive = applyLevelProgressLive;
 })();
