@@ -3,7 +3,6 @@
 @{
     Layout = null;
     ViewData["ShowAdminLink"] = true;
-    var report = Model.Report;
 }
 
 <!DOCTYPE html>
@@ -19,60 +18,61 @@
     <partial name="Shared/_LogoHeader" />
     <img src="/assets/background.gif" class="background-gif" alt="" aria-hidden="true" />
 
-    <main class="dashboard-page system-check-page">
+    <main class="dashboard-page system-check-page"
+          data-plan="@Model.PlanJson"
+          data-environment="@Model.EnvironmentName">
         <h1 class="dashboard-title">🔍 בדיקת מערכות</h1>
         <p class="system-check-subtitle">
-            סביבה: <strong>@report.Environment</strong>
-            · נבדק ב-@report.CheckedAtUtc.ToLocalTime().ToString("HH:mm:ss")
+            סביבה: <strong id="system-check-env">@Model.EnvironmentName</strong>
+            · <span id="system-check-clock">מתחיל...</span>
         </p>
 
-        @if (report.AllOk)
-        {
-            <div class="dashboard-alert dashboard-alert-success system-check-banner system-check-banner-ok">
-                ✅ כל המערכות פועלות תקין
-            </div>
-        }
-        else
-        {
-            <div class="dashboard-alert dashboard-alert-soft-error system-check-banner">
-                ⚠️ יש בעיות שדורשות טיפול
-            </div>
-        }
+        <div id="system-check-banner" class="dashboard-alert system-check-banner system-check-banner-running" role="status" aria-live="polite">
+            ⏳ מכין בדיקות...
+        </div>
+
+        <div class="system-check-summary" id="system-check-summary" hidden>
+            <span class="system-check-summary-item system-check-summary-passed">✅ <strong id="summary-passed">0</strong> תקין</span>
+            <span class="system-check-summary-item system-check-summary-warn">⚠️ <strong id="summary-warnings">0</strong> אזהרה</span>
+            <span class="system-check-summary-item system-check-summary-fail">❌ <strong id="summary-failed">0</strong> נכשל</span>
+        </div>
+
+        <div class="system-check-progress-wrap" aria-hidden="true">
+            <div class="system-check-progress-bar" id="system-check-progress"></div>
+        </div>
 
         <div class="system-check-actions">
-            <a href="/SystemCheck" class="btn">🔄 הרץ שוב</a>
-            <a href="/Dashboard" class="btn">⬅ חזרה לניהול</a>
+            <button type="button" class="system-check-btn system-check-btn-primary" id="system-check-run-btn">
+                <svg class="system-check-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08a5.99 5.99 0 0 1-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+                הרץ בדיקות
+            </button>
+            <a href="/Dashboard" class="system-check-btn system-check-btn-secondary">
+                <svg class="system-check-btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                חזרה לניהול
+            </a>
         </div>
 
         <div class="dashboard-table-shell">
-            <table class="dashboard-table system-check-table">
+            <table class="dashboard-table system-check-table" id="system-check-table">
                 <thead>
                     <tr>
-                        <th>מערכת</th>
+                        <th>קטגוריה</th>
+                        <th>בדיקה</th>
                         <th>סטטוס</th>
                         <th>פרטים</th>
                         <th>זמן</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach (var check in report.Checks)
-                    {
-                        <tr class="@(check.Ok ? "system-check-row-ok" : "system-check-row-fail")">
-                            <td>@check.Name</td>
-                            <td>
-                                <span class="system-check-badge @(check.Ok ? "system-check-badge-ok" : "system-check-badge-fail")">
-                                    @(check.Ok ? "תקין" : "בעיה")
-                                </span>
-                            </td>
-                            <td>@check.Detail</td>
-                            <td>@check.ElapsedMs ms</td>
-                        </tr>
-                    }
-                </tbody>
+                <tbody id="system-check-tbody"></tbody>
             </table>
         </div>
     </main>
 
     <partial name="Shared/_SiteFooter" />
+    <script src="/js/system-check-page.js" asp-append-version="true"></script>
 </body>
 </html>

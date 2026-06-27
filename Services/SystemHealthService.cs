@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -64,17 +66,8 @@ public class SystemHealthService
     public async Task<SystemHealthReport> RunAsync()
     {
         var checks = new List<SystemHealthCheck>();
-        checks.Add(CheckConfig());
-        checks.Add(await CheckUsersAsync());
-        checks.Add(await CheckStorageAsync());
-        checks.Add(await CheckSignedUrlsAsync());
-        checks.Add(await CheckTestSessionsAsync());
-        checks.Add(await CheckDifficultiesAsync());
-        checks.Add(await CheckActivityEventsAsync());
-        checks.Add(await CheckUserProgressAsync());
-        checks.Add(CheckQuestionStats());
-        checks.Add(CheckEmailConfig());
-        checks.Add(CheckLocalDirs());
+        await foreach (var check in StreamChecksAsync())
+            checks.Add(check);
 
         return new SystemHealthReport
         {
@@ -83,6 +76,23 @@ public class SystemHealthService
             Environment = _env.EnvironmentName,
             Checks = checks
         };
+    }
+
+    public async IAsyncEnumerable<SystemHealthCheck> StreamChecksAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        yield return CheckConfig();
+        yield return await CheckUsersAsync();
+        yield return await CheckStorageAsync();
+        yield return await CheckSignedUrlsAsync();
+        yield return await CheckTestSessionsAsync();
+        yield return await CheckDifficultiesAsync();
+        yield return await CheckActivityEventsAsync();
+        yield return await CheckUserProgressAsync();
+        yield return CheckQuestionStats();
+        yield return CheckEmailConfig();
+        yield return CheckLocalDirs();
     }
 
     private async Task<SystemHealthCheck> TimedAsync(string id, string name, Func<Task<(bool ok, string detail)>> probe)

@@ -162,6 +162,7 @@ builder.Services.AddSingleton<DataRetentionService>(sp =>
         sp.GetService<TestSessionService>()));
 builder.Services.AddHostedService<DataRetentionHostedService>();
 builder.Services.AddSingleton<SystemHealthService>();
+builder.Services.AddSingleton<SystemVerificationService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
