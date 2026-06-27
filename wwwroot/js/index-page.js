@@ -549,9 +549,7 @@
         feedback.hidden = false;
         feedback.classList.toggle("is-correct", data.isCorrect);
         feedback.classList.toggle("is-incorrect", !data.isCorrect);
-        feedback.textContent = data.isCorrect
-            ? "תשובה נכונה!"
-            : "תשובה שגויה — התשובה הנכונה מסומנת בירוק";
+        feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
     }
 
     function syncReportFormFromAnswerResult(data) {

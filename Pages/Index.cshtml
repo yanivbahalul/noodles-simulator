@@ -121,7 +121,7 @@
     @if (Model.AnswerChecked)
     {
         <p class="quiz-answer-feedback @(Model.IsCorrect ? "is-correct" : "is-incorrect")" id="answer-feedback">
-            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה — התשובה הנכונה מסומנת בירוק")
+            @(Model.IsCorrect ? "תשובה נכונה!" : "תשובה שגויה")
         </p>
     }
     else
