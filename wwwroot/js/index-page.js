@@ -552,26 +552,32 @@
         feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
     }
 
+    function setInputValue(input, value) {
+        if (input) input.value = value;
+    }
+
+    function resolveReportQuestionImage(data) {
+        const quizQuestion = document.getElementById("quiz-question-image")?.value;
+        return quizQuestion || data.questionImageOriginalName || data.questionImage || "";
+    }
+
+    function buildReportAnswersJson(answers) {
+        if (!answers?.length) return "";
+        const dict = {};
+        for (const answer of answers) {
+            if (answer.key) dict[answer.key] = answer.fileName ?? "";
+        }
+        return JSON.stringify(dict);
+    }
+
     function syncReportFormFromAnswerResult(data) {
         const form = document.getElementById("report-form");
         if (!form || !data) return;
 
-        const qInput = form.querySelector('input[name="questionImage"]');
-        const sInput = form.querySelector('input[name="selectedAnswer"]');
-        const cInput = form.querySelector('input[name="correctAnswer"]');
-        const aInput = form.querySelector('input[name="answers"]');
-        const quizQuestion = document.getElementById("quiz-question-image")?.value;
-
-        if (qInput) qInput.value = quizQuestion || data.questionImageOriginalName || data.questionImage || "";
-        if (sInput) sInput.value = data.selectedKey ?? "";
-        if (cInput) cInput.value = data.correctAnswerFile ?? "";
-        if (aInput && data.answers?.length) {
-            const dict = {};
-            data.answers.forEach((a) => {
-                if (a.key) dict[a.key] = a.fileName ?? "";
-            });
-            aInput.value = JSON.stringify(dict);
-        }
+        setInputValue(form.querySelector('input[name="questionImage"]'), resolveReportQuestionImage(data));
+        setInputValue(form.querySelector('input[name="selectedAnswer"]'), data.selectedKey ?? "");
+        setInputValue(form.querySelector('input[name="correctAnswer"]'), data.correctAnswerFile ?? "");
+        setInputValue(form.querySelector('input[name="answers"]'), buildReportAnswersJson(data.answers));
     }
 
     function applyAnswerResult(data) {
@@ -628,14 +634,16 @@
     }
 
     function syncReportFormForQuestion(data) {
-        const qInput = document.querySelector('#report-form input[name="questionImage"]');
-        const sInput = document.querySelector('#report-form input[name="selectedAnswer"]');
-        const cInput = document.querySelector('#report-form input[name="correctAnswer"]');
-        const aInput = document.querySelector('#report-form input[name="answers"]');
-        if (qInput) qInput.value = data.questionImageOriginalName ?? data.questionImage ?? "";
-        if (sInput) sInput.value = "";
-        if (cInput) cInput.value = "";
-        if (aInput) aInput.value = "";
+        const form = document.getElementById("report-form");
+        if (!form) return;
+
+        setInputValue(
+            form.querySelector('input[name="questionImage"]'),
+            data.questionImageOriginalName ?? data.questionImage ?? ""
+        );
+        setInputValue(form.querySelector('input[name="selectedAnswer"]'), "");
+        setInputValue(form.querySelector('input[name="correctAnswer"]'), "");
+        setInputValue(form.querySelector('input[name="answers"]'), "");
     }
 
     function setHiddenQuestionImage(questionImage) {
@@ -741,6 +749,16 @@
         }
     }
 
+    async function submitQuizAnswerWithBusyState(payload, form) {
+        setQuizBusy(true);
+        try {
+            await runQuizAnswerRequest(payload, form);
+        } finally {
+            setQuizBusy(false);
+            if (answerChecked) lockAnswerButtonsAfterCheck();
+        }
+    }
+
     async function handleQuizAnswerSubmit(e, form) {
         e.preventDefault();
         if (answerChecked || quizBusy) return;
@@ -752,13 +770,7 @@
             return;
         }
 
-        setQuizBusy(true);
-        try {
-            await runQuizAnswerRequest(payload, form);
-        } finally {
-            setQuizBusy(false);
-            if (answerChecked) lockAnswerButtonsAfterCheck();
-        }
+        await submitQuizAnswerWithBusyState(payload, form);
     }
 
     function bindQuizAnswerForm() {
@@ -892,6 +904,58 @@
         });
     }
 
+    async function showAppAlertIfAvailable(message) {
+        if (typeof window.showAppAlert !== "function") return;
+        await window.showAppAlert(message);
+    }
+
+    function createFeedbackStarUpdater(starsEl, submitBtn, onRatingChange) {
+        return (rating) => {
+            onRatingChange(rating);
+            starsEl.querySelectorAll(".feedback-star").forEach((star) => {
+                const value = parseInt(star.dataset.rating, 10);
+                star.classList.toggle("is-selected", value <= rating);
+            });
+            submitBtn.disabled = rating < 1;
+        };
+    }
+
+    function bindFeedbackStarClicks(starsEl, updateStars) {
+        starsEl.querySelectorAll(".feedback-star").forEach((star) => {
+            star.addEventListener("click", () => {
+                updateStars(parseInt(star.dataset.rating, 10));
+            });
+        });
+    }
+
+    async function submitFeedbackRating(prompt, selectedRating, messageEl, submitBtn) {
+        if (selectedRating < 1) return;
+
+        submitBtn.disabled = true;
+        try {
+            const res = await fetch("/api/feedback/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    campaignId: prompt.dataset.campaignId,
+                    rating: selectedRating,
+                    message: messageEl?.value?.trim() || ""
+                })
+            });
+            if (res.ok) {
+                closeFeedbackModal();
+                prompt.remove();
+                await showAppAlertIfAvailable("תודה! המשוב נשמר.");
+                return;
+            }
+            await showAppAlertIfAvailable("אירעה שגיאה בשליחת המשוב. נסו שוב.");
+        } catch {
+            await showAppAlertIfAvailable("אירעה שגיאה בשליחת המשוב. נסו שוב.");
+        } finally {
+            submitBtn.disabled = selectedRating < 1;
+        }
+    }
+
     function bindFeedbackModal() {
         const prompt = document.getElementById("feedback-prompt");
         if (!prompt) return;
@@ -904,21 +968,10 @@
         if (!modal || !submitBtn || !laterBtn || !starsEl) return;
 
         let selectedRating = 0;
-
-        function updateStars(rating) {
+        const updateStars = createFeedbackStarUpdater(starsEl, submitBtn, (rating) => {
             selectedRating = rating;
-            starsEl.querySelectorAll(".feedback-star").forEach((star) => {
-                const value = parseInt(star.dataset.rating, 10);
-                star.classList.toggle("is-selected", value <= rating);
-            });
-            submitBtn.disabled = rating < 1;
-        }
-
-        starsEl.querySelectorAll(".feedback-star").forEach((star) => {
-            star.addEventListener("click", () => {
-                updateStars(parseInt(star.dataset.rating, 10));
-            });
         });
+        bindFeedbackStarClicks(starsEl, updateStars);
 
         laterBtn.addEventListener("click", () => {
             closeFeedbackModal();
@@ -929,37 +982,8 @@
             if (e.target === modal) closeFeedbackModal();
         });
 
-        submitBtn.addEventListener("click", async () => {
-            if (selectedRating < 1) return;
-            submitBtn.disabled = true;
-            try {
-                const res = await fetch("/api/feedback/submit", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        campaignId: prompt.dataset.campaignId,
-                        rating: selectedRating,
-                        message: messageEl?.value?.trim() || ""
-                    })
-                });
-                if (res.ok) {
-                    closeFeedbackModal();
-                    prompt.remove();
-                    if (typeof window.showAppAlert === "function") {
-                        window.showAppAlert("תודה! המשוב נשמר.");
-                    }
-                    return;
-                }
-                if (typeof window.showAppAlert === "function") {
-                    window.showAppAlert("אירעה שגיאה בשליחת המשוב. נסו שוב.");
-                }
-            } catch {
-                if (typeof window.showAppAlert === "function") {
-                    window.showAppAlert("אירעה שגיאה בשליחת המשוב. נסו שוב.");
-                }
-            } finally {
-                submitBtn.disabled = selectedRating < 1;
-            }
+        submitBtn.addEventListener("click", () => {
+            submitFeedbackRating(prompt, selectedRating, messageEl, submitBtn);
         });
 
         if (prompt.dataset.hasNotice !== "1") {
@@ -1016,6 +1040,40 @@
         });
     }
 
+    const REPORT_FORM_DATA_KEYS = new Set([
+        "questionImage",
+        "explanation",
+        "selectedAnswer",
+        "correctAnswer",
+        "answers"
+    ]);
+
+    function buildReportFormPayload(formData) {
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === "__RequestVerificationToken") return;
+            if (REPORT_FORM_DATA_KEYS.has(key)) data[key] = value;
+        });
+        return data;
+    }
+
+    async function postReportForm(form, payload, token) {
+        const res = await fetch("/Index?handler=ReportError", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                RequestVerificationToken: token
+            },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            await window.showAppAlert("הדיווח נשלח בהצלחה!");
+            form.reset();
+            return;
+        }
+        await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
+    }
+
     function bindReportForm() {
         const form = document.getElementById("report-form");
         if (!form) return;
@@ -1023,29 +1081,8 @@
             e.preventDefault();
             const formData = new FormData(form);
             const token = formData.get("__RequestVerificationToken");
-            const data = {};
-            formData.forEach((value, key) => {
-                if (key === "__RequestVerificationToken") return;
-                if (key === "questionImage" || key === "explanation" || key === "selectedAnswer"
-                    || key === "correctAnswer" || key === "answers")
-                    data[key] = value;
-            });
-
             try {
-                const res = await fetch("/Index?handler=ReportError", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        RequestVerificationToken: token
-                    },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    await window.showAppAlert("הדיווח נשלח בהצלחה!");
-                    form.reset();
-                } else {
-                    await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
-                }
+                await postReportForm(form, buildReportFormPayload(formData), token);
             } catch {
                 await window.showAppAlert("אירעה שגיאה בשליחת הדיווח.");
             }

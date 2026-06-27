@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NoodlesSimulator.Services;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ namespace NoodlesSimulator.Pages;
 
 public class QuestionViewModel : PageModel
 {
+    private static readonly string[] AnswerKeys = { "correct", "a", "b", "c" };
+
     private readonly SupabaseStorageService _storage;
 
     public QuestionViewModel(SupabaseStorageService storage = null)
@@ -21,7 +24,7 @@ public class QuestionViewModel : PageModel
     public string QuestionImageUrl { get; set; }
     public Dictionary<string, string> AnswerImageUrls { get; set; } = new Dictionary<string, string>();
     public string SelectedAnswerKey { get; set; }
-    public string CorrectAnswerKey { get; set; } = "correct"; // Always "correct" is the right answer
+    public string CorrectAnswerKey { get; set; } = "correct";
     public bool ShowAnswerResults { get; set; }
     public string BackUrl { get; set; } = "/Index";
     public string BackLabel { get; set; } = "⬅ חזרה לחידון";
@@ -30,107 +33,119 @@ public class QuestionViewModel : PageModel
     {
         var username = HttpContext.Session.GetString("Username");
         if (string.IsNullOrWhiteSpace(username))
-        {
             return RedirectToPage("/Login");
-        }
 
         SetBackNavigation(Request.Query["from"].ToString(), Request.Query["scope"].ToString());
 
         var questionId = Request.Query["id"].ToString();
-        if (string.IsNullOrWhiteSpace(questionId)) return Page();
-        
-        // Get selected and correct answer from query parameters (from error report email)
+        if (string.IsNullOrWhiteSpace(questionId))
+            return Page();
+
+        var selectedFile = ApplyQueryParameters();
+
+        if (_storage != null)
+            await LoadQuestionFromStorageAsync(questionId, selectedFile);
+        else
+            LoadQuestionFromLocalFiles(questionId, selectedFile);
+
+        return Page();
+    }
+
+    private string ApplyQueryParameters()
+    {
         SelectedAnswerKey = Request.Query["selected"].ToString();
         var selectedFile = Request.Query["selectedFile"].ToString();
         var correctParam = Request.Query["correct"].ToString();
         if (!string.IsNullOrWhiteSpace(correctParam))
-        {
             CorrectAnswerKey = correctParam;
-        }
-        
+
         ShowAnswerResults = !string.IsNullOrWhiteSpace(SelectedAnswerKey)
                             || !string.IsNullOrWhiteSpace(selectedFile);
-
-        // Build answer guesses from naming convention: [q, correct, a, b, c] are contiguous in sorted list
-        // We attempt to find corresponding answers by scanning storage list and matching group containing the question id
-        List<string> group = null;
-        if (_storage != null)
-        {
-            var all = await _storage.ListFilesAsync("");
-            var filtered = all.Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp")).OrderBy(n => n).ToList();
-            for (int i = 0; i + 4 < filtered.Count; i += 5)
-            {
-                var g = filtered.GetRange(i, 5);
-                if (string.Equals(g[0], questionId, StringComparison.OrdinalIgnoreCase)) { group = g; break; }
-            }
-            if (group != null)
-            {
-                var signed = await _storage.GetSignedUrlsAsync(group);
-                QuestionImageUrl = signed.TryGetValue(group[0], out var qu) ? qu : string.Empty;
-                // answers order: 1=correct, 2..4 = distractors
-                var keys = new[]{"correct","a","b","c"};
-                for (int k=1;k<group.Count && k-1<keys.Length;k++)
-                {
-                    var key = keys[k-1];
-                    var val = group[k];
-                    if (!string.IsNullOrWhiteSpace(val) && signed.TryGetValue(val, out var au))
-                        AnswerImageUrls[key] = au;
-                }
-
-                if (!string.IsNullOrWhiteSpace(selectedFile))
-                {
-                    for (int k = 1; k < group.Count && k - 1 < keys.Length; k++)
-                    {
-                        if (string.Equals(group[k], selectedFile, StringComparison.OrdinalIgnoreCase))
-                        {
-                            SelectedAnswerKey = keys[k - 1];
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // local filesystem
-            var imagesDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "images");
-            if (!System.IO.Directory.Exists(imagesDir)) return Page();
-            var filtered = System.IO.Directory.GetFiles(imagesDir)
-                .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".jpeg") || f.EndsWith(".webp"))
-                .Select(System.IO.Path.GetFileName)
-                .OrderBy(n => n).ToList();
-            for (int i = 0; i + 4 < filtered.Count; i += 5)
-            {
-                var g = filtered.GetRange(i, 5);
-                if (string.Equals(g[0], questionId, StringComparison.OrdinalIgnoreCase)) { group = g; break; }
-            }
-            if (group != null)
-            {
-                QuestionImageUrl = $"/images/{group[0]}";
-                var keys = new[]{"correct","a","b","c"};
-                for (int k=1;k<group.Count && k-1<keys.Length;k++)
-                {
-                    var key = keys[k-1];
-                    var val = group[k];
-                    if (!string.IsNullOrWhiteSpace(val))
-                        AnswerImageUrls[key] = $"/images/{val}";
-                }
-
-                if (!string.IsNullOrWhiteSpace(selectedFile))
-                {
-                    for (int k = 1; k < group.Count && k - 1 < keys.Length; k++)
-                    {
-                        if (string.Equals(group[k], selectedFile, StringComparison.OrdinalIgnoreCase))
-                        {
-                            SelectedAnswerKey = keys[k - 1];
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        return Page();
+        return selectedFile;
     }
+
+    private async Task LoadQuestionFromStorageAsync(string questionId, string selectedFile)
+    {
+        var all = await _storage.ListFilesAsync("");
+        var group = FindQuestionGroup(FilterImageNames(all), questionId);
+        if (group == null)
+            return;
+
+        var signed = await _storage.GetSignedUrlsAsync(group);
+        QuestionImageUrl = signed.TryGetValue(group[0], out var questionUrl) ? questionUrl : string.Empty;
+        PopulateAnswerUrls(group, (key, file) =>
+            !string.IsNullOrWhiteSpace(file) && signed.TryGetValue(file, out var url) ? url : null);
+        ResolveSelectedAnswerKey(group, selectedFile);
+    }
+
+    private void LoadQuestionFromLocalFiles(string questionId, string selectedFile)
+    {
+        var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+        if (!Directory.Exists(imagesDir))
+            return;
+
+        var group = FindQuestionGroup(
+            Directory.GetFiles(imagesDir)
+                .Where(IsImageFile)
+                .Select(Path.GetFileName)
+                .OrderBy(name => name)
+                .ToList(),
+            questionId);
+        if (group == null)
+            return;
+
+        QuestionImageUrl = $"/images/{group[0]}";
+        PopulateAnswerUrls(group, (key, file) =>
+            string.IsNullOrWhiteSpace(file) ? null : $"/images/{file}");
+        ResolveSelectedAnswerKey(group, selectedFile);
+    }
+
+    private static List<string> FindQuestionGroup(List<string> sortedImages, string questionId)
+    {
+        for (var i = 0; i + 4 < sortedImages.Count; i += 5)
+        {
+            var group = sortedImages.GetRange(i, 5);
+            if (string.Equals(group[0], questionId, StringComparison.OrdinalIgnoreCase))
+                return group;
+        }
+
+        return null;
+    }
+
+    private void PopulateAnswerUrls(List<string> group, Func<string, string, string> resolveUrl)
+    {
+        for (var k = 1; k < group.Count && k - 1 < AnswerKeys.Length; k++)
+        {
+            var key = AnswerKeys[k - 1];
+            var url = resolveUrl(key, group[k]);
+            if (!string.IsNullOrWhiteSpace(url))
+                AnswerImageUrls[key] = url;
+        }
+    }
+
+    private void ResolveSelectedAnswerKey(List<string> group, string selectedFile)
+    {
+        if (string.IsNullOrWhiteSpace(selectedFile))
+            return;
+
+        for (var k = 1; k < group.Count && k - 1 < AnswerKeys.Length; k++)
+        {
+            if (string.Equals(group[k], selectedFile, StringComparison.OrdinalIgnoreCase))
+            {
+                SelectedAnswerKey = AnswerKeys[k - 1];
+                break;
+            }
+        }
+    }
+
+    private static List<string> FilterImageNames(IEnumerable<string> names) =>
+        names.Where(IsImageFile).OrderBy(name => name).ToList();
+
+    private static bool IsImageFile(string path) =>
+        path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
+        || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
 
     private void SetBackNavigation(string from, string scope)
     {

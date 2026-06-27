@@ -141,7 +141,7 @@ public static class ErrorReportBuilder
                     styles.Add("text-decoration: underline;");
 
                 var styleAttr = styles.Count > 0 ? $" style='{string.Join(" ", styles)}'" : "";
-                var label = isCorrect ? " (נכונה)" : isSelected ? " (נבחרה)" : "";
+                var label = BuildAnswerLabel(isCorrect, isSelected);
                 answersList.Append(
                     $"<span{styleAttr}>{letters[index]}: {WebUtility.HtmlEncode(file)}{label}</span><br/>");
                 index++;
@@ -154,6 +154,15 @@ public static class ErrorReportBuilder
             }
 
             return answersList.ToString();
+        }
+
+        private static string BuildAnswerLabel(bool isCorrect, bool isSelected)
+        {
+            if (isCorrect)
+                return " (נכונה)";
+            if (isSelected)
+                return " (נבחרה)";
+            return string.Empty;
         }
 
         private static string BuildQuestionViewUrl(string baseUrl, ReportPayload payload)
