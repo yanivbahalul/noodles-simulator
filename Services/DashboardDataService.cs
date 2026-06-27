@@ -101,12 +101,24 @@ public class DashboardDataService
         public List<ActivityRow> LiveActivity { get; set; } = new();
     }
 
-    public async Task<DashboardSnapshot> GetSnapshotAsync()
+    public void InvalidateCache()
     {
         lock (_cacheLock)
         {
-            if (_cached != null && DateTime.UtcNow - _cachedAt < CacheTtl)
-                return _cached;
+            _cached = null;
+            _cachedAt = DateTime.MinValue;
+        }
+    }
+
+    public async Task<DashboardSnapshot> GetSnapshotAsync(bool forceRefresh = false)
+    {
+        if (!forceRefresh)
+        {
+            lock (_cacheLock)
+            {
+                if (_cached != null && DateTime.UtcNow - _cachedAt < CacheTtl)
+                    return _cached;
+            }
         }
 
         var snapshot = await BuildSnapshotAsync();

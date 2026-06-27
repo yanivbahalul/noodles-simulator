@@ -264,6 +264,12 @@ static bool TryResolveAuthService(HttpContext context, out AuthService authServi
     return authService != null;
 }
 
+static void InvalidateDashboardCaches(IServiceProvider services)
+{
+    services.GetService<DashboardDataService>()?.InvalidateCache();
+    services.GetService<UserStatsService>()?.InvalidateCache();
+}
+
 static void RestoreUserStatsFromProgress(HttpContext context, User user)
 {
     var progress = context.RequestServices.GetService<UserProgressService>();
@@ -477,7 +483,8 @@ api.MapGet("/dashboard-data", async context =>
             return;
         }
 
-        var snapshot = await dashboard.GetSnapshotAsync();
+        var forceRefresh = context.Request.Query.ContainsKey("fresh");
+        var snapshot = await dashboard.GetSnapshotAsync(forceRefresh);
         await WriteJson(context, dashboard.ToApiPayload(snapshot));
     }
     catch (Exception ex)
@@ -613,6 +620,9 @@ api.MapPost("/dashboard-user-action", async context =>
             user.IsBanned = bannedEl.GetBoolean();
 
         var ok = await authService.UpdateUserAsync(user);
+        if (ok)
+            InvalidateDashboardCaches(context.RequestServices);
+
         await WriteJson(context, new { success = ok, username = user.Username, isCheater = user.IsCheater, isBanned = user.IsBanned });
     }
     catch (Exception ex)
@@ -655,6 +665,7 @@ api.MapPost("/dashboard-user-delete", async context =>
             return;
         }
 
+        InvalidateDashboardCaches(context.RequestServices);
         await WriteJson(context, new { success = true, username = username.Trim() });
     }
     catch (Exception ex)

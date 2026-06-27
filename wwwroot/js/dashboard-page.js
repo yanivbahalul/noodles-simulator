@@ -69,9 +69,10 @@
             : '<span class="dashboard-result-badge dashboard-result-badge-bad">שגוי</span>';
     }
 
-    async function fetchDashboardData() {
+    async function fetchDashboardData(fresh = false) {
         try {
-            const response = await fetch(`/api/dashboard-data?_=${Date.now()}`);
+            const freshParam = fresh ? "&fresh=1" : "";
+            const response = await fetch(`/api/dashboard-data?_=${Date.now()}${freshParam}`);
             if (!response.ok) throw new Error("dashboard fetch failed");
             const data = await response.json();
 
@@ -423,7 +424,7 @@
                     throw new Error(msg || "failed");
                 }
                 closeUserModal();
-                fetchDashboardData();
+                await fetchDashboardData(true);
             } catch (err) {
                 alert(`מחיקת המשתמש נכשלה${err?.message ? `: ${err.message}` : ""}`);
             }
@@ -442,7 +443,7 @@
             });
             if (!res.ok) throw new Error("failed");
             await openUserDetail(username);
-            fetchDashboardData();
+            await fetchDashboardData(true);
         } catch {
             alert("הפעולה נכשלה");
         }
