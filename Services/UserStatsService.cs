@@ -200,6 +200,46 @@ public class UserStatsService
         data.BestExamCorrect = stats.BestExamCorrect;
     }
 
+    public static void ApplyToUser(UserStatsRow stats, User user)
+    {
+        if (stats == null || user == null) return;
+        user.Xp = stats.Xp;
+        user.Level = stats.Level > 0 ? stats.Level : QuizGamification.LevelFromXp(stats.Xp);
+        user.WeeklyCorrect = stats.WeeklyCorrect;
+        user.WeekKey = stats.WeekKey ?? "";
+        user.DailyCorrect = stats.DailyCorrect;
+        user.DayKey = stats.DayKey ?? "";
+        user.DailyChallengeScore = stats.DailyChallengeScore;
+        user.DailyChallengeDate = stats.DailyChallengeDate ?? "";
+        user.BestExamScore = stats.BestExamScore;
+        user.BestExamCorrect = stats.BestExamCorrect;
+    }
+
+    public static UserStatsRow FromUser(User user)
+    {
+        if (user == null || string.IsNullOrWhiteSpace(user.Username)) return null;
+        return new UserStatsRow
+        {
+            Username = user.Username,
+            Xp = user.Xp,
+            Level = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(user.Xp),
+            WeeklyCorrect = user.WeeklyCorrect,
+            WeekKey = user.WeekKey ?? "",
+            DailyCorrect = user.DailyCorrect,
+            DayKey = user.DayKey ?? "",
+            DailyChallengeScore = user.DailyChallengeScore,
+            DailyChallengeDate = user.DailyChallengeDate ?? "",
+            BestExamScore = user.BestExamScore,
+            BestExamCorrect = user.BestExamCorrect
+        };
+    }
+
+    public async Task<bool> UpsertFromUserAsync(User user)
+    {
+        var row = FromUser(user);
+        return row != null && await UpsertAsync(row);
+    }
+
     public static void ApplyFromUser(User user, UserProgressService.UserProgressData data)
     {
         if (user == null || data == null) return;

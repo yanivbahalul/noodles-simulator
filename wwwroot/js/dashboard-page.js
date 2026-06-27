@@ -83,8 +83,16 @@
 
             const activeToday = document.getElementById("active-today-count");
             const answersToday = document.getElementById("answers-today-count");
+            const dailySuccessRate = document.getElementById("daily-success-rate");
+            const activeWeek = document.getElementById("active-week-count");
+            const answersWeek = document.getElementById("answers-week-count");
+            const weeklySuccessRate = document.getElementById("weekly-success-rate");
             if (activeToday) activeToday.textContent = data.activeToday ?? "—";
             if (answersToday) answersToday.textContent = data.answersToday ?? "—";
+            if (dailySuccessRate) dailySuccessRate.textContent = data.dailySuccessRate != null ? `${data.dailySuccessRate}%` : "—";
+            if (activeWeek) activeWeek.textContent = data.activeThisWeek ?? "—";
+            if (answersWeek) answersWeek.textContent = data.answersThisWeek ?? "—";
+            if (weeklySuccessRate) weeklySuccessRate.textContent = data.weeklySuccessRate != null ? `${data.weeklySuccessRate}%` : "—";
 
             allUsersCache = data.allUsersList || [];
             renderAllUsersTable();

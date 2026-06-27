@@ -105,6 +105,73 @@ public class ActivityEventService
         }
     }
 
+    public async Task<int> PurgeOlderThanAsync(int days)
+    {
+        if (!_enabled || days <= 0) return 0;
+
+        try
+        {
+            var cutoff = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-days).ToString("o"));
+            var res = await _client.DeleteAsync($"{_url}/rest/v1/activity_events?created_at=lt.{cutoff}");
+            if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                Console.WriteLine($"[ActivityEventService] PurgeOlderThan failed: {res.StatusCode} | {body}");
+                return 0;
+            }
+
+            return 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityEventService] PurgeOlderThan exception: {ex.Message}");
+            return 0;
+        }
+    }
+
+    public async Task<(int Total, int Correct)> GetAnswerStatsSinceAsync(DateTime sinceUtc)
+    {
+        if (!_enabled) return (0, 0);
+
+        try
+        {
+            var since = Uri.EscapeDataString(sinceUtc.ToUniversalTime().ToString("o"));
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/activity_events?select=payload&event_type=eq.answer&created_at=gte.{since}&limit=10000");
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[ActivityEventService] GetAnswerStatsSince failed: {res.StatusCode}");
+                return (0, 0);
+            }
+
+            var json = await res.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var total = 0;
+            var correct = 0;
+            foreach (var row in doc.RootElement.EnumerateArray())
+            {
+                if (!row.TryGetProperty("payload", out var payloadEl) ||
+                    payloadEl.ValueKind != JsonValueKind.Object)
+                {
+                    total++;
+                    continue;
+                }
+
+                total++;
+                if (payloadEl.TryGetProperty("correct", out var correctEl) &&
+                    correctEl.ValueKind == JsonValueKind.True)
+                    correct++;
+            }
+
+            return (total, correct);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityEventService] GetAnswerStatsSince exception: {ex.Message}");
+            return (0, 0);
+        }
+    }
+
     public async Task<List<ActivityEvent>> GetRecentAsync(int limit = 50)
     {
         if (!_enabled) return new List<ActivityEvent>();

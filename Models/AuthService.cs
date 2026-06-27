@@ -17,7 +17,7 @@ namespace NoodlesSimulator.Models;
 public class AuthService
 {
     public const string UserSelectPublic =
-        "Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect,DismissedNotices";
+        "Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,DismissedNotices";
 
     public const string UserSelectLeaderboard =
         "Username,CorrectAnswers,TotalAnswered,LastSeen,IsCheater,IsBanned";
@@ -136,9 +136,7 @@ public class AuthService
                 TotalAnswered = 0,
                 IsCheater = false,
                 IsBanned = false,
-                LastSeen = DateTime.UtcNow,
-                Xp = 0,
-                Level = 1
+                LastSeen = DateTime.UtcNow
             }
         };
 
@@ -146,6 +144,8 @@ public class AuthService
         var res = await _client.PostAsync($"{_url}/rest/v1/users", content);
         if (res.IsSuccessStatusCode)
         {
+            if (_stats?.IsEnabled == true)
+                await _stats.UpsertAsync(new UserStatsRow { Username = username, Level = 1 });
             return true;
         }
 
@@ -159,6 +159,16 @@ public class AuthService
 
     public async Task<User?> GetUserForAuthAsync(string username) =>
         await FetchUserAsync(username, includePassword: true);
+
+    private async Task MergeStatsIntoUserAsync(User user)
+    {
+        if (user == null || _stats?.IsEnabled != true)
+            return;
+
+        var row = await _stats.GetAsync(user.Username);
+        if (row != null)
+            UserStatsService.ApplyToUser(row, user);
+    }
 
     private async Task<User?> FetchUserAsync(string username, bool includePassword)
     {
@@ -178,7 +188,10 @@ public class AuthService
                 var users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options);
                 var exact = users?.FirstOrDefault();
                 if (exact != null)
+                {
+                    await MergeStatsIntoUserAsync(exact);
                     return exact;
+                }
             }
 
             var ilikeRes = await _client.GetAsync(
@@ -188,8 +201,11 @@ public class AuthService
                 return null;
 
             var matches = JsonSerializer.Deserialize<List<User>>(ilikeJson, AppJson.Options);
-            return matches?.FirstOrDefault(u =>
+            var match = matches?.FirstOrDefault(u =>
                 string.Equals(u.Username, trimmed, StringComparison.OrdinalIgnoreCase));
+            if (match != null)
+                await MergeStatsIntoUserAsync(match);
+            return match;
         }
         catch (Exception ex)
         {
@@ -208,9 +224,7 @@ public class AuthService
                 ["TotalAnswered"] = updatedUser.TotalAnswered,
                 ["IsCheater"] = updatedUser.IsCheater,
                 ["IsBanned"] = updatedUser.IsBanned,
-                ["LastSeen"] = (updatedUser.LastSeen ?? DateTime.UtcNow).ToString("o"),
-                ["Xp"] = updatedUser.Xp,
-                ["Level"] = updatedUser.Level > 0 ? updatedUser.Level : QuizGamification.LevelFromXp(updatedUser.Xp)
+                ["LastSeen"] = (updatedUser.LastSeen ?? DateTime.UtcNow).ToString("o")
             };
             if (!string.IsNullOrWhiteSpace(updatedUser.Password))
             {
@@ -234,12 +248,7 @@ public class AuthService
             }
 
             if (_stats?.IsEnabled == true)
-            {
-                var row = await _stats.GetAsync(updatedUser.Username) ?? new UserStatsRow { Username = updatedUser.Username };
-                row.Xp = updatedUser.Xp;
-                row.Level = updatedUser.Level > 0 ? updatedUser.Level : QuizGamification.LevelFromXp(updatedUser.Xp);
-                await _stats.UpsertAsync(row);
-            }
+                await _stats.UpsertFromUserAsync(updatedUser);
 
             return true;
         }
@@ -500,24 +509,8 @@ public class AuthService
                 {
                     if (string.IsNullOrWhiteSpace(user.Username)) continue;
                     if (!statsMap.TryGetValue(user.Username, out var row)) continue;
-                    user.Xp = row.Xp;
-                    user.Level = row.Level > 0 ? row.Level : QuizGamification.LevelFromXp(row.Xp);
-                    user.WeeklyCorrect = row.WeeklyCorrect;
-                    user.WeekKey = row.WeekKey;
-                    user.DailyCorrect = row.DailyCorrect;
-                    user.DayKey = row.DayKey;
-                    user.DailyChallengeScore = row.DailyChallengeScore;
-                    user.DailyChallengeDate = row.DailyChallengeDate;
-                    user.BestExamScore = row.BestExamScore;
-                    user.BestExamCorrect = row.BestExamCorrect;
+                    UserStatsService.ApplyToUser(row, user);
                 }
-            }
-            else
-            {
-                res = await _client.GetAsync($"{_url}/rest/v1/users?select=Username,IsCheater,IsBanned,LastSeen,CorrectAnswers,TotalAnswered,Xp,Level,WeeklyCorrect,WeekKey,DailyCorrect,DayKey,DailyChallengeScore,DailyChallengeDate,BestExamScore,BestExamCorrect&limit=1000");
-                json = await res.Content.ReadAsStringAsync();
-                if (res.IsSuccessStatusCode)
-                    users = JsonSerializer.Deserialize<List<User>>(json, AppJson.Options) ?? users;
             }
 
             return users;
@@ -531,47 +524,21 @@ public class AuthService
 
     public async Task<bool> SyncLeaderboardStatsAsync(string username, int weeklyCorrect, string weekKey, int dailyCorrect, string dayKey, int dailyChallengeScore, string dailyChallengeDate, int bestExamScore, int bestExamCorrect)
     {
+        if (_stats?.IsEnabled != true)
+            return false;
+
         try
         {
-            if (_stats?.IsEnabled == true)
-            {
-                var row = await _stats.GetAsync(username) ?? new UserStatsRow { Username = username };
-                row.WeeklyCorrect = weeklyCorrect;
-                row.WeekKey = weekKey ?? "";
-                row.DailyCorrect = dailyCorrect;
-                row.DayKey = dayKey ?? "";
-                row.DailyChallengeScore = dailyChallengeScore;
-                row.DailyChallengeDate = dailyChallengeDate ?? "";
-                row.BestExamScore = bestExamScore;
-                row.BestExamCorrect = bestExamCorrect;
-                return await _stats.UpsertAsync(row);
-            }
-
-            var patch = new Dictionary<string, object>
-            {
-                ["WeeklyCorrect"] = weeklyCorrect,
-                ["WeekKey"] = weekKey ?? "",
-                ["DailyCorrect"] = dailyCorrect,
-                ["DayKey"] = dayKey ?? "",
-                ["DailyChallengeScore"] = dailyChallengeScore,
-                ["DailyChallengeDate"] = dailyChallengeDate ?? "",
-                ["BestExamScore"] = bestExamScore,
-                ["BestExamCorrect"] = bestExamCorrect
-            };
-            var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
-            var safeUsername = Uri.EscapeDataString(username);
-            var request = new HttpRequestMessage(new HttpMethod("PATCH"), $"{_url}/rest/v1/users?Username=eq.{safeUsername}")
-            {
-                Content = content
-            };
-            request.Headers.Add("Prefer", "return=minimal");
-            var response = await _client.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[SyncLeaderboardStatsAsync] PATCH failed for {username}: {response.StatusCode} | {body}");
-            }
-            return response.IsSuccessStatusCode;
+            var row = await _stats.GetAsync(username) ?? new UserStatsRow { Username = username };
+            row.WeeklyCorrect = weeklyCorrect;
+            row.WeekKey = weekKey ?? "";
+            row.DailyCorrect = dailyCorrect;
+            row.DayKey = dayKey ?? "";
+            row.DailyChallengeScore = dailyChallengeScore;
+            row.DailyChallengeDate = dailyChallengeDate ?? "";
+            row.BestExamScore = bestExamScore;
+            row.BestExamCorrect = bestExamCorrect;
+            return await _stats.UpsertAsync(row);
         }
         catch (Exception ex)
         {

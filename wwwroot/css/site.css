@@ -1697,10 +1697,34 @@ button.answer-btn,
     font-size: var(--fs-base);
 }
 
+.dashboard-stat-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dashboard-stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    margin: 0;
+    padding: 12px 16px;
+    list-style: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: var(--fs-base);
+}
+
+.dashboard-stat-row li {
+    margin: 0;
+}
+
 .dashboard-stat-list li {
     margin: 10px 0;
 }
 
+.dashboard-stat-row strong,
 .dashboard-stat-list strong {
     color: #7ec8ff;
 }

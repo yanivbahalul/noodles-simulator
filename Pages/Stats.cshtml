@@ -27,7 +27,7 @@
         <p class="stats-subtitle">סיכום כל המשתמשים במערכת</p>
 
         <section class="stats-section" aria-label="מדדים כלליים">
-            <div class="stats-metrics-grid">
+            <div class="stats-metrics-grid stats-metrics-grid-row">
                 <div class="stats-metric-card">
                     <span class="stats-metric-value">@Model.CommunitySummary.AllUsersCount</span>
                     <span class="stats-metric-label">משתמשים רשומים</span>
@@ -35,14 +35,6 @@
                 <div class="stats-metric-card">
                     <span class="stats-metric-value">@Model.CommunitySummary.OnlineUsersCount</span>
                     <span class="stats-metric-label">מחוברים כעת</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.ActiveToday</span>
-                    <span class="stats-metric-label">פעילים היום</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.AnswersToday</span>
-                    <span class="stats-metric-label">תשובות נכונות היום</span>
                 </div>
                 <div class="stats-metric-card">
                     <span class="stats-metric-value">@Model.CommunitySummary.AverageSuccessRate%</span>
@@ -63,6 +55,32 @@
                 <div class="stats-metric-card">
                     <span class="stats-metric-value">@Model.CommunitySummary.BannedUsersCount</span>
                     <span class="stats-metric-label">חסומים</span>
+                </div>
+            </div>
+            <div class="stats-metrics-grid stats-metrics-grid-row stats-metrics-grid-row-spaced">
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.ActiveToday</span>
+                    <span class="stats-metric-label">פעילים היום</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.AnswersToday</span>
+                    <span class="stats-metric-label">תשובות נכונות היום</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.DailySuccessRate%</span>
+                    <span class="stats-metric-label">ממוצע הצלחה יומי</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.ActiveThisWeek</span>
+                    <span class="stats-metric-label">פעילים השבוע</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.AnswersThisWeek</span>
+                    <span class="stats-metric-label">תשובות נכונות השבוע</span>
+                </div>
+                <div class="stats-metric-card">
+                    <span class="stats-metric-value">@Model.CommunitySummary.WeeklySuccessRate%</span>
+                    <span class="stats-metric-label">ממוצע הצלחה שבועי</span>
                 </div>
             </div>
         </section>

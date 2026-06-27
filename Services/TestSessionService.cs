@@ -401,6 +401,59 @@ public class TestSessionService
         }
     }
 
+    public async Task<int> PurgeOldSessionsAsync(int olderThanDays = 180)
+    {
+        if (olderThanDays <= 0) return 0;
+
+        try
+        {
+            var cutoff = Uri.EscapeDataString(DateTime.UtcNow.AddDays(-olderThanDays).ToString("o"));
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/test_sessions?Status=in.(completed,expired)&UpdatedAt=lt.{cutoff}&select=Token,QuestionsStoragePath,AnswersStoragePath&limit=500");
+
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[PurgeOldSessionsAsync] list failed: {res.StatusCode}");
+                return 0;
+            }
+
+            var sessions = DeserializeList(await res.Content.ReadAsStringAsync());
+            if (sessions.Count == 0) return 0;
+
+            foreach (var session in sessions)
+            {
+                if (_storage == null) continue;
+                if (!string.IsNullOrWhiteSpace(session.QuestionsStoragePath))
+                {
+                    try { await _storage.DeleteAsync(session.QuestionsStoragePath); }
+                    catch (Exception ex) { Console.WriteLine($"[PurgeOldSessionsAsync] storage: {ex.Message}"); }
+                }
+
+                if (!string.IsNullOrWhiteSpace(session.AnswersStoragePath))
+                {
+                    try { await _storage.DeleteAsync(session.AnswersStoragePath); }
+                    catch (Exception ex) { Console.WriteLine($"[PurgeOldSessionsAsync] storage: {ex.Message}"); }
+                }
+            }
+
+            var deleteRes = await _client.DeleteAsync(
+                $"{_url}/rest/v1/test_sessions?Status=in.(completed,expired)&UpdatedAt=lt.{cutoff}");
+            if (!deleteRes.IsSuccessStatusCode && deleteRes.StatusCode != System.Net.HttpStatusCode.NotFound)
+            {
+                var body = await deleteRes.Content.ReadAsStringAsync();
+                Console.WriteLine($"[PurgeOldSessionsAsync] delete failed: {deleteRes.StatusCode} | {body}");
+                return 0;
+            }
+
+            return sessions.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PurgeOldSessionsAsync Exception] {ex}");
+            return 0;
+        }
+    }
+
     public async Task DeleteUserSessionsAsync(string username)
     {
         if (string.IsNullOrWhiteSpace(username)) return;

@@ -84,6 +84,10 @@ public class DashboardDataService
         public double AverageSuccessRate { get; set; }
         public int ActiveToday { get; set; }
         public int AnswersToday { get; set; }
+        public double DailySuccessRate { get; set; }
+        public int ActiveThisWeek { get; set; }
+        public int AnswersThisWeek { get; set; }
+        public double WeeklySuccessRate { get; set; }
     }
 
     public class DashboardSnapshot
@@ -119,7 +123,10 @@ public class DashboardDataService
     private async Task<DashboardSnapshot> BuildSnapshotAsync()
     {
         var allUsers = await _auth.GetAllUsersLightAsync();
-        var todayKey = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var todayKey = UserProgressService.TodayKey();
+        var weekKey = UserProgressService.GetWeekKey();
+        var todayStartUtc = DateTime.UtcNow.Date;
+        var weekStartUtc = todayStartUtc.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
 
         var userRows = allUsers
             .Select(MapUserRow)
@@ -145,6 +152,27 @@ public class DashboardDataService
             .Where(u => u.DayKey == todayKey)
             .Sum(u => u.DailyCorrect);
 
+        var activeThisWeek = allUsers.Count(u =>
+            u.WeekKey == weekKey && u.WeeklyCorrect > 0 && !u.IsBanned && !u.IsCheater);
+
+        var answersThisWeek = allUsers
+            .Where(u => u.WeekKey == weekKey)
+            .Sum(u => u.WeeklyCorrect);
+
+        var (dailyTotal, dailyCorrect) = _activityEvents != null
+            ? await _activityEvents.GetAnswerStatsSinceAsync(todayStartUtc)
+            : (0, 0);
+        var (weeklyTotal, weeklyCorrect) = _activityEvents != null
+            ? await _activityEvents.GetAnswerStatsSinceAsync(weekStartUtc)
+            : (0, 0);
+
+        var dailySuccessRate = dailyTotal > 0
+            ? Math.Round((double)dailyCorrect / dailyTotal * 100, 1)
+            : 0;
+        var weeklySuccessRate = weeklyTotal > 0
+            ? Math.Round((double)weeklyCorrect / weeklyTotal * 100, 1)
+            : 0;
+
         var activeExams = await BuildActiveExamsAsync();
         var recentActivity = await BuildDerivedActivityAsync();
         var liveActivity = await BuildLiveActivityAsync();
@@ -159,7 +187,11 @@ public class DashboardDataService
                 BannedUsersCount = allUsers.Count(u => u.IsBanned),
                 AverageSuccessRate = Math.Round(averageSuccessRate, 1),
                 ActiveToday = activeToday,
-                AnswersToday = answersToday
+                AnswersToday = answersToday,
+                DailySuccessRate = dailySuccessRate,
+                ActiveThisWeek = activeThisWeek,
+                AnswersThisWeek = answersThisWeek,
+                WeeklySuccessRate = weeklySuccessRate
             },
             AllUsersList = userRows,
             OnlineUsersList = online,
@@ -468,6 +500,10 @@ public class DashboardDataService
             averageSuccessRate = s.AverageSuccessRate,
             activeToday = s.ActiveToday,
             answersToday = s.AnswersToday,
+            dailySuccessRate = s.DailySuccessRate,
+            activeThisWeek = s.ActiveThisWeek,
+            answersThisWeek = s.AnswersThisWeek,
+            weeklySuccessRate = s.WeeklySuccessRate,
             allUsersList = snapshot.AllUsersList.Select(ToApiUser).ToList(),
             onlineUsersList = snapshot.OnlineUsersList.Select(ToApiUser).ToList(),
             topUsersList = snapshot.TopUsersList.Select(ToApiUser).ToList(),

@@ -154,10 +154,13 @@ builder.Services.AddSingleton<UserDeletionService>(sp =>
     new UserDeletionService(
         sp.GetRequiredService<AuthService>(),
         sp.GetService<TestSessionService>(),
-        sp.GetService<UserProgressStore>(),
-        sp.GetService<ActivityEventService>(),
         sp.GetService<UserProgressService>(),
         sp.GetService<UserStatsService>()));
+builder.Services.AddSingleton<DataRetentionService>(sp =>
+    new DataRetentionService(
+        sp.GetService<ActivityEventService>(),
+        sp.GetService<TestSessionService>()));
+builder.Services.AddHostedService<DataRetentionHostedService>();
 builder.Services.AddSingleton<SystemHealthService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
