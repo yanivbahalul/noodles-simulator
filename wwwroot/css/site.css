@@ -1504,6 +1504,24 @@ button.answer-btn,
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.stats-metrics-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stats-metrics-grid-period {
+    flex: 1 1 240px;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .stats-metric-card {
     display: flex;
     flex-direction: column;
@@ -1709,6 +1727,12 @@ button.answer-btn,
     gap: 12px;
 }
 
+.dashboard-stat-row-pair {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
 .dashboard-stat-row {
     display: flex;
     flex-wrap: wrap;
@@ -1720,6 +1744,11 @@ button.answer-btn,
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
     font-size: var(--fs-base);
+}
+
+.dashboard-stat-row-period {
+    flex: 1 1 280px;
+    min-width: 0;
 }
 
 .dashboard-stat-row li {

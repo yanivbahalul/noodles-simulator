@@ -37,14 +37,18 @@
             <li>🚩 מסומנים כ־Cheaters: <strong id="cheaters-count">@Model.Cheaters.Count</strong></li>
             <li>🔒 חסומים: <strong id="banned-users-count">@Model.BannedUsers.Count</strong></li>
         </ul>
-        <ul class="dashboard-stat-row" aria-label="נתונים יומיים ושבועיים">
-            <li>📅 פעילים היום: <strong id="active-today-count">—</strong></li>
-            <li>✏️ תשובות נכונות היום: <strong id="answers-today-count">—</strong></li>
-            <li>📈 ממוצע הצלחה יומי: <strong id="daily-success-rate">—</strong></li>
-            <li>📆 פעילים השבוע: <strong id="active-week-count">—</strong></li>
-            <li>✏️ תשובות נכונות השבוע: <strong id="answers-week-count">—</strong></li>
-            <li>📈 ממוצע הצלחה שבועי: <strong id="weekly-success-rate">—</strong></li>
-        </ul>
+        <div class="dashboard-stat-row-pair">
+            <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים יומיים">
+                <li>📅 פעילים היום: <strong id="active-today-count">—</strong></li>
+                <li>✏️ תשובות נכונות היום: <strong id="answers-today-count">—</strong></li>
+                <li>📈 ממוצע הצלחה יומי: <strong id="daily-success-rate">—</strong></li>
+            </ul>
+            <ul class="dashboard-stat-row dashboard-stat-row-period" aria-label="נתונים שבועיים">
+                <li>📆 פעילים השבוע: <strong id="active-week-count">—</strong></li>
+                <li>✏️ תשובות נכונות השבוע: <strong id="answers-week-count">—</strong></li>
+                <li>📈 ממוצע הצלחה שבועי: <strong id="weekly-success-rate">—</strong></li>
+            </ul>
+        </div>
     </div>
 
     <h2 class="dashboard-section-title">⚡ פעילות חיה</h2>
