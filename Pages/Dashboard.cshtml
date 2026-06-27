@@ -310,6 +310,42 @@
     }
 </div>
 
+<h2 class="dashboard-section-title">💬 חוות דעת משתמשים</h2>
+<p class="dashboard-feedback-summary">
+    @Model.FeedbackEntries.Count תגובות מתוך @Model.AllUsers.Count משתמשים רשומים
+</p>
+@if (Model.FeedbackEntries.Count > 0)
+{
+    <div class="dashboard-table-shell">
+        <table class="dashboard-table" id="feedback-table">
+            <thead>
+                <tr>
+                    <th>תאריך</th>
+                    <th>משתמש</th>
+                    <th>דירוג</th>
+                    <th>משוב</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model.FeedbackEntries)
+                {
+                    var stars = new string('★', entry.Rating) + new string('☆', 5 - entry.Rating);
+                    <tr>
+                        <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@entry.Username</td>
+                        <td><span class="feedback-rating-stars" aria-label="דירוג @entry.Rating מתוך 5">@stars</span></td>
+                        <td>@(string.IsNullOrWhiteSpace(entry.Message) ? "—" : entry.Message)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="dashboard-empty-hint">עדיין אין תגובות</p>
+}
+
 @if (Model.AllUsers.Any(u => u.Username == "Admin"))
 {
     // הוסרה הצגת דיווחי טעויות בשאלות לפי בקשת המשתמש

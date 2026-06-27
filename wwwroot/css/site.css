@@ -153,6 +153,94 @@ button,
     font-size: var(--fs-sm);
 }
 
+.feedback-modal.difficulty-modal-open {
+    z-index: 6100;
+}
+
+.feedback-modal-content {
+    max-width: min(520px, 100%);
+}
+
+.feedback-modal-subtitle {
+    margin-bottom: 20px;
+}
+
+.feedback-stars {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    direction: ltr;
+}
+
+.feedback-star {
+    background: none;
+    border: none;
+    font-size: 2.25rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.feedback-star:hover,
+.feedback-star.is-selected {
+    color: #ffc107;
+}
+
+.feedback-star:hover {
+    transform: scale(1.1);
+}
+
+.feedback-message-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: var(--fs-sm);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.feedback-message-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font: inherit;
+    resize: vertical;
+    min-height: 96px;
+}
+
+.feedback-message-input:focus {
+    outline: 2px solid rgba(76, 175, 80, 0.6);
+    border-color: transparent;
+}
+
+.feedback-modal-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+}
+
+.feedback-modal-buttons .difficulty-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.feedback-rating-stars {
+    color: #ffc107;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
+
+.feedback-empty-cell {
+    color: rgba(255, 255, 255, 0.45);
+    font-style: italic;
+}
+
 .footer-stats-toggle-open {
     opacity: 1;
     background-color: rgba(255, 255, 255, 0.15) !important;
@@ -1936,6 +2024,12 @@ button.answer-btn,
     color: #999;
     text-align: center;
     padding: 12px;
+}
+
+.dashboard-feedback-summary {
+    margin: 0 0 16px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: var(--fs-sm);
 }
 
 .dashboard-modal {

@@ -14,11 +14,13 @@ public class DashboardModel : PageModel
 {
     private readonly AuthService _authService;
     private readonly QuestionDifficultyService _difficultyService;
+    private readonly UserFeedbackService _feedbackService;
 
-    public DashboardModel(AuthService authService, QuestionDifficultyService difficultyService = null)
+    public DashboardModel(AuthService authService, QuestionDifficultyService difficultyService = null, UserFeedbackService feedbackService = null)
     {
         _authService = authService;
         _difficultyService = difficultyService;
+        _feedbackService = feedbackService;
     }
 
     public List<User> AllUsers { get; set; } = new();
@@ -32,6 +34,9 @@ public class DashboardModel : PageModel
     public int EasyCount { get; set; }
     public int MediumCount { get; set; }
     public int HardCount { get; set; }
+
+    public List<UserFeedbackService.UserFeedbackEntry> FeedbackEntries { get; set; } = new();
+    public string FeedbackCampaignId { get; set; } = "";
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -114,6 +119,10 @@ public class DashboardModel : PageModel
             AverageSuccessRate = AllUsers.Where(u => u.TotalAnswered > 0)
                 .Select(u => (double)u.CorrectAnswers / u.TotalAnswered)
                 .DefaultIfEmpty(0).Average() * 100;
+
+            FeedbackCampaignId = FeedbackCampaigns.GetActiveCampaignId(DateTime.UtcNow) ?? FeedbackCampaigns.June2026;
+            if (_feedbackService != null && _feedbackService.IsEnabled)
+                FeedbackEntries = await _feedbackService.GetAllForCampaignAsync(FeedbackCampaignId);
         }
         catch (Exception ex)
         {

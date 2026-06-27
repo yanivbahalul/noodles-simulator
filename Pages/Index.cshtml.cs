@@ -25,6 +25,7 @@ public class IndexModel : PageModel
     private readonly AchievementService _achievements;
     private readonly QuestionDifficultyService _difficultyService;
     private readonly ActivityEventService _activityEvents;
+    private readonly UserFeedbackService _feedbackService;
 
     private static List<string> _localImagesCache;
     private static DateTime _localImagesCachedAt;
@@ -78,7 +79,7 @@ public class IndexModel : PageModel
         }
     }
 
-    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null, UserProgressService userProgress = null, AchievementService achievements = null, QuestionDifficultyService difficultyService = null, ActivityEventService activityEvents = null)
+    public IndexModel(AuthService authService, SupabaseStorageService storage = null, EmailService emailService = null, QuestionStatsService stats = null, UserProgressService userProgress = null, AchievementService achievements = null, QuestionDifficultyService difficultyService = null, ActivityEventService activityEvents = null, UserFeedbackService feedbackService = null)
     {
         _authService = authService;
         _storage = storage;
@@ -88,6 +89,7 @@ public class IndexModel : PageModel
         _achievements = achievements;
         _difficultyService = difficultyService;
         _activityEvents = activityEvents;
+        _feedbackService = feedbackService;
     }
 
     public bool AnswerChecked { get; set; }
@@ -100,6 +102,8 @@ public class IndexModel : PageModel
     public string Username { get; set; }
     public int OnlineCount { get; set; }
     public string ActiveNoticeId { get; set; } = "";
+    public bool ShowFeedbackModal { get; set; }
+    public string FeedbackCampaignId { get; set; } = "";
 
     public int CurrentStreak { get; set; }
     public int UserCorrect { get; set; }
@@ -159,6 +163,18 @@ public class IndexModel : PageModel
                 }
                 _ = _authService.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
                 ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
+
+                var isAdmin = string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
+                var campaignId = FeedbackCampaigns.GetCampaignIdForUser(DateTime.UtcNow, isAdmin);
+                if (!string.IsNullOrEmpty(campaignId) && _feedbackService != null && _feedbackService.IsEnabled)
+                {
+                    var alreadySubmitted = await _feedbackService.HasSubmittedAsync(user.Username, campaignId);
+                    if (!alreadySubmitted)
+                    {
+                        ShowFeedbackModal = true;
+                        FeedbackCampaignId = campaignId;
+                    }
+                }
             }
 
             ApplyPracticeQueryParams();

@@ -40,6 +40,18 @@
         }).catch(ignoreDismissError);
     }
 
+    function openFeedbackModalIfPending() {
+        const prompt = document.getElementById("feedback-prompt");
+        const modal = document.getElementById("feedback-modal");
+        if (!prompt || !modal) return;
+        modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeFeedbackModal() {
+        const modal = document.getElementById("feedback-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
     function ignoreDismissError() {
         // Best-effort dismiss after the modal is already closed.
     }
@@ -803,13 +815,88 @@
 
         modal.classList.add("difficulty-modal-open");
 
-        const dismiss = () => dismissAppNotice();
+        const dismiss = () => {
+            dismissAppNotice();
+            openFeedbackModalIfPending();
+        };
 
         bindDismissHandler(document.getElementById("app-notice-dismiss-btn"), dismiss);
         bindDismissHandler(document.getElementById("close-app-notice-btn"), dismiss);
         modal.addEventListener("click", (e) => {
             if (e.target === modal) dismiss();
         });
+    }
+
+    function bindFeedbackModal() {
+        const prompt = document.getElementById("feedback-prompt");
+        if (!prompt) return;
+
+        const modal = document.getElementById("feedback-modal");
+        const submitBtn = document.getElementById("feedback-submit-btn");
+        const laterBtn = document.getElementById("feedback-later-btn");
+        const starsEl = document.getElementById("feedback-stars");
+        const messageEl = document.getElementById("feedback-message");
+        if (!modal || !submitBtn || !laterBtn || !starsEl) return;
+
+        let selectedRating = 0;
+
+        function updateStars(rating) {
+            selectedRating = rating;
+            starsEl.querySelectorAll(".feedback-star").forEach((star) => {
+                const value = parseInt(star.dataset.rating, 10);
+                star.classList.toggle("is-selected", value <= rating);
+            });
+            submitBtn.disabled = rating < 1;
+        }
+
+        starsEl.querySelectorAll(".feedback-star").forEach((star) => {
+            star.addEventListener("click", () => {
+                updateStars(parseInt(star.dataset.rating, 10));
+            });
+        });
+
+        laterBtn.addEventListener("click", () => closeFeedbackModal());
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeFeedbackModal();
+        });
+
+        submitBtn.addEventListener("click", async () => {
+            if (selectedRating < 1) return;
+            submitBtn.disabled = true;
+            try {
+                const res = await fetch("/api/feedback/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        campaignId: prompt.dataset.campaignId,
+                        rating: selectedRating,
+                        message: messageEl?.value?.trim() || ""
+                    })
+                });
+                if (res.ok) {
+                    closeFeedbackModal();
+                    prompt.remove();
+                    if (typeof window.showAppAlert === "function") {
+                        window.showAppAlert("תודה! המשוב נשמר.");
+                    }
+                    return;
+                }
+                if (typeof window.showAppAlert === "function") {
+                    window.showAppAlert("אירעה שגיאה בשליחת המשוב. נסו שוב.");
+                }
+            } catch {
+                if (typeof window.showAppAlert === "function") {
+                    window.showAppAlert("אירעה שגיאה בשליחת המשוב. נסו שוב.");
+                }
+            } finally {
+                submitBtn.disabled = selectedRating < 1;
+            }
+        });
+
+        if (prompt.dataset.hasNotice !== "1") {
+            openFeedbackModalIfPending();
+        }
     }
 
     function bindDifficultyChoices() {
@@ -919,6 +1006,7 @@
         bindNextQuestion();
         bindReportForm();
         bindAppNotice();
+        bindFeedbackModal();
         bindDifficultyChoices();
         bindSoundToggle();
         bindAchievementToast();

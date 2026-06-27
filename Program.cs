@@ -153,6 +153,7 @@ builder.Services.AddSingleton<UserProgressService>(sp =>
 builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
+builder.Services.AddSingleton<UserFeedbackService>();
 builder.Services.AddSingleton<DashboardDataService>();
 builder.Services.AddSingleton<UserDeletionService>(sp =>
     new UserDeletionService(
@@ -765,6 +766,117 @@ api.MapPost("/notices/dismiss", async context =>
     catch (Exception ex)
     {
         await WriteServerError(context, "Dismiss Notice API Error", ex);
+    }
+});
+
+api.MapPost("/feedback/submit", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(context.Request.Body);
+        if (!doc.RootElement.TryGetProperty("campaignId", out var campaignIdEl) ||
+            !doc.RootElement.TryGetProperty("rating", out var ratingEl))
+        {
+            await WritePlainError(context, 400, "campaignId and rating required");
+            return;
+        }
+
+        var campaignId = campaignIdEl.GetString();
+        var isAdmin = IsAdminSession(context);
+        var expectedCampaignId = FeedbackCampaigns.GetCampaignIdForUser(DateTime.UtcNow, isAdmin);
+        if (string.IsNullOrWhiteSpace(campaignId) ||
+            !string.Equals(campaignId, expectedCampaignId, StringComparison.Ordinal))
+        {
+            await WritePlainError(context, 400, "Invalid or inactive campaign");
+            return;
+        }
+
+        if (!ratingEl.TryGetInt32(out var rating) || rating < 1 || rating > 5)
+        {
+            await WritePlainError(context, 400, "rating must be between 1 and 5");
+            return;
+        }
+
+        var message = doc.RootElement.TryGetProperty("message", out var messageEl)
+            ? messageEl.GetString() ?? ""
+            : "";
+
+        var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
+        if (feedbackService == null || !feedbackService.IsEnabled)
+        {
+            await WritePlainError(context, 503, "Feedback service not available");
+            return;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var (success, alreadySubmitted) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
+        if (alreadySubmitted)
+        {
+            await WritePlainError(context, 409, "Already submitted");
+            return;
+        }
+
+        if (!success)
+        {
+            await WritePlainError(context, 500, "Failed to save feedback");
+            return;
+        }
+
+        await WriteJson(context, new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Feedback Submit API Error", ex);
+    }
+});
+
+api.MapGet("/dashboard-feedback", async context =>
+{
+    if (!IsAdminSession(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var campaignId = FeedbackCampaigns.GetActiveCampaignId(DateTime.UtcNow);
+        if (string.IsNullOrWhiteSpace(campaignId))
+        {
+            await WriteJson(context, new { campaignId = "", entries = Array.Empty<object>() });
+            return;
+        }
+
+        var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
+        if (feedbackService == null || !feedbackService.IsEnabled)
+        {
+            await WritePlainError(context, 503, "Feedback service not available");
+            return;
+        }
+
+        var entries = await feedbackService.GetAllForCampaignAsync(campaignId);
+        await WriteJson(context, new
+        {
+            campaignId,
+            entries = entries.Select(e => new
+            {
+                e.Id,
+                e.Username,
+                e.Rating,
+                e.Message,
+                createdAt = e.CreatedAt.ToString("o")
+            })
+        });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard Feedback API Error", ex);
     }
 });
 
