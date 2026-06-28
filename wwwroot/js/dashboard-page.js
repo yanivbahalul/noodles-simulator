@@ -267,21 +267,29 @@
         });
     }
 
+    function setButtonDisabled(btn, disabled) {
+        if (btn) btn.disabled = disabled;
+    }
+
+    async function postRecalculateDifficulties(recalcForm) {
+        const token = recalcForm.querySelector('input[name="__RequestVerificationToken"]')?.value || "";
+        const res = await fetch("/Dashboard?handler=RecalculateDifficulties", {
+            method: "POST",
+            headers: {
+                RequestVerificationToken: token,
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({ __RequestVerificationToken: token })
+        });
+        return res.ok;
+    }
+
     async function submitRecalculateDifficulties(recalcForm, btn) {
-        if (btn) btn.disabled = true;
+        setButtonDisabled(btn, true);
         try {
-            const token = recalcForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
-            const res = await fetch("/Dashboard?handler=RecalculateDifficulties", {
-                method: "POST",
-                headers: {
-                    RequestVerificationToken: token || "",
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: new URLSearchParams({ __RequestVerificationToken: token || "" })
-            });
-            if (res.ok) location.reload();
+            if (await postRecalculateDifficulties(recalcForm)) location.reload();
         } finally {
-            if (btn) btn.disabled = false;
+            setButtonDisabled(btn, false);
         }
     }
 

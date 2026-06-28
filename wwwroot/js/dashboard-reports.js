@@ -42,6 +42,13 @@
         });
     }
 
+    function showEmptyQuestionReports(tbody, emptyHint, cacheLength) {
+        tbody.innerHTML = "";
+        if (!emptyHint) return;
+        emptyHint.hidden = false;
+        emptyHint.textContent = reportEmptyMessage(cacheLength);
+    }
+
     dashboard.renderQuestionReports = function renderQuestionReports(reports) {
         dashboard.state.questionReportsCache = reports || [];
         const tbody = document.getElementById("question-reports-tbody");
@@ -50,11 +57,7 @@
 
         const filtered = dashboard.state.questionReportsCache.filter(passesReportFilter);
         if (!filtered.length) {
-            tbody.innerHTML = "";
-            if (emptyHint) {
-                emptyHint.hidden = false;
-                emptyHint.textContent = reportEmptyMessage(dashboard.state.questionReportsCache.length);
-            }
+            showEmptyQuestionReports(tbody, emptyHint, dashboard.state.questionReportsCache.length);
             return;
         }
         if (emptyHint) emptyHint.hidden = true;
