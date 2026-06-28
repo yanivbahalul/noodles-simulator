@@ -43,12 +43,15 @@ public class TestQuestionBinding
     public int CurrentIndex { get; init; }
     public int DisplayQuestionNumber => CurrentIndex + 1;
     public int TotalQuestions { get; init; }
-    public int ProgressPercent => TotalQuestions == 0 ? 0 : CurrentIndex * 100 / TotalQuestions;
+    public int AnsweredCount { get; init; }
+    public int ProgressPercent => TotalQuestions == 0 ? 0 : AnsweredCount * 100 / TotalQuestions;
     public string QuestionImageUrl { get; init; } = "";
     public Dictionary<string, string> ShuffledAnswers { get; init; } = new();
     public Dictionary<string, string> AnswerImageUrls { get; init; } = new();
     public string TestEndUtcString { get; init; } = "";
     public int TestRemainingSeconds { get; init; }
+    public string? SelectedAnswerKey { get; init; }
+    public List<bool> AnsweredByIndex { get; init; } = new();
 }
 
 public class TestExamService
@@ -159,6 +162,46 @@ public class TestExamService
         {
             Action = TestExamGetAction.ShowPage,
             Session = session,
+            Binding = binding
+        };
+    }
+
+    public async Task<TestAnswerProcessResult> NavigateToQuestionAsync(string username, string? token, int targetIndex)
+    {
+        if (_testSession == null)
+            return new TestAnswerProcessResult { ServiceUnavailable = true };
+
+        if (string.IsNullOrEmpty(token))
+            return new TestAnswerProcessResult { MissingToken = true };
+
+        var session = await _testSession.GetSessionAsync(token);
+        if (session == null || session.Username != username)
+            return new TestAnswerProcessResult { RedirectMyExams = true };
+
+        if (_testSession.IsExpired(session) || session.Status != "active")
+        {
+            await _testSession.ExpireSessionAsync(session);
+            return new TestAnswerProcessResult
+            {
+                RedirectPath = $"/TestResults?token={Uri.EscapeDataString(session.Token)}"
+            };
+        }
+
+        var questions = JsonSerializer.Deserialize<List<TestQuestion>>(session.QuestionsJson, AppJson.Options)
+                        ?? new List<TestQuestion>();
+        if (questions.Count == 0)
+            return new TestAnswerProcessResult { RedirectMyExams = true };
+
+        var clamped = Math.Clamp(targetIndex, 0, questions.Count - 1);
+        session.CurrentIndex = clamped;
+        await _testSession.UpdateSessionAsync(session);
+
+        var state = DeserializeState(session);
+        var binding = await BindCurrentAsync(state);
+        return new TestAnswerProcessResult
+        {
+            Session = session,
+            State = state,
             Binding = binding
         };
     }
@@ -289,9 +332,13 @@ public class TestExamService
         {
             questionImageUrl = binding.QuestionImageUrl,
             displayQuestionNumber = binding.DisplayQuestionNumber,
+            currentIndex = binding.CurrentIndex,
             totalQuestions = binding.TotalQuestions,
+            answeredCount = binding.AnsweredCount,
             progressPercent = binding.ProgressPercent,
             remainingSeconds = binding.TestRemainingSeconds,
+            selectedAnswerKey = binding.SelectedAnswerKey,
+            answeredByIndex = binding.AnsweredByIndex,
             answers = binding.ShuffledAnswers
                 .Select(kv => new
                 {
@@ -344,15 +391,33 @@ public class TestExamService
         var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, answers);
         var end = TestSessionService.GetExamEndUtc(state.StartedUtc);
 
+        var answeredByIndex = new List<bool>(total);
+        var answeredCount = 0;
+        for (var i = 0; i < total; i++)
+        {
+            var hasAnswer = i < state.Answers.Count &&
+                            state.Answers[i] != null &&
+                            !string.IsNullOrWhiteSpace(state.Answers[i].SelectedKey);
+            answeredByIndex.Add(hasAnswer);
+            if (hasAnswer) answeredCount++;
+        }
+
+        string? selectedKey = null;
+        if (currentIndex < state.Answers.Count && state.Answers[currentIndex] != null)
+            selectedKey = state.Answers[currentIndex].SelectedKey;
+
         return new TestQuestionBinding
         {
             CurrentIndex = currentIndex,
-            TotalQuestions = DefaultQuestionCount,
+            TotalQuestions = total > 0 ? total : DefaultQuestionCount,
+            AnsweredCount = answeredCount,
             QuestionImageUrl = resolved.QuestionUrl,
             ShuffledAnswers = q.Answers ?? new Dictionary<string, string>(),
             AnswerImageUrls = resolved.AnswerUrls,
             TestEndUtcString = end.ToString("o"),
-            TestRemainingSeconds = TestSessionService.GetRemainingSeconds(state.StartedUtc)
+            TestRemainingSeconds = TestSessionService.GetRemainingSeconds(state.StartedUtc),
+            SelectedAnswerKey = selectedKey,
+            AnsweredByIndex = answeredByIndex
         };
     }
 

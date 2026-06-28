@@ -240,6 +240,7 @@ public static class ActivityEventCatalog
         var noticeId = payload.TryGetValue("noticeId", out var id) ? id?.ToString() : "";
         return noticeId switch
         {
+            AppNotices.ExamNavigation => "ניווט במבחן",
             AppNotices.June2026Update => "עדכון יוני 2026",
             AppNotices.ExamFix => "תיקון מבחן",
             _ => string.IsNullOrWhiteSpace(noticeId) ? "הודעה" : noticeId

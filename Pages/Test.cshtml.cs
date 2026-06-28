@@ -28,8 +28,12 @@ public class TestModel : PageModel
     public Dictionary<string, string> AnswerImageUrls { get; set; }
     public int CurrentIndex { get; set; }
     public int DisplayQuestionNumber => CurrentIndex + 1;
-    public int QuestionCount => TestExamService.DefaultQuestionCount;
-    public int ProgressPercent => QuestionCount == 0 ? 0 : CurrentIndex * 100 / QuestionCount;
+    public int TotalQuestions { get; set; }
+    public int QuestionCount => TotalQuestions > 0 ? TotalQuestions : TestExamService.DefaultQuestionCount;
+    public int AnsweredCount { get; set; }
+    public int ProgressPercent => QuestionCount == 0 ? 0 : AnsweredCount * 100 / QuestionCount;
+    public string? SelectedAnswerKey { get; set; }
+    public List<bool> AnsweredByIndex { get; set; } = new();
     public string TestEndUtcString { get; set; }
     public int TestRemainingSeconds { get; set; }
 
@@ -135,6 +139,49 @@ public class TestModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnPostNavigateAsync()
+    {
+        try
+        {
+            var username = HttpContext.Session.GetString("Username");
+            if (string.IsNullOrEmpty(username))
+                return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
+
+            string body;
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8))
+                body = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(body))
+                return new JsonResult(new { error = "Empty body" }) { StatusCode = 400 };
+
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("token", out var tokenEl) || !root.TryGetProperty("index", out var indexEl))
+                return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+            var token = tokenEl.GetString();
+            if (string.IsNullOrWhiteSpace(token) || !indexEl.TryGetInt32(out var index))
+                return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+
+            var result = await _exam.NavigateToQuestionAsync(username, token, index);
+            if (result.ServiceUnavailable)
+                return new JsonResult(new { error = "Service unavailable" }) { StatusCode = 503 };
+            if (result.MissingToken)
+                return new JsonResult(new { error = "Invalid body" }) { StatusCode = 400 };
+            if (result.RedirectMyExams)
+                return new JsonResult(new { redirect = "/MyExams" });
+            if (result.RedirectPath != null)
+                return new JsonResult(new { redirect = result.RedirectPath });
+
+            ApplyBinding(result.Binding!);
+            return new JsonResult(_exam.BuildQuestionJsonResponse(result.Binding!));
+        }
+        catch (System.Exception ex)
+        {
+            Console.WriteLine($"[OnPostNavigateAsync Error] {ex}");
+            return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
+        }
+    }
+
     public async Task<IActionResult> OnPostEndTest()
     {
         var username = HttpContext.Session.GetString("Username");
@@ -152,6 +199,10 @@ public class TestModel : PageModel
     private void ApplyBinding(TestQuestionBinding binding)
     {
         CurrentIndex = binding.CurrentIndex;
+        TotalQuestions = binding.TotalQuestions;
+        AnsweredCount = binding.AnsweredCount;
+        SelectedAnswerKey = binding.SelectedAnswerKey;
+        AnsweredByIndex = binding.AnsweredByIndex;
         QuestionImageUrl = binding.QuestionImageUrl;
         ShuffledAnswers = binding.ShuffledAnswers;
         AnswerImageUrls = binding.AnswerImageUrls;

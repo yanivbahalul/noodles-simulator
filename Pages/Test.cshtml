@@ -38,12 +38,35 @@
         <div class="test-progress-track">
             <div class="test-progress-fill" id="test-progress-fill" style="width: @Model.ProgressPercent%"></div>
         </div>
-        <p class="test-progress-label" id="test-progress-label">התקדמות: @Model.DisplayQuestionNumber / @Model.QuestionCount</p>
+        <p class="test-progress-label" id="test-progress-label">התקדמות: ענית על @Model.AnsweredCount / @Model.QuestionCount · שאלה @Model.DisplayQuestionNumber</p>
     </div>
     
     <p class="test-meta">
         שאלה <span id="test-question-number">@Model.DisplayQuestionNumber</span> מתוך @Model.QuestionCount · זמן נותר: <span id="countdown">--:--:--</span>
     </p>
+
+    <div class="test-question-nav" id="test-question-nav" aria-label="ניווט בין שאלות">
+        <button type="button" class="test-nav-arrow" id="test-prev-btn" aria-label="שאלה קודמת">▶</button>
+        <div class="test-question-pills" id="test-question-pills" role="tablist">
+            @for (var i = 0; i < Model.QuestionCount; i++)
+            {
+                var num = i + 1;
+                var answered = i < Model.AnsweredByIndex.Count && Model.AnsweredByIndex[i];
+                var current = i == Model.CurrentIndex;
+                var pillClass = "test-question-pill";
+                if (current) pillClass += " is-current";
+                if (answered) pillClass += " is-answered";
+                <button type="button"
+                        class="@pillClass"
+                        data-question-index="@i"
+                        role="tab"
+                        aria-selected="@(current ? "true" : "false")"
+                        aria-label="שאלה @num@(answered ? " — נענתה" : "")">@num</button>
+            }
+        </div>
+        <button type="button" class="test-nav-arrow" id="test-next-btn" aria-label="שאלה הבאה">◀</button>
+    </div>
+    <p class="test-nav-hint">אפשר לדלג בין שאלות ולחזור לענות מאוחר יותר — לא חייבים להישאר על שאלה אחת.</p>
 
     @if (!string.IsNullOrWhiteSpace(Model.QuestionImageUrl))
     {
@@ -60,10 +83,12 @@
         <div class="answers" id="answers-grid">
             @foreach (var answer in Model.ShuffledAnswers ?? new Dictionary<string, string>())
             {
+                var selected = answer.Key == Model.SelectedAnswerKey;
                 <button type="submit"
                         name="answer"
                         value="@answer.Key"
-                        class="answer-btn">
+                        class="answer-btn@(selected ? " is-selected" : "")"
+                        aria-pressed="@(selected ? "true" : "false")">
                     <img src="@(Model.AnswerImageUrls != null && Model.AnswerImageUrls.ContainsKey(answer.Key) ? Model.AnswerImageUrls[answer.Key] : "")" alt="תשובה" loading="lazy" />
                 </button>
             }
