@@ -2,6 +2,9 @@
 @model NoodlesSimulator.Pages.TestResultsModel
 @{
     ViewData["Title"] = "סיכום מבחן";
+    var startIndex = Model.InitialIndex;
+    var startItem = Model.Items.Count > startIndex ? Model.Items[startIndex] : null;
+    var progressPercent = Model.Total > 0 ? (Model.CorrectCount * 100 / Model.Total) : 0;
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -21,43 +24,93 @@
 <partial name="Shared/_TopBar" />
 <partial name="Shared/_LogoHeader" />
 
-<div class="quiz-container">
-    <h2 class="test-results-title">סיכום מבחן</h2>
+<div class="quiz-container test-quiz-container test-results-container">
+
+    <h2 class="test-title">סיכום מבחן</h2>
+
     <p class="test-results-summary">
         ניקוד: <strong>@Model.Score</strong> מתוך @Model.MaxScore
-        · נכונות: <strong>@Model.CorrectCount</strong> / @Model.Total
+        · <strong>@Model.CorrectCount</strong> תשובות נכונות מתוך @Model.Total
         · זמן: <strong>@Model.ElapsedText</strong>
     </p>
 
-    <div class="test-results-list">
-        @for (int i = 0; i < Model.Items.Count; i++)
+    <div class="test-progress-wrap">
+        <div class="test-progress-track">
+            <div class="test-progress-fill test-results-progress-fill" id="test-results-progress-fill" style="width: @progressPercent%"></div>
+        </div>
+        <p class="test-progress-label" id="test-results-progress-label">@Model.CorrectCount / @Model.Total נכונות</p>
+    </div>
+
+    <p class="test-meta">
+        שאלה <span id="test-results-question-number">@(startIndex + 1)</span> מתוך @Model.Total
+        · <span id="test-results-question-status" class="test-results-question-status@(startItem == null ? "" : startItem.IsCorrect ? " is-correct" : startItem.IsAnswered ? " is-wrong" : " is-unanswered")">
+            @if (startItem == null)
+            {
+                @:—
+            }
+            else if (startItem.IsCorrect)
+            {
+                @:✓ נכון
+            }
+            else if (startItem.IsAnswered)
+            {
+                @:✗ לא נכון
+            }
+            else
+            {
+                @:לא ענית
+            }
+        </span>
+    </p>
+
+    <div class="test-question-nav" id="test-results-question-nav" aria-label="ניווט בין שאלות">
+        <button type="button" class="test-nav-arrow" id="test-results-prev-btn" aria-label="שאלה קודמת">▶</button>
+        <div class="test-question-pills" id="test-results-question-pills" role="tablist">
+            @for (var i = 0; i < Model.Items.Count; i++)
+            {
+                var item = Model.Items[i];
+                var num = i + 1;
+                var current = i == startIndex;
+                var pillClass = "test-question-pill";
+                if (current) pillClass += " is-current";
+                if (item.IsCorrect) pillClass += " is-correct";
+                else if (item.IsAnswered) pillClass += " is-wrong";
+                else pillClass += " is-unanswered";
+                <button type="button"
+                        class="@pillClass"
+                        data-question-index="@i"
+                        role="tab"
+                        aria-selected="@(current ? "true" : "false")"
+                        aria-label="שאלה @num@(item.IsCorrect ? " — נכון" : item.IsAnswered ? " — לא נכון" : " — לא נענתה")">@num</button>
+            }
+        </div>
+        <button type="button" class="test-nav-arrow" id="test-results-next-btn" aria-label="שאלה הבאה">◀</button>
+    </div>
+    <p class="test-nav-hint test-results-nav-hint">ירוק = נכון · אדום = הטעות שלך · אפשר לעבור בין כל השאלות ולראות את התשובה הנכונה</p>
+
+    @if (startItem != null && !string.IsNullOrWhiteSpace(startItem.QuestionUrl))
+    {
+        <img src="@startItem.QuestionUrl" alt="שאלה" loading="lazy" id="test-results-question-image" class="test-main-question-image" />
+    }
+    else
+    {
+        <img src="" alt="שאלה" loading="lazy" id="test-results-question-image" class="test-main-question-image" hidden />
+    }
+
+    <div class="answers" id="test-results-answers-grid">
+        @if (startItem != null)
         {
-            var item = Model.Items[i];
-            <div class="test-results-item">
-                <a href="@(string.IsNullOrWhiteSpace(Model.ReviewToken) ? $"/TestReview?i={i}" : $"/TestReview?token={Uri.EscapeDataString(Model.ReviewToken)}&i={i}")" title="הצג סקירה"
-                   class="test-results-review-link">
-                    🔍
-                </a>
-                <img src="@item.QuestionUrl" alt="שאלה @(i+1)" class="test-results-question-image" />
-                <div class="test-results-item-content">
-                    <div class="test-results-item-title @(item.IsCorrect ? "test-results-item-title-correct" : "test-results-item-title-incorrect")">
-                        שאלה @(i+1) — @(item.IsCorrect ? "נכון" : "לא נכון")
-                    </div>
-                    <div class="test-results-answers">
-                        @if (!string.IsNullOrWhiteSpace(item.SelectedUrl))
-                        {
-                            <div>
-                                <div class="test-results-answer-label">התשובה שנענתה</div>
-                                <img src="@item.SelectedUrl" alt="נענתה" class="result-ans" />
-                            </div>
-                        }
-                        <div>
-                            <div class="test-results-answer-label">התשובה הנכונה</div>
-                            <img src="@item.CorrectUrl" alt="נכונה" class="result-ans" />
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @foreach (var kv in startItem.AnswerUrls)
+            {
+                var key = kv.Key;
+                var url = kv.Value;
+                var cls = "answer-btn";
+                if (key == startItem.CorrectKey) cls += " correct";
+                else if (key == startItem.SelectedKey && !startItem.IsCorrect) cls += " incorrect";
+                <button type="button" class="@cls" disabled>
+                    <img src="@url" alt="תשובה" loading="lazy" />
+                </button>
+            }
         }
     </div>
 
@@ -88,6 +141,19 @@
         </form>
     </div>
 </div>
+
+<div id="image-modal" class="image-modal modal-hidden">
+    <span class="close-modal" id="close-image-modal-btn">&times;</span>
+    <img class="modal-content" id="modal-img" src="@(startItem?.QuestionUrl ?? "")" alt="שאלה מוגדלת" />
+</div>
+
+<div id="test-results-page-data"
+     data-initial-index="@Model.InitialIndex"
+     data-total="@Model.Total"></div>
+<script type="application/json" id="test-results-items-json">@Html.Raw(Model.ItemsJson)</script>
+<script src="/js/image-modal.js" asp-append-version="true"></script>
+<script src="/js/quiz-viewport.js" asp-append-version="true"></script>
+<script src="/js/test-results-page.js" asp-append-version="true"></script>
 
 <partial name="Shared/_SiteFooter" />
 </body>

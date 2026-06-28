@@ -54,21 +54,7 @@ public class TestReviewModel : PageModel
             return RedirectToPage("/Test", new { token = ReviewToken });
         }
 
-        var state = BuildStateFromSession(session);
-        if (state == null || state.Questions == null || i < 0 || i >= state.Questions.Count)
-        {
-            return RedirectToPage("/MyExams");
-        }
-
-        var q = state.Questions[i];
-        var a = (state.Answers != null && i < state.Answers.Count) ? state.Answers[i] : null;
-        SelectedKey = a?.SelectedKey;
-        CorrectAnswerKey = AnswerOptionShuffle.ResolveCorrectKey(q);
-
-        var resolved = await ImageUrlResolver.ResolveQuestionAndAnswersAsync(_storage, q.Question, q.Answers);
-        QuestionImageUrl = resolved.QuestionUrl;
-        AnswerImageUrls = resolved.AnswerUrls;
-        return Page();
+        return RedirectToPage("/TestResults", new { token = ReviewToken, i });
     }
 
     private static TestState BuildStateFromSession(TestSession session)

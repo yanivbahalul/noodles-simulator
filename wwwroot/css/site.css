@@ -1005,6 +1005,47 @@ button.answer-btn,
     margin: 0 0 12px;
 }
 
+.test-question-pill.is-correct:not(.is-current) {
+    border-color: rgba(50, 205, 50, 0.55);
+    background: rgba(50, 205, 50, 0.15);
+    color: #b8ffb8;
+}
+
+.test-question-pill.is-wrong:not(.is-current) {
+    border-color: rgba(255, 76, 76, 0.55);
+    background: rgba(255, 76, 76, 0.12);
+    color: #ffb8b8;
+}
+
+.test-question-pill.is-unanswered:not(.is-current) {
+    opacity: 0.65;
+}
+
+.test-results-progress-fill {
+    background: linear-gradient(90deg, #32cd32, #55efc4);
+}
+
+.test-results-question-status.is-correct {
+    color: #32cd32;
+}
+
+.test-results-question-status.is-wrong {
+    color: #ff4c4c;
+}
+
+.test-results-question-status.is-unanswered {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.test-results-nav-hint {
+    margin-bottom: 14px;
+}
+
+.test-results-container .test-results-summary {
+    margin: 4px 0 12px;
+}
+
+
 #answers-grid .answer-btn.is-selected {
     outline: 2px solid #55efc4;
     outline-offset: 2px;

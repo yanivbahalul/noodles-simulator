@@ -24,9 +24,11 @@ public sealed class TestResultsPageData
 public sealed class TestResultsItem
 {
     public string QuestionUrl { get; init; } = "";
-    public string SelectedUrl { get; init; } = "";
-    public string CorrectUrl { get; init; } = "";
+    public Dictionary<string, string> AnswerUrls { get; init; } = new();
+    public string CorrectKey { get; init; } = "";
+    public string SelectedKey { get; init; } = "";
     public bool IsCorrect { get; init; }
+    public bool IsAnswered { get; init; }
 }
 
 public enum TestResultsRedirect
@@ -210,11 +212,11 @@ public class TestResultsPageService
             items.Add(new TestResultsItem
             {
                 QuestionUrl = qUrl,
-                CorrectUrl = answerUrls.TryGetValue(correctKey, out var cu) ? cu : string.Empty,
-                SelectedUrl = (a != null && !string.IsNullOrWhiteSpace(a.SelectedKey) && answerUrls.ContainsKey(a.SelectedKey))
-                    ? answerUrls[a.SelectedKey]
-                    : string.Empty,
-                IsCorrect = a?.IsCorrect == true
+                AnswerUrls = answerUrls,
+                CorrectKey = correctKey,
+                SelectedKey = a?.SelectedKey ?? "",
+                IsCorrect = a?.IsCorrect == true,
+                IsAnswered = a != null && !string.IsNullOrWhiteSpace(a.SelectedKey)
             });
         }
 

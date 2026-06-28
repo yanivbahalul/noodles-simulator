@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace NoodlesSimulator.Pages;
@@ -23,13 +25,17 @@ public class TestResultsModel : PageModel
     public string ReviewToken { get; set; } = string.Empty;
     public bool HasMistakes { get; set; }
     public List<string> NewAchievements { get; set; } = new();
+    public int InitialIndex { get; set; }
+    public string ItemsJson { get; set; } = "[]";
 
     public class ResultItem
     {
         public string QuestionUrl { get; set; }
-        public string SelectedUrl { get; set; }
-        public string CorrectUrl { get; set; }
+        public Dictionary<string, string> AnswerUrls { get; set; } = new();
+        public string CorrectKey { get; set; }
+        public string SelectedKey { get; set; }
         public bool IsCorrect { get; set; }
+        public bool IsAnswered { get; set; }
     }
 
     public List<ResultItem> Items { get; set; } = new List<ResultItem>();
@@ -59,6 +65,13 @@ public class TestResultsModel : PageModel
         }
 
         ApplyPageData(result.Data);
+        if (int.TryParse(Request.Query["i"], out var queryIndex))
+            InitialIndex = queryIndex;
+        if (Items.Count == 0)
+            InitialIndex = 0;
+        else if (InitialIndex < 0 || InitialIndex >= Items.Count)
+            InitialIndex = 0;
+
         return Page();
     }
 
@@ -77,9 +90,12 @@ public class TestResultsModel : PageModel
         Items = data.Items.ConvertAll(item => new ResultItem
         {
             QuestionUrl = item.QuestionUrl,
-            SelectedUrl = item.SelectedUrl,
-            CorrectUrl = item.CorrectUrl,
-            IsCorrect = item.IsCorrect
+            AnswerUrls = item.AnswerUrls,
+            CorrectKey = item.CorrectKey,
+            SelectedKey = item.SelectedKey,
+            IsCorrect = item.IsCorrect,
+            IsAnswered = item.IsAnswered
         });
+        ItemsJson = JsonSerializer.Serialize(data.Items, AppJson.Web);
     }
 }
