@@ -64,7 +64,13 @@
     </div>
 
     <div id="question-view-data" data-question-image-url="@Model.QuestionImageUrl"></div>
-    <script src="/js/questionview-page.js"></script>
+    <script src="/js/image-modal.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const data = document.getElementById("question-view-data");
+            window.ImageModal?.bindImageModal(data?.dataset.questionImageUrl || "");
+        });
+    </script>
 
     <partial name="Shared/_SiteFooter" />
 </body>

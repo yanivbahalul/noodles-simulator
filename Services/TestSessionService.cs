@@ -26,7 +26,6 @@ public class TestSessionService
     private readonly string _apiKey;
     private readonly SupabaseStorageService? _storage;
     private readonly ActivityEventService? _activityEvents;
-    private static readonly TimeSpan TestDuration = ExamDuration;
     public static readonly TimeSpan ExamDuration = TimeSpan.FromHours(3);
 
     public static DateTime EnsureUtc(DateTime value)
@@ -43,20 +42,13 @@ public class TestSessionService
     {
         _storage = storage;
         _activityEvents = activityEvents;
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
+        var rest = SupabaseRestClient.Create(config, required: true);
+        _url = rest.Url;
         _apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
                   ?? SupabaseConfiguration.AnonApiKey(config)
-                  ?? string.Empty;
+                  ?? "";
 
-        if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
-            throw new InvalidOperationException("Missing Supabase ENV vars.");
-
-        _client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(10)
-        };
-        _client.DefaultRequestHeaders.Add("apikey", _apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+        _client = rest.Client!;
     }
 
     public string GenerateToken()
@@ -299,12 +291,12 @@ public class TestSessionService
         var ok = await UpdateSessionStatusAsync(session.Token, "expired");
         if (ok)
         {
-            ActivityEventCatalog.LogExamExpired(
-                _activityEvents,
-                session.Username,
-                session.Score,
-                session.MaxScore,
-                session.CurrentIndex);
+            _activityEvents?.Log(session.Username, ActivityEventCatalog.ExamExpired, new Dictionary<string, object>
+            {
+                ["score"] = session.Score,
+                ["maxScore"] = session.MaxScore,
+                ["currentIndex"] = session.CurrentIndex
+            });
         }
 
         return ok;

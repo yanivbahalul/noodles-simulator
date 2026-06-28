@@ -88,7 +88,10 @@ public class TestResultsModel : PageModel
         if (HttpContext.Session.GetString(processedKey) == "1")
         {
             if (_userProgress != null)
-                HasMistakes = _userProgress.Load(username).SessionMistakes.Count > 0;
+            {
+                var cached = await _userProgress.LoadAsync(username);
+                HasMistakes = cached.SessionMistakes.Count > 0;
+            }
             return;
         }
         HttpContext.Session.SetString(processedKey, "1");
@@ -103,11 +106,11 @@ public class TestResultsModel : PageModel
         var answers = JsonSerializer.Deserialize<List<TestAnswer>>(session.AnswersJson, AppJson.Options) ?? new List<TestAnswer>();
         var correctCount = answers.Count(a => a != null && a.IsCorrect);
         var total = questions.Count;
-        var score = session.Score > 0 ? session.Score : correctCount * 6;
+        var score = session.Score > 0 ? session.Score : ExamScoring.ScoreFromCorrectCount(correctCount);
 
-        var progress = _userProgress.Load(username);
+        var progress = await _userProgress.LoadAsync(username);
         var isFirstExam = progress.ExamsCompleted == 0;
-        var previousExamCorrect = _userProgress.RecordExamComplete(username, correctCount, total, score);
+        var previousExamCorrect = await _userProgress.RecordExamCompleteAsync(username, correctCount, total, score);
 
         var wrongQuestions = new List<string>();
         for (int i = 0; i < questions.Count; i++)
@@ -118,18 +121,18 @@ public class TestResultsModel : PageModel
                 wrongQuestions.Add(q);
         }
         if (wrongQuestions.Count > 0)
-            _userProgress.AddSessionMistakes(username, wrongQuestions);
+            await _userProgress.AddSessionMistakesAsync(username, wrongQuestions);
 
-        HasMistakes = _userProgress.Load(username).SessionMistakes.Count > 0;
-        NewAchievements = _achievements.CheckExamAchievements(username, correctCount, total, isFirstExam, previousExamCorrect);
+        progress = await _userProgress.LoadAsync(username);
+        HasMistakes = progress.SessionMistakes.Count > 0;
+        NewAchievements = await _achievements.CheckExamAchievementsAsync(username, correctCount, total, isFirstExam, previousExamCorrect);
 
         if (_authService != null)
         {
             var user = await _authService.GetUserAsync(username);
             if (user != null)
             {
-                var updated = _userProgress.Load(username);
-                user.Xp = updated.Xp;
+                user.Xp = progress.Xp;
                 user.Level = QuizGamification.LevelFromXp(user.Xp);
                 await _authService.UpdateUserAsync(user);
             }
@@ -143,8 +146,8 @@ public class TestResultsModel : PageModel
 
         Total = questions.Count;
         CorrectCount = answers.Count(a => a != null && a.IsCorrect);
-        MaxScore = session.MaxScore > 0 ? session.MaxScore : Total * 6;
-        Score = session.Score > 0 ? session.Score : CorrectCount * 6;
+        MaxScore = session.MaxScore > 0 ? session.MaxScore : ExamScoring.MaxScore(Total);
+        Score = session.Score > 0 ? session.Score : ExamScoring.ScoreFromCorrectCount(CorrectCount);
 
         var elapsed = (session.CompletedUtc ?? DateTime.UtcNow) - session.StartedUtc;
         if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;

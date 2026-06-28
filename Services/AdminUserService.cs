@@ -4,26 +4,29 @@ using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
 
-public class AdminUserSupportService
+public class AdminUserService
 {
     private readonly AuthService _auth;
-    private readonly UserProgressService _progress;
-    private readonly TestSessionService _testSessions;
-    private readonly ActivityEventService _activityEvents;
+    private readonly UserProgressService? _progress;
+    private readonly TestSessionService? _testSessions;
+    private readonly ActivityEventService? _activityEvents;
+    private readonly UserStatsService? _stats;
 
-    public AdminUserSupportService(
+    public AdminUserService(
         AuthService auth,
-        UserProgressService progress = null,
-        TestSessionService testSessions = null,
-        ActivityEventService activityEvents = null)
+        UserProgressService? progress = null,
+        TestSessionService? testSessions = null,
+        ActivityEventService? activityEvents = null,
+        UserStatsService? stats = null)
     {
         _auth = auth;
         _progress = progress;
         _testSessions = testSessions;
         _activityEvents = activityEvents;
+        _stats = stats;
     }
 
-    public async Task<(bool Success, string Error)> ResetUserProgressAsync(string username)
+    public async Task<(bool Success, string? Error)> ResetUserProgressAsync(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return (false, "Missing username");
@@ -60,17 +63,17 @@ public class AdminUserSupportService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AdminUserSupport] SyncLeaderboardStats failed: {ex.Message}");
+            Console.WriteLine($"[AdminUserService] SyncLeaderboardStats failed: {ex.Message}");
         }
 
-        try { _progress?.ResetAll(user.Username); }
-        catch (Exception ex) { Console.WriteLine($"[AdminUserSupport] ResetAll failed: {ex.Message}"); }
+        try { await _progress?.ResetAllAsync(user.Username); }
+        catch (Exception ex) { Console.WriteLine($"[AdminUserService] ResetAll failed: {ex.Message}"); }
 
         _activityEvents?.Log(user.Username, ActivityEventCatalog.ProgressReset);
         return (true, null);
     }
 
-    public async Task<(bool Success, string Error)> ExpireExamAsync(string token)
+    public async Task<(bool Success, string? Error)> ExpireExamAsync(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
             return (false, "Missing token");
@@ -87,5 +90,30 @@ public class AdminUserSupportService
 
         var ok = await _testSessions.ExpireSessionAsync(session);
         return ok ? (true, null) : (false, "Failed to expire exam");
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteUserCompletelyAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return (false, "Missing username");
+
+        username = username.Trim();
+        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+            return (false, "Cannot delete admin user");
+
+        var user = await _auth.GetUserAsync(username);
+        if (user == null)
+            return (false, "User not found");
+
+        if (_testSessions != null)
+            await _testSessions.DeleteUserSessionsAsync(username);
+
+        if (!await _auth.DeleteUserAsync(username))
+            return (false, "Failed to delete user from database");
+
+        _progress?.DeleteLocal(username);
+        _stats?.InvalidateCache();
+
+        return (true, null);
     }
 }

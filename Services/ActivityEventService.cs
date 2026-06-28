@@ -18,20 +18,16 @@ public class ActivityEventService
 
     public ActivityEventService(IConfiguration config)
     {
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-        var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                     ?? SupabaseConfiguration.AnonApiKey(config);
-
-        _enabled = !string.IsNullOrWhiteSpace(_url) && !string.IsNullOrWhiteSpace(apiKey);
+        var rest = SupabaseRestClient.Create(config);
+        _url = rest.Url;
+        _enabled = rest.Enabled;
         if (!_enabled)
         {
             Console.WriteLine("[ActivityEventService] Disabled — missing Supabase URL or API key");
             return;
         }
 
-        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        _client.DefaultRequestHeaders.Add("apikey", apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        _client = rest.Client!;
     }
 
     public bool IsEnabled => _enabled;
@@ -82,26 +78,6 @@ public class ActivityEventService
         {
             var body = await res.Content.ReadAsStringAsync();
             Console.WriteLine($"[ActivityEventService] Insert failed: {res.StatusCode} | {body}");
-        }
-    }
-
-    public async Task DeleteByUsernameAsync(string username)
-    {
-        if (!_enabled || string.IsNullOrWhiteSpace(username)) return;
-
-        try
-        {
-            var safe = Uri.EscapeDataString(username.Trim());
-            var res = await _client.DeleteAsync($"{_url}/rest/v1/activity_events?username=eq.{safe}");
-            if (!res.IsSuccessStatusCode && res.StatusCode != System.Net.HttpStatusCode.NotFound)
-            {
-                var body = await res.Content.ReadAsStringAsync();
-                Console.WriteLine($"[ActivityEventService] DeleteByUsername failed: {res.StatusCode} | {body}");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ActivityEventService] DeleteByUsername exception: {ex.Message}");
         }
     }
 

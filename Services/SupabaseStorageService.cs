@@ -89,25 +89,6 @@ public class SupabaseStorageService
         return new Dictionary<string, string>(dict);
     }
 
-    public async Task UploadAsync(Stream fileStream, string objectPath, string contentType = "application/octet-stream", bool overwrite = false)
-    {
-        if (fileStream is null) throw new ArgumentNullException(nameof(fileStream));
-        if (string.IsNullOrWhiteSpace(objectPath))
-            throw new ArgumentException("objectPath is required.", nameof(objectPath));
-
-        await EnsureInitAsync();
-        var from = _client.Storage.From(_bucket);
-
-        using var ms = new MemoryStream();
-        await fileStream.CopyToAsync(ms);
-        var bytes = ms.ToArray();
-        await from.Upload(bytes, objectPath, new Supabase.Storage.FileOptions
-        {
-            Upsert = overwrite,
-            ContentType = contentType
-        });
-    }
-
     public async Task<string> DownloadTextAsync(string objectPath)
     {
         if (string.IsNullOrWhiteSpace(objectPath))

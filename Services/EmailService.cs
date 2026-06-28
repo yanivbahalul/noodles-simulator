@@ -6,8 +6,9 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using NoodlesSimulator.Models;
 
-namespace NoodlesSimulator.Models;
+namespace NoodlesSimulator.Services;
 
 public class EmailService
 {
@@ -26,8 +27,6 @@ public class EmailService
 
     public EmailService(IConfiguration configuration)
     {
-        Console.WriteLine("[EmailService] Initializing EmailService...");
-
         _smtpHost = EmailConfiguration.SmtpHost(configuration);
         _smtpPort = EmailConfiguration.SmtpPort(configuration);
         _smtpUser = EmailConfiguration.SmtpUser(configuration);
@@ -50,32 +49,8 @@ public class EmailService
 
         IsConfigured = brevoConfigured || smtpConfigured;
 
-        // DEBUG: Print configuration status
-        Console.WriteLine("[EmailService] Configuration loaded:");
-        Console.WriteLine($"  - SmtpHost: {(_smtpHost ?? "NULL")}");
-        Console.WriteLine($"  - SmtpPort: {_smtpPort}");
-        Console.WriteLine($"  - SmtpUser: {(string.IsNullOrWhiteSpace(_smtpUser) ? "NULL" : "***SET***")}");
-        Console.WriteLine($"  - SmtpPass: {(string.IsNullOrWhiteSpace(_smtpPass) ? "NULL/EMPTY" : "***SET***")}");
-        Console.WriteLine($"  - UseSsl: {_useSsl}");
-        Console.WriteLine($"  - EmailTo: {(string.IsNullOrWhiteSpace(_emailTo) ? "NULL" : "***SET***")}");
-        Console.WriteLine($"  - EmailFrom: {(string.IsNullOrWhiteSpace(_emailFrom) ? "NULL" : "***SET***")}");
-        Console.WriteLine($"  - EmailFromName: {(_emailFromName ?? "NULL")}");
-        Console.WriteLine($"  - BrevoApiKey: {(string.IsNullOrWhiteSpace(_brevoApiKey) ? "NOT SET - required for email in Production" : "SET (length: " + _brevoApiKey.Length + ")")}");
-        Console.WriteLine($"  - IsConfigured: {IsConfigured}");
-        
         if (!IsConfigured)
-        {
-            Console.WriteLine("[EmailService] WARNING: EmailService is NOT properly configured!");
-            Console.WriteLine("[EmailService] Missing configuration:");
-            if (string.IsNullOrWhiteSpace(_smtpHost)) Console.WriteLine("  - SmtpHost is missing");
-            if (string.IsNullOrWhiteSpace(_smtpUser)) Console.WriteLine("  - SmtpUser is missing");
-            if (string.IsNullOrWhiteSpace(_smtpPass)) Console.WriteLine("  - SmtpPass is missing");
-            if (string.IsNullOrWhiteSpace(_emailTo)) Console.WriteLine("  - EmailTo (EMAIL_TO) is missing");
-        }
-        else
-        {
-            Console.WriteLine("[EmailService] EmailService is properly configured");
-        }
+            Console.WriteLine("[EmailService] Not configured — set Brevo API key or SMTP env vars");
     }
 
     public bool Send(string subject, string htmlBody)

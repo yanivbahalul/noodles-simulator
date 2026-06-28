@@ -36,15 +36,12 @@ public class UserStatsService
 
     public UserStatsService(IConfiguration config)
     {
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-        var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                     ?? SupabaseConfiguration.AnonApiKey(config);
-        _enabled = !string.IsNullOrWhiteSpace(_url) && !string.IsNullOrWhiteSpace(apiKey);
+        var rest = SupabaseRestClient.Create(config, timeoutSeconds: 15);
+        _url = rest.Url;
+        _enabled = rest.Enabled;
         if (!_enabled) return;
 
-        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        _client.DefaultRequestHeaders.Add("apikey", apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        _client = rest.Client!;
     }
 
     public bool IsEnabled => _enabled;
@@ -238,26 +235,5 @@ public class UserStatsService
     {
         var row = FromUser(user);
         return row != null && await UpsertAsync(row);
-    }
-
-    public static void ApplyFromUser(User user, UserProgressService.UserProgressData data)
-    {
-        if (user == null || data == null) return;
-        if (user.Xp > data.Xp) data.Xp = user.Xp;
-        if (!string.IsNullOrWhiteSpace(user.WeekKey) && user.WeeklyCorrect > data.WeeklyCorrect)
-        {
-            data.WeekKey = user.WeekKey;
-            data.WeeklyCorrect = user.WeeklyCorrect;
-        }
-        if (!string.IsNullOrWhiteSpace(user.DayKey) && user.DailyCorrect > data.DailyCorrect)
-        {
-            data.DayKey = user.DayKey;
-            data.DailyCorrect = user.DailyCorrect;
-        }
-        if (user.BestExamCorrect > data.BestExamCorrect)
-        {
-            data.BestExamCorrect = user.BestExamCorrect;
-            data.BestExamScore = user.BestExamScore;
-        }
     }
 }

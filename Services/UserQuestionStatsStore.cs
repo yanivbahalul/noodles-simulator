@@ -18,18 +18,31 @@ public class UserQuestionStatsStore
 
     public UserQuestionStatsStore(IConfiguration config)
     {
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-        var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                     ?? SupabaseConfiguration.AnonApiKey(config);
-        _enabled = !string.IsNullOrWhiteSpace(_url) && !string.IsNullOrWhiteSpace(apiKey);
+        var rest = SupabaseRestClient.Create(config, timeoutSeconds: 15);
+        _url = rest.Url;
+        _enabled = rest.Enabled;
         if (!_enabled) return;
 
-        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        _client.DefaultRequestHeaders.Add("apikey", apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        _client = rest.Client!;
     }
 
     public bool IsEnabled => _enabled;
+
+    private static UserProgressService.UserQuestionStat ParseStat(JsonElement row)
+    {
+        DateTime lastAnswered = DateTime.MinValue;
+        if (row.TryGetProperty("last_answered_utc", out var atEl) &&
+            DateTime.TryParse(atEl.GetString(), out var parsed))
+            lastAnswered = parsed.ToUniversalTime();
+
+        return new UserProgressService.UserQuestionStat
+        {
+            Attempts = row.TryGetProperty("attempts", out var aEl) ? aEl.GetInt32() : 0,
+            Correct = row.TryGetProperty("correct", out var cEl) ? cEl.GetInt32() : 0,
+            LastAnsweredUtc = lastAnswered,
+            LastWasCorrect = row.TryGetProperty("last_was_correct", out var lwEl) && lwEl.GetBoolean()
+        };
+    }
 
     public async Task<Dictionary<string, UserProgressService.UserQuestionStat>> LoadForUserAsync(string username)
     {
@@ -51,18 +64,7 @@ public class UserQuestionStatsStore
                 var questionId = row.TryGetProperty("question_id", out var qEl) ? qEl.GetString() : null;
                 if (string.IsNullOrWhiteSpace(questionId)) continue;
 
-                DateTime lastAnswered = DateTime.MinValue;
-                if (row.TryGetProperty("last_answered_utc", out var atEl) &&
-                    DateTime.TryParse(atEl.GetString(), out var parsed))
-                    lastAnswered = parsed.ToUniversalTime();
-
-                results[questionId] = new UserProgressService.UserQuestionStat
-                {
-                    Attempts = row.TryGetProperty("attempts", out var aEl) ? aEl.GetInt32() : 0,
-                    Correct = row.TryGetProperty("correct", out var cEl) ? cEl.GetInt32() : 0,
-                    LastAnsweredUtc = lastAnswered,
-                    LastWasCorrect = row.TryGetProperty("last_was_correct", out var lwEl) && lwEl.GetBoolean()
-                };
+                results[questionId] = ParseStat(row);
             }
         }
         catch (Exception ex)
@@ -130,18 +132,7 @@ public class UserQuestionStatsStore
         if (doc.RootElement.GetArrayLength() == 0) return null;
 
         var row = doc.RootElement[0];
-        DateTime lastAnswered = DateTime.MinValue;
-        if (row.TryGetProperty("last_answered_utc", out var atEl) &&
-            DateTime.TryParse(atEl.GetString(), out var parsed))
-            lastAnswered = parsed.ToUniversalTime();
-
-        return new UserProgressService.UserQuestionStat
-        {
-            Attempts = row.TryGetProperty("attempts", out var aEl) ? aEl.GetInt32() : 0,
-            Correct = row.TryGetProperty("correct", out var cEl) ? cEl.GetInt32() : 0,
-            LastAnsweredUtc = lastAnswered,
-            LastWasCorrect = row.TryGetProperty("last_was_correct", out var lwEl) && lwEl.GetBoolean()
-        };
+        return ParseStat(row);
     }
 
     public async Task ClearForUserAsync(string username)
@@ -170,18 +161,7 @@ public class UserQuestionStatsStore
                 var questionId = row.TryGetProperty("question_id", out var qEl) ? qEl.GetString() : null;
                 if (string.IsNullOrWhiteSpace(questionId)) continue;
 
-                DateTime lastAnswered = DateTime.MinValue;
-                if (row.TryGetProperty("last_answered_utc", out var atEl) &&
-                    DateTime.TryParse(atEl.GetString(), out var parsed))
-                    lastAnswered = parsed.ToUniversalTime();
-
-                results.Add((questionId, new UserProgressService.UserQuestionStat
-                {
-                    Attempts = row.TryGetProperty("attempts", out var aEl) ? aEl.GetInt32() : 0,
-                    Correct = row.TryGetProperty("correct", out var cEl) ? cEl.GetInt32() : 0,
-                    LastAnsweredUtc = lastAnswered,
-                    LastWasCorrect = row.TryGetProperty("last_was_correct", out var lwEl) && lwEl.GetBoolean()
-                }));
+                results.Add((questionId, ParseStat(row)));
             }
         }
         catch (Exception ex)
@@ -190,43 +170,5 @@ public class UserQuestionStatsStore
         }
 
         return results;
-    }
-
-    public async Task SyncFromDictionaryAsync(string username, Dictionary<string, UserProgressService.UserQuestionStat> stats)
-    {
-        if (!_enabled || string.IsNullOrWhiteSpace(username) || stats == null || stats.Count == 0)
-            return;
-
-        const int batchSize = 100;
-        var rows = stats
-            .Where(kv => !string.IsNullOrWhiteSpace(kv.Key) && kv.Value != null)
-            .Select(kv => new
-            {
-                username = username.Trim(),
-                question_id = kv.Key,
-                attempts = kv.Value.Attempts,
-                correct = kv.Value.Correct,
-                last_answered_utc = kv.Value.LastAnsweredUtc.ToUniversalTime().ToString("o"),
-                last_was_correct = kv.Value.LastWasCorrect
-            })
-            .ToList();
-
-        for (var i = 0; i < rows.Count; i += batchSize)
-        {
-            var batch = rows.Skip(i).Take(batchSize).ToList();
-            var content = new StringContent(JsonSerializer.Serialize(batch), Encoding.UTF8, "application/json");
-            var request = new HttpRequestMessage(new HttpMethod("POST"),
-                $"{_url}/rest/v1/user_question_stats?on_conflict=username,question_id")
-            {
-                Content = content
-            };
-            request.Headers.Add("Prefer", "resolution=merge-duplicates,return=minimal");
-            var res = await _client.SendAsync(request);
-            if (!res.IsSuccessStatusCode)
-            {
-                var body = await res.Content.ReadAsStringAsync();
-                Console.WriteLine($"[UserQuestionStatsStore] Sync batch failed: {res.StatusCode} | {body}");
-            }
-        }
     }
 }

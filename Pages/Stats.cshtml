@@ -2,7 +2,7 @@
 @model NoodlesSimulator.Pages.StatsModel
 @using System.Globalization
 @{
-    ViewData["Title"] = Model.IsCommunityScope ? "📊 סטטיסטיקות כלליות" : "📊 סטטיסטיקה אישית";
+    ViewData["Title"] = "📊 סטטיסטיקה אישית";
 }
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -21,178 +21,6 @@
 <partial name="Shared/_LogoHeader" />
 
 <div class="quiz-container stats-page">
-    @if (Model.IsCommunityScope)
-    {
-        <h2 class="stats-title">📊 סטטיסטיקות כלליות</h2>
-        <p class="stats-subtitle">סיכום כל המשתמשים במערכת</p>
-
-        <section class="stats-section" aria-label="מדדים כלליים">
-            <div class="stats-metrics-grid stats-metrics-grid-row">
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.AllUsersCount</span>
-                    <span class="stats-metric-label">משתמשים רשומים</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.OnlineUsersCount</span>
-                    <span class="stats-metric-label">מחוברים כעת</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.AverageSuccessRate%</span>
-                    <span class="stats-metric-label">ממוצע הצלחה</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunityTotalCorrect</span>
-                    <span class="stats-metric-label">סה״כ נכונות</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunityTotalAnswered</span>
-                    <span class="stats-metric-label">סה״כ שאלות שנענו</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.CheatersCount</span>
-                    <span class="stats-metric-label">Cheaters</span>
-                </div>
-                <div class="stats-metric-card">
-                    <span class="stats-metric-value">@Model.CommunitySummary.BannedUsersCount</span>
-                    <span class="stats-metric-label">חסומים</span>
-                </div>
-            </div>
-            <div class="stats-metrics-pair">
-                <div class="stats-metrics-grid stats-metrics-grid-row stats-metrics-grid-period">
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.ActiveToday</span>
-                        <span class="stats-metric-label">פעילים היום</span>
-                    </div>
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.AnswersToday</span>
-                        <span class="stats-metric-label">תשובות נכונות היום</span>
-                    </div>
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.DailySuccessRate%</span>
-                        <span class="stats-metric-label">ממוצע הצלחה יומי</span>
-                    </div>
-                </div>
-                <div class="stats-metrics-grid stats-metrics-grid-row stats-metrics-grid-period">
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.ActiveThisWeek</span>
-                        <span class="stats-metric-label">פעילים השבוע</span>
-                    </div>
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.AnswersThisWeek</span>
-                        <span class="stats-metric-label">תשובות נכונות השבוע</span>
-                    </div>
-                    <div class="stats-metric-card">
-                        <span class="stats-metric-value">@Model.CommunitySummary.WeeklySuccessRate%</span>
-                        <span class="stats-metric-label">ממוצע הצלחה שבועי</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="stats-section" aria-label="מובילים">
-            <h3 class="stats-section-title">🏆 מובילים</h3>
-            @if (Model.TopUsers.Count == 0)
-            {
-                <p class="stats-empty-hint">אין נתונים עדיין.</p>
-            }
-            else
-            {
-                <div class="stats-table-shell">
-                    <table class="stats-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>משתמש</th>
-                                <th>רמה</th>
-                                <th>נכונות</th>
-                                <th>שאלות</th>
-                                <th>הצלחה</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (var i = 0; i < Model.TopUsers.Count; i++)
-                            {
-                                var u = Model.TopUsers[i];
-                                <tr>
-                                    <td>@(i + 1)</td>
-                                    <td>@u.Username</td>
-                                    <td>@u.Level</td>
-                                    <td>@u.CorrectAnswers</td>
-                                    <td>@u.TotalAnswered</td>
-                                    <td>@u.SuccessRate%</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
-
-        <section class="stats-section" aria-label="מבחנים פעילים">
-            <h3 class="stats-section-title">📝 מבחנים פעילים</h3>
-            @if (Model.ActiveExams.Count == 0)
-            {
-                <p class="stats-empty-hint">אין מבחנים פעילים כרגע.</p>
-            }
-            else
-            {
-                <div class="stats-table-shell">
-                    <table class="stats-table">
-                        <thead>
-                            <tr>
-                                <th>משתמש</th>
-                                <th>שאלה</th>
-                                <th>ציון</th>
-                                <th>נותר</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var exam in Model.ActiveExams)
-                            {
-                                var questionLabel = exam.TotalQuestions > 0
-                                    ? $"{exam.CurrentIndex + 1}/{exam.TotalQuestions}"
-                                    : "—";
-                                <tr>
-                                    <td>@exam.Username</td>
-                                    <td>@questionLabel</td>
-                                    <td>@exam.Score/@exam.MaxScore</td>
-                                    <td>@exam.RemainingMinutes דק׳</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </section>
-
-        <section class="stats-section" aria-label="פעילות אחרונה">
-            <h3 class="stats-section-title">🕐 פעילות אחרונה</h3>
-            @if (Model.RecentActivity.Count == 0)
-            {
-                <p class="stats-empty-hint">אין פעילות אחרונה.</p>
-            }
-            else
-            {
-                <ul class="stats-detail-list stats-activity-list">
-                    @foreach (var item in Model.RecentActivity.Take(20))
-                    {
-                        var when = DateTime.TryParse(item.TimestampIso, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt)
-                            ? dt.ToLocalTime().ToString("dd/MM HH:mm")
-                            : "—";
-                        <li><strong>@item.Username</strong> — @item.Message <span class="stats-activity-time">(@when)</span></li>
-                    }
-                </ul>
-            }
-        </section>
-
-        <div class="stats-actions">
-            <a href="/Dashboard" class="next-question-btn">🔧 ממשק ניהול מלא</a>
-            <a href="/Stats" class="btn secondary-btn stats-secondary-link">👤 הסטטיסטיקה שלי</a>
-            <a href="/Index" class="btn secondary-btn stats-secondary-link">⬅ חזרה לחידון</a>
-        </div>
-    }
-    else
-    {
         <h2 class="stats-title">📊 סטטיסטיקה אישית</h2>
         <p class="stats-subtitle">👤 <strong class="stats-breakable">@Model.Username</strong></p>
 
@@ -264,22 +92,7 @@
 
         <section class="stats-section" aria-label="הישגים">
             <h3 class="stats-section-title">🏅 הישגים (@Model.AchievementCount / @Model.TotalAchievements)</h3>
-            @if (Model.Achievements.Count == 0)
-            {
-                <p class="stats-empty-hint">אין נתוני הישגים עדיין.</p>
-            }
-            else
-            {
-                <div class="stats-achievements-grid">
-                    @foreach (var achievement in Model.Achievements)
-                    {
-                        <div class="stats-achievement-chip @(achievement.Unlocked ? "is-unlocked" : "is-locked")" title="@achievement.Description">
-                            <span class="stats-achievement-emoji">@achievement.Emoji</span>
-                            <span class="stats-achievement-title">@achievement.Title</span>
-                        </div>
-                    }
-                </div>
-            }
+            <p><a href="/Achievements" class="btn secondary-btn stats-secondary-link">צפה בכל ההישגים</a></p>
         </section>
 
         <section class="stats-section" aria-label="שאלות אחרונות">
@@ -307,7 +120,7 @@
                             {
                                 <tr>
                                     <td class="stats-breakable">
-                                        <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)&from=stats@(Model.IsCommunityScope ? "&scope=all" : "")" class="stats-question-link" title="@q.QuestionId">@q.QuestionLabel</a>
+                                        <a href="/QuestionView?id=@Uri.EscapeDataString(q.QuestionId)&from=stats" class="stats-question-link" title="@q.QuestionId">@q.QuestionLabel</a>
                                     </td>
                                     <td>@q.Correct</td>
                                     <td>@q.Attempts</td>
@@ -328,10 +141,9 @@
             <a href="/MyExams" class="btn secondary-btn stats-secondary-link">📝 המבחנים שלי</a>
             @if (ViewData["ShowAdminLink"] as bool? == true)
             {
-                <a href="/Stats?scope=all" class="btn secondary-btn stats-secondary-link">📊 סטטיסטיקות כלליות</a>
+                <a href="/Dashboard" class="btn secondary-btn stats-secondary-link">📊 ממשק ניהול</a>
             }
         </div>
-    }
 </div>
 
 <partial name="Shared/_SiteFooter" />

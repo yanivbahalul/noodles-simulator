@@ -55,7 +55,13 @@
 </div>
 
 <div id="test-review-data" data-question-image-url="@Model.QuestionImageUrl"></div>
-<script src="/js/testreview-page.js"></script>
+<script src="/js/image-modal.js" asp-append-version="true"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const data = document.getElementById("test-review-data");
+        window.ImageModal?.bindImageModal(data?.dataset.questionImageUrl || "");
+    });
+</script>
 
 <partial name="Shared/_SiteFooter" />
 </body>

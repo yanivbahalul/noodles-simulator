@@ -130,7 +130,11 @@
 </div>
 
 <script src="/js/dialog.js"></script>
-<script src="/js/myexams-page.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        window.bindConfirmEndTestButtons?.("האם אתה בטוח שברצונך לסיים את המבחן? התוצאות יישמרו.");
+    });
+</script>
 <partial name="Shared/_SiteFooter" />
 </body>
 </html>

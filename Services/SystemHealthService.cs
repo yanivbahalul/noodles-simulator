@@ -31,6 +31,21 @@ public class SystemHealthReport
 
 public class SystemHealthService
 {
+    public static IReadOnlyList<SystemVerificationPlanItem> InternalCheckPlan { get; } = new[]
+    {
+        new SystemVerificationPlanItem { Id = "config", Name = "הגדרות Supabase", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "users", Name = "משתמשים (Supabase)", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "storage", Name = "אחסון תמונות", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "signed-urls", Name = "קישורים חתומים", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "test-sessions", Name = "מבחנים", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "difficulties", Name = "רמות קושי", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "activity", Name = "אירועי פעילות", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "progress", Name = "התקדמות משתמשים", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "question-stats", Name = "סטטיסטיקות שאלות", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "email", Name = "דוא\"ל", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "local-dirs", Name = "תיקיות מקומיות", Category = "מערכת פנימית" }
+    };
+
     private readonly IConfiguration _config;
     private readonly IHostEnvironment _env;
     private readonly AuthService _auth;
@@ -39,26 +54,23 @@ public class SystemHealthService
     private readonly QuestionDifficultyService _difficulty;
     private readonly ActivityEventService _activity;
     private readonly UserProgressStore _progressStore;
-    private readonly QuestionStatsService _stats;
 
     public SystemHealthService(
         IConfiguration config,
         IHostEnvironment env,
         AuthService auth,
-        QuestionStatsService stats,
+        QuestionDifficultyService difficulty,
         SupabaseStorageService storage = null,
         TestSessionService testSessions = null,
-        QuestionDifficultyService difficulty = null,
         ActivityEventService activity = null,
         UserProgressStore progressStore = null)
     {
         _config = config;
         _env = env;
         _auth = auth;
-        _stats = stats;
+        _difficulty = difficulty;
         _storage = storage;
         _testSessions = testSessions;
-        _difficulty = difficulty;
         _activity = activity;
         _progressStore = progressStore;
     }
@@ -234,7 +246,8 @@ public class SystemHealthService
         var sw = Stopwatch.StartNew();
         try
         {
-            var all = _stats.GetAll();
+            var all = _difficulty?.GetAllQuestionsAsync().GetAwaiter().GetResult()
+                ?? new List<QuestionDifficulty>();
             return new SystemHealthCheck
             {
                 Id = "question-stats",

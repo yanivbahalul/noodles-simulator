@@ -15,21 +15,17 @@ public class StatsModel : PageModel
     private readonly AuthService _authService;
     private readonly UserProgressService _userProgress;
     private readonly TestSessionService _testSessions;
-    private readonly DashboardDataService _dashboard;
 
     public StatsModel(
         AuthService authService,
         UserProgressService userProgress = null,
-        TestSessionService testSessions = null,
-        DashboardDataService dashboard = null)
+        TestSessionService testSessions = null)
     {
         _authService = authService;
         _userProgress = userProgress;
         _testSessions = testSessions;
-        _dashboard = dashboard;
     }
 
-    public bool IsCommunityScope { get; set; }
     public string Username { get; set; } = "";
     public int CorrectAnswers { get; set; }
     public int TotalAnswered { get; set; }
@@ -53,24 +49,7 @@ public class StatsModel : PageModel
     public int TotalAchievements => AchievementCatalog.All.Count;
     public int CompletedExamsCount { get; set; }
 
-    public List<AchievementRow> Achievements { get; set; } = new();
     public List<RecentQuestionRow> RecentQuestions { get; set; } = new();
-
-    public DashboardDataService.Summary CommunitySummary { get; set; } = new();
-    public int CommunityTotalAnswered { get; set; }
-    public int CommunityTotalCorrect { get; set; }
-    public List<DashboardDataService.UserRow> TopUsers { get; set; } = new();
-    public List<DashboardDataService.ActiveExamRow> ActiveExams { get; set; } = new();
-    public List<DashboardDataService.ActivityRow> RecentActivity { get; set; } = new();
-
-    public class AchievementRow
-    {
-        public string Key { get; set; } = "";
-        public string Title { get; set; } = "";
-        public string Emoji { get; set; } = "🏅";
-        public string Description { get; set; } = "";
-        public bool Unlocked { get; set; }
-    }
 
     public class RecentQuestionRow
     {
@@ -98,33 +77,17 @@ public class StatsModel : PageModel
             var isAdmin = HttpContext.Session.GetString("IsAdmin") == "1";
             ViewData["ShowAdminLink"] = isAdmin;
 
-            IsCommunityScope = string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase);
-            if (IsCommunityScope)
-            {
-                if (!isAdmin)
-                    return RedirectToPage("/Stats");
-
-                if (_dashboard == null)
-                    return RedirectToPage("/Dashboard");
-
-                var snapshot = await _dashboard.GetSnapshotAsync();
-                CommunitySummary = snapshot.Summary;
-                TopUsers = snapshot.TopUsersList;
-                ActiveExams = snapshot.ActiveExams;
-                RecentActivity = snapshot.RecentActivity;
-                CommunityTotalAnswered = snapshot.AllUsersList.Sum(u => u.TotalAnswered);
-                CommunityTotalCorrect = snapshot.AllUsersList.Sum(u => u.CorrectAnswers);
-                return Page();
-            }
+            if (string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase))
+                return isAdmin ? RedirectToPage("/Dashboard") : RedirectToPage("/Stats");
 
             Username = user.Username;
             CurrentStreak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
 
             if (_userProgress != null)
             {
-                var progress = _userProgress.Load(username);
-                var (progTotal, progCorrect) = _userProgress.GetAnswerTotals(username);
-                var (accuracy, distinct) = _userProgress.GetOverallAccuracyStats(username);
+                var progress = await _userProgress.LoadAsync(username);
+                var (progTotal, progCorrect) = await _userProgress.GetAnswerTotalsAsync(username);
+                var (accuracy, distinct) = await _userProgress.GetOverallAccuracyStatsAsync(username);
 
                 CorrectAnswers = Math.Max(user.CorrectAnswers, progCorrect);
                 TotalAnswered = Math.Max(user.TotalAnswered, progTotal);
@@ -138,21 +101,7 @@ public class StatsModel : PageModel
                 DailyChallengesCompleted = progress.DailyChallengesCompleted;
                 DistinctQuestions = distinct;
                 QuestionAccuracy = accuracy;
-
-                Achievements = AchievementCatalog.All
-                    .Select(a => new AchievementRow
-                    {
-                        Key = a.Key,
-                        Title = a.Title,
-                        Emoji = a.Emoji,
-                        Description = a.Description,
-                        Unlocked = progress.Achievements?.Contains(a.Key, StringComparer.OrdinalIgnoreCase) == true
-                    })
-                    .OrderByDescending(a => a.Unlocked)
-                    .ThenBy(a => a.Title)
-                    .ToList();
-
-                AchievementCount = Achievements.Count(a => a.Unlocked);
+                AchievementCount = progress.Achievements?.Count ?? 0;
 
                 RecentQuestions = progress.QuestionStats?
                     .Where(kv => kv.Value.LastAnsweredUtc > DateTime.MinValue)

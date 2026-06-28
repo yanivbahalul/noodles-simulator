@@ -56,8 +56,8 @@ public class SystemVerificationService
 
     private readonly SystemHealthService _health;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _config;
     private readonly IHostEnvironment _env;
+    private readonly SupabaseRestClient.Context _supabase;
 
     public SystemVerificationService(
         SystemHealthService health,
@@ -67,27 +67,16 @@ public class SystemVerificationService
     {
         _health = health;
         _httpClientFactory = httpClientFactory;
-        _config = config;
         _env = env;
+        _supabase = SupabaseRestClient.Create(config);
     }
 
     public IReadOnlyList<SystemVerificationPlanItem> GetPlan()
     {
         var plan = new List<SystemVerificationPlanItem>();
+        plan.AddRange(SystemHealthService.InternalCheckPlan);
         plan.AddRange(new[]
         {
-            new SystemVerificationPlanItem { Id = "config", Name = "הגדרות Supabase", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "users", Name = "משתמשים (Supabase)", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "storage", Name = "אחסון תמונות", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "signed-urls", Name = "קישורים חתומים", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "test-sessions", Name = "מבחנים", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "difficulties", Name = "רמות קושי", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "activity", Name = "אירועי פעילות", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "progress", Name = "התקדמות משתמשים", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "question-stats", Name = "סטטיסטיקות שאלות", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "email", Name = "דוא\"ל", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "local-dirs", Name = "תיקיות מקומיות", Category = "מערכת פנימית" },
-            new SystemVerificationPlanItem { Id = "http-health", Name = "Health API", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "http-online-count", Name = "מחוברים כעת", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "http-leaderboard", Name = "לוח תוצאות", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "http-question-difficulty", Name = "קושי שאלות", Category = "APIs ציבוריים" },
@@ -219,7 +208,6 @@ public class SystemVerificationService
 
     private static IEnumerable<(string Id, string Name, string Category, string Url, int ExpectedStatus)> GetPublicHttpProbes(string baseUrl)
     {
-        yield return ("http-health", "Health API", "APIs ציבוריים", $"{baseUrl}/health", 200);
         yield return ("http-online-count", "מחוברים כעת", "APIs ציבוריים", $"{baseUrl}/api/online-count", 200);
         yield return ("http-leaderboard", "לוח תוצאות", "APIs ציבוריים", $"{baseUrl}/api/leaderboard-data?tab=total", 200);
         yield return ("http-question-difficulty", "קושי שאלות", "APIs ציבוריים", $"{baseUrl}/api/question-difficulty", 200);
@@ -256,13 +244,6 @@ public class SystemVerificationService
             var detail = ok
                 ? $"HTTP {(int)response.StatusCode} ({elapsed} ms)"
                 : $"HTTP {(int)response.StatusCode}, צפוי {probe.ExpectedStatus}";
-
-            if (probe.Id == "http-health" && ok)
-            {
-                var body = await response.Content.ReadAsStringAsync(cancellationToken);
-                detail = SummarizeHealthJson(body, elapsed);
-                ok = body.Contains("\"ok\":true", StringComparison.OrdinalIgnoreCase);
-            }
 
             if (probe.Id == "http-login-page" && ok)
             {
@@ -326,18 +307,14 @@ public class SystemVerificationService
     {
         try
         {
-            var url = SupabaseConfiguration.Url(_config);
-            var key = SupabaseConfiguration.ServiceRoleApiKey(_config);
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(key))
+            if (!_supabase.Enabled || _supabase.Client == null)
                 return (false, "חסר SUPABASE_URL או service key", false);
 
-            var client = _httpClientFactory.CreateClient();
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{url.TrimEnd('/')}/rest/v1/{tableName}?select=*&limit=1");
-            request.Headers.TryAddWithoutValidation("apikey", key);
-            request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {key}");
+            var url = $"{_supabase.Url.TrimEnd('/')}/rest/v1/{tableName}?select=*&limit=1";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.TryAddWithoutValidation("Prefer", "count=exact");
 
-            using var response = await client.SendAsync(request, cancellationToken);
+            using var response = await _supabase.Client.SendAsync(request, cancellationToken);
             if (response.StatusCode is HttpStatusCode.OK or HttpStatusCode.PartialContent)
             {
                 var count = "?";
@@ -429,26 +406,6 @@ public class SystemVerificationService
         }
 
         return (false, "שלב לא מוכר", false);
-    }
-
-    private static string SummarizeHealthJson(string body, long elapsedMs)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(body);
-            var root = doc.RootElement;
-            var parts = new List<string> { $"{elapsedMs} ms" };
-            foreach (var key in new[] { "supabaseUrl", "supabaseAnon", "supabaseService", "supabaseBucket" })
-            {
-                if (root.TryGetProperty(key, out var val))
-                    parts.Add($"{key}={val.GetString()}");
-            }
-            return string.Join(", ", parts);
-        }
-        catch
-        {
-            return $"HTTP 200 ({elapsedMs} ms)";
-        }
     }
 
     private static string Trim(string value, int max) =>

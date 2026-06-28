@@ -75,8 +75,8 @@
                 ${health.checks.map((c) => `
                     <li class="dashboard-health-item ${c.ok ? "is-ok" : "is-bad"}">
                         <span class="dashboard-health-icon">${c.ok ? "✓" : "✗"}</span>
-                        <span class="dashboard-health-name">${escapeHtml(c.name)}</span>
-                        <span class="dashboard-health-detail">${escapeHtml(c.detail)}</span>
+                        <span class="dashboard-health-name">${window.escapeHtml(c.name)}</span>
+                        <span class="dashboard-health-detail">${window.escapeHtml(c.detail)}</span>
                     </li>`).join("")}
             </ul>`;
     }
@@ -92,9 +92,9 @@
             const diff = DIFFICULTY_TEXT[q.difficulty] || q.difficulty || "—";
             const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>
-                <td class="difficulty-question-cell"><span class="difficulty-question-text" title="${escapeHtml(q.questionId)}">${escapeHtml(formatQuestionLabel(q.questionId))}</span></td>
-                <td>${escapeHtml(q.reason)}</td>
-                <td>${escapeHtml(diff)}</td>
+                <td class="difficulty-question-cell"><span class="difficulty-question-text" title="${window.escapeHtml(q.questionId)}">${window.escapeHtml(formatQuestionLabel(q.questionId))}</span></td>
+                <td>${window.escapeHtml(q.reason)}</td>
+                <td>${window.escapeHtml(diff)}</td>
                 <td>${q.successRate}%</td>
                 <td>${q.totalAttempts}</td>
                 <td>${q.openReports}</td>
@@ -133,18 +133,18 @@
             const statusClass = isOpen ? "dashboard-badge-warn" : "dashboard-badge-ok";
             const viewUrl = `/QuestionView?id=${encodeURIComponent(r.questionId)}&from=dashboard`;
             const actionBtn = isOpen
-                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="resolve" data-report-id="${escapeHtml(r.id)}">סמן טופל</button>`
-                : `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="reopen" data-report-id="${escapeHtml(r.id)}">פתח מחדש</button>`;
-            return `<tr data-report-id="${escapeHtml(r.id)}" data-report-status="${escapeHtml(r.status)}">
+                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="resolve" data-report-id="${window.escapeHtml(r.id)}">סמן טופל</button>`
+                : `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="reopen" data-report-id="${window.escapeHtml(r.id)}">פתח מחדש</button>`;
+            return `<tr data-report-id="${window.escapeHtml(r.id)}" data-report-status="${window.escapeHtml(r.status)}">
                 <td>${formatClock(r.createdAtIso)}</td>
-                <td>${escapeHtml(r.username)}</td>
+                <td>${window.escapeHtml(r.username)}</td>
                 <td class="difficulty-question-cell">
                     <span class="difficulty-question-content">
-                        <span class="difficulty-question-text" title="${escapeHtml(r.questionId)}">${escapeHtml(formatQuestionLabel(r.questionId))}</span>
+                        <span class="difficulty-question-text" title="${window.escapeHtml(r.questionId)}">${window.escapeHtml(formatQuestionLabel(r.questionId))}</span>
                         <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                     </span>
                 </td>
-                <td>${escapeHtml(r.explanation || "—")}</td>
+                <td>${window.escapeHtml(r.explanation || "—")}</td>
                 <td><span class="dashboard-badge ${statusClass}">${statusLabel}</span></td>
                 <td>${actionBtn}</td>
             </tr>`;
@@ -203,14 +203,6 @@
         const d = new Date(iso);
         if (Number.isNaN(d.getTime())) return "—";
         return d.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    }
-
-    function escapeHtml(text) {
-        return String(text ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;");
     }
 
     function formatQuestionLabel(questionId) {
@@ -277,13 +269,6 @@
             setText("inactive-30-count", data.inactive30Days);
             updateOpenReportsBadge(data.openQuestionReports ?? 0);
 
-            if (data.retention) {
-                setText("new-users-today", data.retention.newUsersToday);
-                setText("new-users-week", data.retention.newUsersThisWeek);
-                setText("inactive-7-count", data.retention.inactive7Days);
-                setText("inactive-30-count", data.retention.inactive30Days);
-            }
-
             renderHealthWidget(data.health);
             renderProblematicQuestions(data.problematicQuestions);
             renderQuestionReports(data.questionReports);
@@ -322,13 +307,13 @@
         }
 
         container.innerHTML = filtered.map((item) => {
-            const kindClass = `dashboard-activity-kind dashboard-activity-kind-${escapeHtml(item.kind || "other")}`;
-            const kindText = escapeHtml(item.kindLabel || item.kind || "");
+            const kindClass = `dashboard-activity-kind dashboard-activity-kind-${window.escapeHtml(item.kind || "other")}`;
+            const kindText = window.escapeHtml(item.kindLabel || item.kind || "");
             return `<div class="dashboard-activity-item">
-                <span class="dashboard-activity-time" title="${escapeHtml(item.timestampIso)}">${formatRelativeTime(item.timestampIso)}</span>
+                <span class="dashboard-activity-time" title="${window.escapeHtml(item.timestampIso)}">${formatRelativeTime(item.timestampIso)}</span>
                 <span class="${kindClass}">${kindText}</span>
-                <button type="button" class="dashboard-user-link" data-username="${escapeHtml(item.username)}">${escapeHtml(item.username)}</button>
-                <span class="dashboard-activity-message">${escapeHtml(item.message)}</span>
+                <button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(item.username)}">${window.escapeHtml(item.username)}</button>
+                <span class="dashboard-activity-message">${window.escapeHtml(item.message)}</span>
             </div>`;
         }).join("");
 
@@ -380,14 +365,14 @@
                 : `${exam.currentIndex + 1}`;
 
             const userCell = row.insertCell();
-            userCell.innerHTML = `<button type="button" class="dashboard-user-link" data-username="${escapeHtml(exam.username)}">${escapeHtml(exam.username)}</button>`;
+            userCell.innerHTML = `<button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(exam.username)}">${window.escapeHtml(exam.username)}</button>`;
             userCell.querySelector(".dashboard-user-link").addEventListener("click", () => openUserDetail(exam.username));
 
             [formatClock(exam.startedIso), formatRelativeTime(exam.updatedIso), qDisplay, `${exam.score}/${exam.maxScore}`, `${exam.remainingMinutes} דק׳`]
                 .forEach((text) => { row.insertCell().textContent = text; });
 
             const actionCell = row.insertCell();
-            actionCell.innerHTML = `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-token="${escapeHtml(exam.token)}">סיים מבחן</button>`;
+            actionCell.innerHTML = `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-token="${window.escapeHtml(exam.token)}">סיים מבחן</button>`;
             actionCell.querySelector("[data-expire-token]").addEventListener("click", () => expireExam(exam.token));
         });
     }
@@ -435,7 +420,7 @@
                 : "—";
 
             const values = [
-                `<button type="button" class="dashboard-user-link" data-username="${escapeHtml(user.username)}">${escapeHtml(user.username)}</button>`,
+                `<button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(user.username)}">${window.escapeHtml(user.username)}</button>`,
                 status,
                 formatRelativeTime(user.lastSeenIso),
                 user.level,
@@ -456,27 +441,6 @@
             });
 
             row.querySelector(".dashboard-user-link").addEventListener("click", () => openUserDetail(user.username));
-        });
-    }
-
-    function updateTable(tableId, data, columns, options = {}) {
-        const table = document.getElementById(tableId);
-        if (!table) return;
-        const headerRow = table.querySelector("tr");
-        table.innerHTML = "";
-        if (headerRow) table.appendChild(headerRow);
-
-        data.forEach((user, index) => {
-            const row = table.insertRow();
-            columns.forEach((column) => {
-                const cell = row.insertCell();
-                if (column === "rank") cell.textContent = index + 1;
-                else if (column === "successRate") cell.textContent = `${user[column]}%`;
-                else if (column === "username" && options.usernameClickable) {
-                    cell.innerHTML = `<button type="button" class="dashboard-user-link" data-username="${escapeHtml(user[column])}">${escapeHtml(user[column])}</button>`;
-                    cell.querySelector(".dashboard-user-link").addEventListener("click", () => openUserDetail(user[column]));
-                } else cell.textContent = user[column];
-            });
         });
     }
 
@@ -558,17 +522,17 @@
 
         actions.innerHTML = `
             ${canSupportUser(u.username) ? `
-            <button type="button" class="dashboard-action-btn" data-action="reset-progress" data-username="${escapeHtml(u.username)}">
+            <button type="button" class="dashboard-action-btn" data-action="reset-progress" data-username="${window.escapeHtml(u.username)}">
                 אפס התקדמות
             </button>` : ""}
-            <button type="button" class="dashboard-action-btn" data-action="toggle-cheater" data-username="${escapeHtml(u.username)}" data-value="${!u.isCheater}">
+            <button type="button" class="dashboard-action-btn" data-action="toggle-cheater" data-username="${window.escapeHtml(u.username)}" data-value="${!u.isCheater}">
                 ${u.isCheater ? "הסר סימון cheater" : "סמן כ-cheater"}
             </button>
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${escapeHtml(u.username)}" data-value="${!u.isBanned}">
+            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${window.escapeHtml(u.username)}" data-value="${!u.isBanned}">
                 ${u.isBanned ? "בטל חסימה" : "חסום משתמש"}
             </button>
             ${canDeleteUser(u.username) ? `
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${escapeHtml(u.username)}">
+            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${window.escapeHtml(u.username)}">
                 מחק משתמש לצמיתות
             </button>` : ""}
         `;
@@ -582,12 +546,12 @@
         if (!questions?.length) return '<p class="dashboard-empty-hint">אין נתוני שאלות</p>';
         const rows = questions.map((q) => {
             const label = formatQuestionLabel(q.questionId);
-            const full = escapeHtml(q.questionId);
+            const full = window.escapeHtml(q.questionId);
             const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>
             <td>
                 <span class="dashboard-question-cell">
-                    <span class="dashboard-question-label" title="${full}">${escapeHtml(label)}</span>
+                    <span class="dashboard-question-label" title="${full}">${window.escapeHtml(label)}</span>
                     <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                 </span>
             </td>
@@ -613,17 +577,17 @@
 
     function renderAchievementChips(achievements) {
         if (!achievements?.length) return '<p class="dashboard-empty-hint">אין הישגים</p>';
-        return achievements.map((a) => `<span class="dashboard-achievement-chip">${escapeHtml(a.emoji)} ${escapeHtml(a.title)}</span>`).join("");
+        return achievements.map((a) => `<span class="dashboard-achievement-chip">${window.escapeHtml(a.emoji)} ${window.escapeHtml(a.title)}</span>`).join("");
     }
 
     function renderExamsTable(exams) {
         if (!exams?.length) return '<p class="dashboard-empty-hint">אין מבחנים</p>';
         const rows = exams.map((e) => {
             const expireBtn = e.status === "active"
-                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-exam="${escapeHtml(e.token)}">סיים</button>`
+                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-exam="${window.escapeHtml(e.token)}">סיים</button>`
                 : "—";
             return `<tr>
-            <td>${escapeHtml(formatExamStatus(e.status))}</td>
+            <td>${window.escapeHtml(formatExamStatus(e.status))}</td>
             <td>${e.score}/${e.maxScore}</td>
             <td class="dashboard-time-cell">${formatClock(e.startedIso)}</td>
             <td class="dashboard-time-cell">${e.completedIso ? formatClock(e.completedIso) : "—"}</td>

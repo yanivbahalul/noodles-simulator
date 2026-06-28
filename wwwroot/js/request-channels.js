@@ -101,12 +101,6 @@
         backgroundFetch,
         scheduleBackground,
         notifyQuizBusy,
-        hasFetchPriority,
-        getBackgroundQueueLength() {
-            return backgroundQueue.length;
-        },
-        isQuizBusy() {
-            return quizBusy;
-        }
+        hasFetchPriority
     };
 })();

@@ -1,24 +1,20 @@
 (function () {
     let updateInterval = null;
-    let answerChecked = false;
-    let quizBusy = false;
-    let questionRenderSeq = 0;
-    let prefetchedQuestion = null;
-    let prefetchAnchor = null;
-    let prefetchPromise = null;
 
-    function openImageModal() {
-        const modal = document.getElementById("image-modal");
-        const modalImg = document.getElementById("modal-img");
-        const mainImg = document.getElementById("main-question-image");
-        if (!modal || !modalImg || !mainImg) return;
-        modal.classList.add("modal-open");
-        modalImg.src = mainImg.src;
+    function bindClick(id, handler) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("click", handler);
     }
 
-    function closeImageModal() {
-        const modal = document.getElementById("image-modal");
-        if (modal) modal.classList.remove("modal-open");
+    function bindImageModal() {
+        const open = () => {
+            const mainImg = document.getElementById("main-question-image");
+            window.ImageModal?.openImageModal(mainImg?.src || "");
+        };
+        const close = () => window.ImageModal?.closeImageModal();
+        bindClick("main-question-image", open);
+        bindClick("close-image-modal-btn", close);
+        bindModalDismiss("image-modal", close);
     }
 
     function closeAppDialog() {
@@ -26,138 +22,10 @@
         if (dialog) dialog.classList.remove("notice-modal-open");
     }
 
-    function dismissAppNotice() {
-        const modal = document.getElementById("app-notice-modal");
-        const prompt = document.getElementById("app-notice-prompt");
-        if (!modal) return;
-        modal.classList.remove("difficulty-modal-open");
-        const noticeId = prompt?.dataset.noticeId;
-        if (!noticeId) return;
-        window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noticeId })
-        }).catch(ignoreDismissError);
+    function closeImageModal() {
+        window.ImageModal?.closeImageModal();
     }
 
-    function logPromptShown(prompt, details = {}) {
-        window.RequestChannels.backgroundFetch("/api/activity/prompt-shown", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt, ...details })
-        }).catch(() => {});
-    }
-
-    function ensureFeedbackPrompt(campaignId, milestone) {
-        let prompt = document.getElementById("feedback-prompt");
-        if (!prompt) {
-            prompt = document.createElement("div");
-            prompt.id = "feedback-prompt";
-            prompt.hidden = true;
-            document.body.appendChild(prompt);
-        }
-        prompt.dataset.campaignId = campaignId;
-        prompt.dataset.milestone = String(milestone ?? "");
-        return prompt;
-    }
-
-    function openFeedbackModal(campaignId, milestone) {
-        const modal = document.getElementById("feedback-modal");
-        if (!modal || !campaignId) {
-            openGitHubStarModalIfPending();
-            return;
-        }
-        ensureFeedbackPrompt(campaignId, milestone);
-        resetFeedbackStars(
-            document.getElementById("feedback-stars"),
-            document.getElementById("feedback-submit-btn")
-        );
-        modal.classList.add("difficulty-modal-open");
-        logPromptShown("feedback", {
-            campaignId,
-            milestone: parseInt(milestone, 10) || 0
-        });
-    }
-
-    function openFeedbackModalIfPending() {
-        const prompt = document.getElementById("feedback-prompt");
-        const modal = document.getElementById("feedback-modal");
-        if (!prompt || !modal || !prompt.dataset.campaignId) {
-            openGitHubStarModalIfPending();
-            return;
-        }
-        modal.classList.add("difficulty-modal-open");
-    }
-
-    function closeFeedbackModal() {
-        const modal = document.getElementById("feedback-modal");
-        if (modal) modal.classList.remove("difficulty-modal-open");
-    }
-
-    function dismissGitHubStarNotice(noticeId) {
-        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noticeId })
-        }).then((res) => res.ok).catch(() => false);
-    }
-
-    function openGitHubStarModal(milestone, url) {
-        const modal = document.getElementById("github-star-modal");
-        if (!modal) return;
-        modal.dataset.milestone = String(milestone ?? "");
-        modal.dataset.repoUrl = url || "https://github.com/yanivbahalul/noodles-simulator";
-        modal.classList.add("difficulty-modal-open");
-        logPromptShown("github_star", { milestone: parseInt(milestone, 10) || 0 });
-    }
-
-    function closeGitHubStarModal() {
-        const modal = document.getElementById("github-star-modal");
-        if (modal) modal.classList.remove("difficulty-modal-open");
-    }
-
-    function openGitHubStarModalIfPending(skipFeedbackCheck = false) {
-        const prompt = document.getElementById("github-star-prompt");
-        if (!prompt) return;
-        if (prompt.dataset.hasNotice === "1") return;
-        if (!skipFeedbackCheck && prompt.dataset.hasFeedback === "1") return;
-        openGitHubStarModal(
-            parseInt(prompt.dataset.milestone, 10),
-            prompt.dataset.repoUrl
-        );
-    }
-
-    function ignoreDismissError() {
-        // Best-effort dismiss after the modal is already closed.
-    }
-
-    function openDifficultyModal() {
-        closeImageModal();
-        closeAppDialog();
-        closePracticeOptionsModal();
-        dismissAppNotice();
-        const modal = document.getElementById("difficulty-modal");
-        if (modal) modal.classList.add("difficulty-modal-open");
-    }
-
-    function closeDifficultyModal() {
-        const modal = document.getElementById("difficulty-modal");
-        if (modal) modal.classList.remove("difficulty-modal-open");
-    }
-
-    function openPracticeOptionsModal() {
-        closeImageModal();
-        closeAppDialog();
-        closeDifficultyModal();
-        dismissAppNotice();
-        const modal = document.getElementById("practice-options-modal");
-        if (modal) modal.classList.add("difficulty-modal-open");
-    }
-
-    function closePracticeOptionsModal() {
-        const modal = document.getElementById("practice-options-modal");
-        if (modal) modal.classList.remove("difficulty-modal-open");
-    }
 
     function setText(id, value) {
         const el = document.getElementById(id);
@@ -300,749 +168,6 @@
         setText("online-count", data.online);
     }
 
-    function escapeHtml(text) {
-        const container = document.createElement("div");
-        container.textContent = text ?? "";
-        return container.innerHTML;
-    }
-
-    function getAntiForgeryToken() {
-        return document.querySelector('#quiz-answer-form input[name="__RequestVerificationToken"]')?.value ?? "";
-    }
-
-    function setQuizLoading(on) {
-        const container = document.querySelector(".quiz-container");
-        if (container) container.classList.toggle("quiz-loading", on);
-    }
-
-    function setQuizBusy(on) {
-        quizBusy = on;
-        window.RequestChannels?.notifyQuizBusy(on);
-        setQuizLoading(on);
-        const nextBtn = document.getElementById("next-question-btn");
-        if (nextBtn) nextBtn.disabled = on;
-        document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
-            if (!answerChecked) btn.disabled = on;
-        });
-    }
-
-    function setQuizSwapping(on) {
-        const container = document.querySelector(".quiz-container");
-        if (container) container.classList.toggle("quiz-swapping", on);
-    }
-
-    function preloadImage(url, timeoutMs = 12000) {
-        return new Promise((resolve) => {
-            if (!url) {
-                resolve();
-                return;
-            }
-            const img = new Image();
-            let done = false;
-            const finish = () => {
-                if (done) return;
-                done = true;
-                resolve();
-            };
-            const timer = setTimeout(finish, timeoutMs);
-            img.onload = () => {
-                clearTimeout(timer);
-                finish();
-            };
-            img.onerror = () => {
-                clearTimeout(timer);
-                finish();
-            };
-            img.src = url;
-        });
-    }
-
-    async function preloadQuestionImages(data) {
-        const urls = [
-            data.questionImageUrl,
-            ...(data.answers?.map((a) => a.imageUrl) ?? [])
-        ].filter(Boolean);
-        await Promise.all(urls.map((url) => preloadImage(url)));
-    }
-
-    function invalidatePrefetchCache() {
-        prefetchedQuestion = null;
-        prefetchAnchor = null;
-        prefetchPromise = null;
-    }
-
-    function getCurrentQuestionAnchor() {
-        return document.getElementById("quiz-question-image")?.value ?? "";
-    }
-
-    async function fetchNextQuestionData() {
-        const res = await window.RequestChannels.quizFetch("/Index?handler=PrefetchNextQuestion");
-        if (res.status === 204 || !res.ok) return null;
-        const data = await res.json();
-        return data?.questionImage ? data : null;
-    }
-
-    function storePrefetchedQuestion(anchor, data) {
-        prefetchAnchor = anchor;
-        prefetchedQuestion = data;
-    }
-
-    async function loadPrefetchNextQuestion() {
-        try {
-            const anchor = getCurrentQuestionAnchor();
-            if (!anchor) return null;
-
-            const data = await fetchNextQuestionData();
-            if (!data) return null;
-
-            await preloadQuestionImages(data);
-            if (getCurrentQuestionAnchor() !== anchor) return null;
-
-            storePrefetchedQuestion(anchor, data);
-            return data;
-        } catch {
-            return null;
-        } finally {
-            prefetchPromise = null;
-        }
-    }
-
-    function fetchPrefetchNextQuestion() {
-        if (prefetchPromise) return prefetchPromise;
-        prefetchPromise = loadPrefetchNextQuestion();
-        return prefetchPromise;
-    }
-
-    function schedulePrefetchNextQuestion() {
-        invalidatePrefetchCache();
-        window.setTimeout(() => {
-            fetchPrefetchNextQuestion();
-        }, 0);
-    }
-
-    function getCachedNextQuestion() {
-        const current = document.getElementById("quiz-question-image")?.value ?? "";
-        if (!prefetchedQuestion || prefetchAnchor !== current) return null;
-        return prefetchedQuestion;
-    }
-
-    function prefersReducedMotion() {
-        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    }
-
-    let viewportAdjustTimer = null;
-
-    function getQuizScrollMargins(viewportH) {
-        const margin = 8;
-        const minTop = margin;
-        const maxBottom = viewportH - 16;
-        const topBar = document.querySelector(".top-bar");
-        if (!topBar) return { minTop, maxBottom };
-
-        const barRect = topBar.getBoundingClientRect();
-        if (barRect.top <= margin && barRect.bottom > barRect.top) {
-            return { minTop: Math.ceil(barRect.bottom) + margin, maxBottom };
-        }
-        return { minTop, maxBottom };
-    }
-
-    function isQuizFullyVisible(rect, minTop, maxBottom) {
-        return rect.top >= minTop - 3 && rect.bottom <= maxBottom + 3;
-    }
-
-    function computeDeltaWhenFits(rect, minTop, maxBottom) {
-        if (rect.top < minTop) return rect.top - minTop;
-        if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
-        return 0;
-    }
-
-    function computeQuizScrollDelta(rect, viewportH) {
-        const { minTop, maxBottom } = getQuizScrollMargins(viewportH);
-        const available = maxBottom - minTop;
-
-        if (isQuizFullyVisible(rect, minTop, maxBottom)) return 0;
-        if (rect.height <= available) return computeDeltaWhenFits(rect, minTop, maxBottom);
-        if (rect.top < minTop) return rect.top - minTop;
-        if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
-        return 0;
-    }
-
-    function scrollQuizIntoView() {
-        const container = document.querySelector(".quiz-container");
-        if (!container) return;
-
-        const rect = container.getBoundingClientRect();
-        if (rect.height <= 0) return;
-
-        const deltaY = computeQuizScrollDelta(rect, window.innerHeight);
-        if (Math.abs(deltaY) <= 3) return;
-        window.scrollTo({
-            top: Math.max(0, window.scrollY + deltaY),
-            behavior: prefersReducedMotion() ? "auto" : "smooth"
-        });
-    }
-
-    function scheduleQuizViewportAdjust() {
-        if (viewportAdjustTimer) clearTimeout(viewportAdjustTimer);
-        viewportAdjustTimer = setTimeout(() => {
-            viewportAdjustTimer = null;
-            adjustQuizViewport();
-        }, 150);
-    }
-
-    function getReservedBelowQuestion(answers, buttonRow, feedback) {
-        const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
-        const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
-        return (answers?.offsetHeight ?? 0) +
-            (buttonRow?.offsetHeight ?? 0) +
-            feedbackHeight +
-            hintHeight +
-            32;
-    }
-
-    function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
-        if (availableForQuestion <= 96) return;
-        const cssCap = viewportH * 0.4;
-        const newMax = `${Math.floor(Math.min(cssCap, availableForQuestion))}px`;
-        if (mainImg.style.maxHeight !== newMax) {
-            mainImg.style.maxHeight = newMax;
-        }
-    }
-
-    function adjustQuizViewport() {
-        const container = document.querySelector(".quiz-container");
-        const mainImg = document.getElementById("main-question-image");
-        const answers = document.getElementById("answers-grid");
-        const feedback = document.getElementById("answer-feedback");
-        const buttonRow = container?.querySelector(".button-row");
-        if (!container || !mainImg) return;
-
-        const viewportH = window.innerHeight;
-        const { minTop } = getQuizScrollMargins(viewportH);
-        const containerRect = container.getBoundingClientRect();
-        const reservedBelowQuestion = getReservedBelowQuestion(answers, buttonRow, feedback);
-        const availableForQuestion = viewportH - Math.max(minTop, containerRect.top) - reservedBelowQuestion;
-        applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH);
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(scrollQuizIntoView);
-        });
-    }
-
-    function bindQuestionImageLoad(img, onLoad) {
-        if (!img) return;
-        if (img.complete) {
-            onLoad();
-            return;
-        }
-        img.addEventListener("load", onLoad, { once: true });
-        img.addEventListener("error", onLoad, { once: true });
-    }
-
-    function updateStreakBadge(streak, options = {}) {
-        const badge = document.getElementById("streak-badge");
-        const text = document.getElementById("streak-badge-text");
-        if (!badge) return;
-
-        const value = Number(streak) || 0;
-        if (value > 0) {
-            badge.hidden = false;
-            if (text) text.textContent = String(value);
-            badge.classList.toggle("streak-badge--hot", value >= 7);
-            if (options.pulse) {
-                badge.classList.remove("streak-badge--burst");
-                void badge.offsetWidth;
-                badge.classList.add("streak-badge--burst");
-                setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
-            }
-            return;
-        }
-
-        badge.hidden = true;
-        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
-    }
-
-    function syncStreakBadgeFromPage() {
-        const stat = document.getElementById("stat-streak");
-        const parsed = parseInt(stat?.textContent ?? "0", 10);
-        updateStreakBadge(Number.isFinite(parsed) ? parsed : 0);
-    }
-
-    function updatePracticeModeBadge(data) {
-        const badge = document.getElementById("practice-mode-badge");
-        if (!badge || !data.practiceModeLabel) return;
-        if (data.practiceMode === "daily") {
-            badge.innerHTML = `${escapeHtml(data.practiceModeLabel)} <span class="practice-mode-daily">${data.dailyProgress}/${data.dailyTotal}</span>`;
-        } else {
-            badge.textContent = data.practiceModeLabel;
-        }
-    }
-
-    function showAchievementToast(achievements) {
-        if (!achievements?.length || !window.pushQuizNotify) return;
-        achievements.forEach((a, index) => {
-            setTimeout(() => {
-                window.pushQuizNotify({
-                    type: "achievement",
-                    title: "הישג חדש",
-                    message: `${a.emoji} <strong>${escapeHtml(a.title)}</strong> — ${escapeHtml(a.description)}`,
-                    durationMs: 6000
-                });
-            }, index * 120);
-        });
-    }
-
-    function answerFileFromUrl(url) {
-        if (!url) return "";
-        try {
-            const pathname = new URL(url, window.location.origin).pathname;
-            return decodeURIComponent(pathname.split("/").pop() || "");
-        } catch {
-            return url.split("/").pop()?.split("?")[0]?.split("#")[0] ?? "";
-        }
-    }
-
-    function filesMatchCorrectAnswer(file, imgFile, correctAnswerFile) {
-        if (!correctAnswerFile) return false;
-        return (file && file === correctAnswerFile) ||
-            (imgFile && imgFile === correctAnswerFile);
-    }
-
-    function matchesCorrectAnswerFromList(file, imgFile, data) {
-        if (!data.answers?.length || !data.correctKey) return false;
-        const correct = data.answers.find((a) => a.key === data.correctKey);
-        if (!correct?.fileName) return false;
-        return file === correct.fileName || imgFile === correct.fileName;
-    }
-
-    function matchesCorrectAnswerUrl(imgFile, data) {
-        if (!data.correctAnswerUrl) return false;
-        const correctFile = answerFileFromUrl(data.correctAnswerUrl);
-        return Boolean(correctFile && imgFile && correctFile === imgFile);
-    }
-
-    function isAnswerButtonCorrect(btn, data) {
-        const key = btn.value;
-        const img = btn.querySelector("img");
-        const file = img?.dataset?.answerFile ?? "";
-        const imgFile = answerFileFromUrl(img?.src ?? "");
-
-        const matchers = [
-            () => data.correctKey && key === data.correctKey,
-            () => filesMatchCorrectAnswer(file, imgFile, data.correctAnswerFile),
-            () => matchesCorrectAnswerUrl(imgFile, data),
-            () => matchesCorrectAnswerFromList(file, imgFile, data)
-        ];
-        return matchers.some((match) => match());
-    }
-
-    function styleAnswerButtons(grid, data) {
-        if (!grid) return;
-        grid.querySelectorAll(".answer-btn").forEach((btn) => {
-            btn.disabled = true;
-            btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct");
-
-            if (isAnswerButtonCorrect(btn, data)) {
-                btn.classList.add("correct", data.isCorrect ? "answer-pulse" : "answer-reveal-correct");
-            } else if (btn.value === data.selectedKey) {
-                btn.classList.add("incorrect", "answer-shake");
-            }
-        });
-    }
-
-    function showAnswerFeedback(data) {
-        const feedback = document.getElementById("answer-feedback");
-        if (!feedback) return;
-
-        feedback.hidden = false;
-        feedback.classList.toggle("is-correct", data.isCorrect);
-        feedback.classList.toggle("is-incorrect", !data.isCorrect);
-        feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
-    }
-
-    function showLevelUpToast(level) {
-        if (!level || !window.pushQuizNotify) return;
-        window.pushQuizNotify({
-            type: "levelUp",
-            title: "עלית רמה!",
-            message: `⬆️ עלית לרמה <strong>${level}</strong>!`,
-            durationMs: 5500
-        });
-    }
-
-    function showDailyCompleteModal(score, total) {
-        const modal = document.getElementById("daily-complete-modal");
-        const scoreEl = document.getElementById("daily-complete-score");
-        if (!modal) return;
-        if (scoreEl) scoreEl.textContent = `ציון: ${score}/${total}`;
-        modal.classList.add("difficulty-modal-open");
-    }
-
-    function closeDailyCompleteModal() {
-        const modal = document.getElementById("daily-complete-modal");
-        if (modal) modal.classList.remove("difficulty-modal-open");
-    }
-
-    function triggerHaptic(isCorrect) {
-        if (!isCorrect || !navigator.vibrate) return;
-        try { navigator.vibrate(20); } catch { /* unsupported */ }
-    }
-
-    function isTypingTarget(el) {
-        if (!el) return false;
-        const tag = el.tagName?.toLowerCase();
-        return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
-    }
-
-    function bindKeyboardShortcuts() {
-        document.addEventListener("keydown", (e) => {
-            if (isTypingTarget(document.activeElement)) return;
-            if (document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open")) return;
-
-            if (e.key === "Enter" && answerChecked && !quizBusy) {
-                const nextBtn = document.getElementById("next-question-btn");
-                if (nextBtn && !nextBtn.disabled) {
-                    e.preventDefault();
-                    nextBtn.click();
-                }
-                return;
-            }
-
-            if (answerChecked || quizBusy) return;
-            const idx = parseInt(e.key, 10);
-            if (idx < 1 || idx > 4) return;
-            const buttons = [...document.querySelectorAll("#answers-grid .answer-btn")];
-            const btn = buttons[idx - 1];
-            if (btn && !btn.disabled) {
-                e.preventDefault();
-                btn.click();
-            }
-        });
-    }
-
-    function bindDailyCompleteModal() {
-        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
-        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
-    }
-
-    function setInputValue(input, value) {
-        if (input) input.value = value;
-    }
-
-    function resolveReportQuestionImage(data) {
-        const quizQuestion = document.getElementById("quiz-question-image")?.value;
-        return quizQuestion || data.questionImageOriginalName || data.questionImage || "";
-    }
-
-    function buildReportAnswersJson(answers) {
-        if (!answers?.length) return "";
-        const dict = {};
-        for (const answer of answers) {
-            if (answer.key) dict[answer.key] = answer.fileName ?? "";
-        }
-        return JSON.stringify(dict);
-    }
-
-    function syncReportFormFromAnswerResult(data) {
-        const form = document.getElementById("report-form");
-        if (!form || !data) return;
-
-        setInputValue(form.querySelector('input[name="questionImage"]'), resolveReportQuestionImage(data));
-        setInputValue(form.querySelector('input[name="selectedAnswer"]'), data.selectedKey ?? "");
-        setInputValue(form.querySelector('input[name="correctAnswer"]'), data.correctAnswerFile ?? "");
-        setInputValue(form.querySelector('input[name="answers"]'), buildReportAnswersJson(data.answers));
-    }
-
-    function applyAnswerResult(data) {
-        styleAnswerButtons(document.getElementById("answers-grid"), data);
-        showAnswerFeedback(data);
-
-        playFeedbackSound(data.isCorrect);
-        triggerHaptic(data.isCorrect);
-        if (data.stats || data.feedback?.levelUpTo) {
-            const statsPayload = {
-                ...(data.stats ?? {}),
-                xpGain: data.feedback?.xpGain ?? 0
-            };
-            if (data.feedback?.levelUpTo) {
-                statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
-            }
-            const shouldPulse = Boolean(
-                data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
-            );
-            applyStatsData(statsPayload, {
-                pulse: shouldPulse,
-                skipStreakUpdate: true
-            });
-        }
-        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
-        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
-        showAchievementToast(data.achievements);
-        if (data.feedback?.dailyComplete) {
-            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
-        }
-
-        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
-            openFeedbackModal(data.feedbackCampaignId, data.feedbackMilestone);
-        } else if (data.showGitHubStarPrompt) {
-            openGitHubStarModal(data.githubStarMilestone, data.githubStarUrl);
-        }
-
-        syncReportFormFromAnswerResult(data);
-        scheduleQuizViewportAdjust();
-        schedulePrefetchNextQuestion();
-    }
-
-    function setImageSource(img, url) {
-        if (img && url) img.src = url;
-    }
-
-    function updateQuestionImages(mainImg, modalImg, data) {
-        const url = data.questionImageUrl;
-        if (mainImg) mainImg.style.maxHeight = "";
-        setImageSource(mainImg, url);
-        setImageSource(modalImg, url);
-    }
-
-    function renderAnswerButtons(grid, answers) {
-        grid.innerHTML = "";
-        answers.forEach((a) => {
-            const btn = document.createElement("button");
-            btn.type = "submit";
-            btn.name = "answer";
-            btn.value = a.key;
-            btn.className = "answer-btn";
-            const img = document.createElement("img");
-            img.src = a.imageUrl;
-            img.alt = "תשובה";
-            img.loading = "eager";
-            img.fetchPriority = "high";
-            if (a.fileName) img.dataset.answerFile = a.fileName;
-            btn.appendChild(img);
-            grid.appendChild(btn);
-        });
-    }
-
-    function clearAnswerFeedback(feedback) {
-        if (!feedback) return;
-        feedback.hidden = true;
-        feedback.classList.remove("is-correct", "is-incorrect");
-        feedback.textContent = "";
-    }
-
-    function syncReportFormForQuestion(data) {
-        const form = document.getElementById("report-form");
-        if (!form) return;
-
-        setInputValue(
-            form.querySelector('input[name="questionImage"]'),
-            data.questionImageOriginalName ?? data.questionImage ?? ""
-        );
-        setInputValue(form.querySelector('input[name="selectedAnswer"]'), "");
-        setInputValue(form.querySelector('input[name="correctAnswer"]'), "");
-        setInputValue(form.querySelector('input[name="answers"]'), "");
-    }
-
-    function setHiddenQuestionImage(questionImage) {
-        const hidden = document.getElementById("quiz-question-image");
-        if (hidden) hidden.value = questionImage ?? "";
-    }
-
-    function renderQuestionAnswersGrid(data) {
-        const grid = document.getElementById("answers-grid");
-        if (!grid || !data.answers?.length) return;
-        renderAnswerButtons(grid, data.answers);
-    }
-
-    function applyRenderedQuestionDom(data) {
-        updateQuestionImages(
-            document.getElementById("main-question-image"),
-            document.getElementById("modal-img"),
-            data
-        );
-        setHiddenQuestionImage(data.questionImage);
-        renderQuestionAnswersGrid(data);
-        clearAnswerFeedback(document.getElementById("answer-feedback"));
-        syncReportFormForQuestion(data);
-        if (data.practiceMode === "daily") updatePracticeModeBadge(data);
-    }
-
-    async function renderQuestion(data, seq, options = {}) {
-        if (!options.imagesPreloaded) {
-            await preloadQuestionImages(data);
-        }
-        if (seq !== questionRenderSeq) return;
-
-        applyRenderedQuestionDom(data);
-        scheduleQuizViewportAdjust();
-        schedulePrefetchNextQuestion();
-    }
-
-    function getQuizAnswerPayload(e, form) {
-        const submitter = e.submitter;
-        if (!submitter || submitter.name !== "answer") return null;
-        const questionImage = form.querySelector('input[name="questionImage"]')?.value;
-        if (!questionImage) return { missingQuestion: true };
-        return { questionImage, answer: submitter.value, submitter };
-    }
-
-    async function submitQuizAnswer(questionImage, answer, token) {
-        const res = await window.RequestChannels.quizFetch("/Index?handler=SubmitAnswer", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                RequestVerificationToken: token
-            },
-            body: JSON.stringify({ questionImage, answer })
-        });
-        const data = await res.json();
-        return { res, data };
-    }
-
-    function lockAnswerButtonsAfterCheck() {
-        document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
-            btn.disabled = true;
-        });
-    }
-
-    function processQuizAnswerResponse(res, data) {
-        if (data.redirect) {
-            window.location.assign(data.redirect);
-            return;
-        }
-        if (!res.ok) throw new Error("submit failed");
-        applyAnswerResult(data);
-        answerChecked = true;
-    }
-
-    async function recoverQuizAnswerSubmitError(responseReceived, form, submitter) {
-        if (!responseReceived) {
-            form.requestSubmit(submitter);
-            return;
-        }
-        if (window.showAppToast) {
-            window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
-        } else if (window.showAppAlert) {
-            await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
-        }
-    }
-
-    async function alertMissingQuestionImage() {
-        if (window.showAppAlert) {
-            await window.showAppAlert("שגיאה: השאלה לא נטענה. לחץ «שאלה הבאה» ונסה שוב.");
-        }
-    }
-
-    async function runQuizAnswerRequest(payload, form) {
-        let responseReceived = false;
-        try {
-            const { res, data } = await submitQuizAnswer(
-                payload.questionImage,
-                payload.answer,
-                getAntiForgeryToken()
-            );
-            responseReceived = true;
-            processQuizAnswerResponse(res, data);
-        } catch {
-            await recoverQuizAnswerSubmitError(responseReceived, form, payload.submitter);
-        }
-    }
-
-    async function submitQuizAnswerWithBusyState(payload, form) {
-        setQuizBusy(true);
-        try {
-            await runQuizAnswerRequest(payload, form);
-        } finally {
-            setQuizBusy(false);
-            if (answerChecked) lockAnswerButtonsAfterCheck();
-        }
-    }
-
-    async function handleQuizAnswerSubmit(e, form) {
-        e.preventDefault();
-        if (answerChecked || quizBusy) return;
-
-        const payload = getQuizAnswerPayload(e, form);
-        if (!payload) return;
-        if (payload.missingQuestion) {
-            await alertMissingQuestionImage();
-            return;
-        }
-
-        await submitQuizAnswerWithBusyState(payload, form);
-    }
-
-    function bindQuizAnswerForm() {
-        const form = document.getElementById("quiz-answer-form");
-        if (!form) return;
-        form.addEventListener("submit", (e) => {
-            handleQuizAnswerSubmit(e, form);
-        });
-    }
-
-    async function fetchNextQuestionResponse() {
-        const res = await window.RequestChannels.quizFetch("/Index?handler=NextQuestion");
-        const data = await res.json();
-        return { res, data };
-    }
-
-    async function applyNextQuestion(data, mySeq, cached) {
-        const imagesPreloaded = cached && cached.questionImage === data.questionImage;
-        await renderQuestion(data, mySeq, { imagesPreloaded });
-        invalidatePrefetchCache();
-        if (mySeq === questionRenderSeq) answerChecked = false;
-    }
-
-    async function processNextQuestionResponse(res, data, mySeq, cached) {
-        if (data.redirect) {
-            window.location.assign(data.redirect);
-            return;
-        }
-        if (!res.ok) throw new Error("next failed");
-        await applyNextQuestion(data, mySeq, cached);
-    }
-
-    async function recoverNextQuestionSubmitError(responseReceived, form) {
-        if (!responseReceived) {
-            form.submit();
-            return;
-        }
-        if (window.showAppToast) {
-            window.showAppToast("שגיאה בטעינת השאלה הבאה. נסה שוב.");
-        } else if (window.showAppAlert) {
-            await window.showAppAlert("שגיאה בטעינת השאלה הבאה. נסה שוב.");
-        }
-    }
-
-    async function handleNextQuestionSubmit(e, form) {
-        e.preventDefault();
-        if (quizBusy) return;
-
-        const mySeq = ++questionRenderSeq;
-        const cached = getCachedNextQuestion();
-        setQuizSwapping(true);
-        setQuizBusy(true);
-        let responseReceived = false;
-        try {
-            const { res, data } = await fetchNextQuestionResponse();
-            responseReceived = true;
-            await processNextQuestionResponse(res, data, mySeq, cached);
-        } catch {
-            await recoverNextQuestionSubmitError(responseReceived, form);
-        } finally {
-            if (mySeq === questionRenderSeq) setQuizSwapping(false);
-            setQuizBusy(false);
-        }
-    }
-
-    function bindNextQuestion() {
-        const form = document.getElementById("next-question-form");
-        if (!form) return;
-        form.addEventListener("submit", (e) => {
-            handleNextQuestionSubmit(e, form);
-        });
-    }
-
     async function fetchStats() {
         try {
             const res = await window.RequestChannels.backgroundFetch(`/api/stats-data?_=${Date.now()}`);
@@ -1075,221 +200,18 @@
         }
     }
 
-    function bindDismissHandler(element, dismiss) {
-        if (element) element.addEventListener("click", dismiss);
-    }
-
-    function bindAppNotice() {
-        const prompt = document.getElementById("app-notice-prompt");
-        if (!prompt) return;
-
-        const noticeId = prompt.dataset.noticeId;
-        const modal = document.getElementById("app-notice-modal");
-        if (!modal || !noticeId) return;
-
-        modal.classList.add("difficulty-modal-open");
-        logPromptShown("app_notice", { noticeId });
-
-        const dismiss = () => {
-            dismissAppNotice();
-            openFeedbackModalIfPending();
-            openGitHubStarModalIfPending();
-        };
-
-        bindDismissHandler(document.getElementById("app-notice-dismiss-btn"), dismiss);
-        bindDismissHandler(document.getElementById("close-app-notice-btn"), dismiss);
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) dismiss();
-        });
-    }
-
-    async function showAppAlertIfAvailable(message) {
-        if (typeof window.showAppAlert !== "function") return;
-        await window.showAppAlert(message);
-    }
-
-    function createFeedbackStarUpdater(starsEl, submitBtn, onRatingChange) {
-        return (rating) => {
-            onRatingChange(rating);
-            starsEl.querySelectorAll(".feedback-star").forEach((star) => {
-                const value = parseInt(star.dataset.rating, 10);
-                star.classList.toggle("is-selected", value <= rating);
-            });
-            submitBtn.disabled = rating < 1;
-        };
-    }
-
-    function bindFeedbackStarClicks(starsEl, updateStars) {
-        starsEl.querySelectorAll(".feedback-star").forEach((star) => {
-            star.addEventListener("click", () => {
-                updateStars(parseInt(star.dataset.rating, 10));
-            });
-        });
-    }
-
-    async function recordFeedbackLater(prompt, laterBtn) {
-        laterBtn.disabled = true;
-        try {
-            const res = await fetch("/api/feedback/later", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ campaignId: prompt.dataset.campaignId })
-            });
-            if (res.ok) {
-                closeFeedbackModal();
-                prompt.remove();
-                openGitHubStarModalIfPending(true);
-                return;
-            }
-        } catch {
-            // keep prompt for retry
-        }
-        laterBtn.disabled = false;
-    }
-
-    async function submitFeedbackRating(prompt, selectedRating, messageEl, submitBtn) {
-        if (selectedRating < 1) return;
-
-        submitBtn.disabled = true;
-        try {
-            const res = await fetch("/api/feedback/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    campaignId: prompt.dataset.campaignId,
-                    rating: selectedRating,
-                    message: messageEl?.value?.trim() || ""
-                })
-            });
-            if (res.ok) {
-                closeFeedbackModal();
-                prompt.remove();
-                await showAppAlertIfAvailable("תודה! המשוב נשמר.");
-                return;
-            }
-            await showAppAlertIfAvailable("אירעה שגיאה בשליחת המשוב. נסו שוב.");
-        } catch {
-            await showAppAlertIfAvailable("אירעה שגיאה בשליחת המשוב. נסו שוב.");
-        } finally {
-            submitBtn.disabled = selectedRating < 1;
-        }
-    }
-
-    let feedbackSelectedRating = 0;
-
-    function resetFeedbackStars(starsEl, submitBtn) {
-        feedbackSelectedRating = 0;
-        if (!starsEl || !submitBtn) return;
-        starsEl.querySelectorAll(".feedback-star").forEach((star) => star.classList.remove("is-selected"));
-        submitBtn.disabled = true;
-        const messageEl = document.getElementById("feedback-message");
-        if (messageEl) messageEl.value = "";
-    }
-
-    function bindFeedbackModal() {
-        const modal = document.getElementById("feedback-modal");
-        const submitBtn = document.getElementById("feedback-submit-btn");
-        const laterBtn = document.getElementById("feedback-later-btn");
-        const starsEl = document.getElementById("feedback-stars");
-        const messageEl = document.getElementById("feedback-message");
-        if (!modal || !submitBtn || !laterBtn || !starsEl) return;
-
-        const updateStars = createFeedbackStarUpdater(starsEl, submitBtn, (rating) => {
-            feedbackSelectedRating = rating;
-        });
-        bindFeedbackStarClicks(starsEl, updateStars);
-
-        laterBtn.addEventListener("click", () => {
-            const prompt = document.getElementById("feedback-prompt");
-            if (prompt) recordFeedbackLater(prompt, laterBtn);
-        });
-
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeFeedbackModal();
-        });
-
-        submitBtn.addEventListener("click", () => {
-            const prompt = document.getElementById("feedback-prompt");
-            if (prompt) {
-                submitFeedbackRating(prompt, feedbackSelectedRating, messageEl, submitBtn);
-            }
-        });
-
-        const prompt = document.getElementById("feedback-prompt");
-        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1") {
-            openFeedbackModalIfPending();
-        } else {
-            openGitHubStarModalIfPending();
-        }
-    }
-
-    function bindGitHubStarModal() {
-        const modal = document.getElementById("github-star-modal");
-        const acceptBtn = document.getElementById("github-star-accept-btn");
-        const laterBtn = document.getElementById("github-star-later-btn");
-        if (!modal || !acceptBtn || !laterBtn) return;
-
-        acceptBtn.addEventListener("click", async () => {
-            const url = modal.dataset.repoUrl || "https://github.com/yanivbahalul/noodles-simulator";
-            window.open(url, "_blank", "noopener,noreferrer");
-            acceptBtn.disabled = true;
-            laterBtn.disabled = true;
-            const ok = await dismissGitHubStarNotice("github-star-opted-in");
-            if (ok) {
-                closeGitHubStarModal();
-                document.getElementById("github-star-prompt")?.remove();
-                return;
-            }
-            acceptBtn.disabled = false;
-            laterBtn.disabled = false;
-        });
-
-        laterBtn.addEventListener("click", async () => {
-            const milestone = parseInt(modal.dataset.milestone, 10);
-            if (milestone <= 0) return;
-            acceptBtn.disabled = true;
-            laterBtn.disabled = true;
-            const ok = await dismissGitHubStarNotice(`github-star-${milestone}`);
-            if (ok) {
-                closeGitHubStarModal();
-                document.getElementById("github-star-prompt")?.remove();
-                return;
-            }
-            acceptBtn.disabled = false;
-            laterBtn.disabled = false;
-        });
-
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeGitHubStarModal();
-        });
-
-        openGitHubStarModalIfPending();
-    }
-
-    function bindDifficultyChoices() {
-        document.querySelectorAll(".difficulty-btn[data-difficulty]").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-                e.preventDefault();
-                const level = btn.getAttribute("data-difficulty");
-                if (!level) return;
-                window.location.assign(`/Test?start=1&difficulty=${encodeURIComponent(level)}`);
-            });
-        });
-    }
-
-    const REPORT_FORM_DATA_KEYS = new Set([
-        "questionImage",
-        "explanation",
-        "selectedAnswer",
-        "correctAnswer",
-        "answers"
-    ]);
-
     function buildReportFormPayload(formData) {
+        const keys = new Set([
+            "questionImage",
+            "explanation",
+            "selectedAnswer",
+            "correctAnswer",
+            "answers"
+        ]);
         const data = {};
         formData.forEach((value, key) => {
             if (key === "__RequestVerificationToken") return;
-            if (REPORT_FORM_DATA_KEYS.has(key)) data[key] = value;
+            if (keys.has(key)) data[key] = value;
         });
         return data;
     }
@@ -1346,11 +268,6 @@
         });
     }
 
-    function bindClick(id, handler) {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener("click", handler);
-    }
-
     function bindStatsAdvancedPanel() {
         const toggle = document.getElementById("stats-advanced-toggle");
         const panel = document.getElementById("stats-advanced-panel");
@@ -1376,32 +293,168 @@
         });
     }
 
+
+
+    function updateStreakBadge(streak, options = {}) {
+        const badge = document.getElementById("streak-badge");
+        const text = document.getElementById("streak-badge-text");
+        if (!badge) return;
+
+        const value = Number(streak) || 0;
+        if (value > 0) {
+            badge.hidden = false;
+            if (text) text.textContent = String(value);
+            badge.classList.toggle("streak-badge--hot", value >= 7);
+            if (options.pulse) {
+                badge.classList.remove("streak-badge--burst");
+                void badge.offsetWidth;
+                badge.classList.add("streak-badge--burst");
+                setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
+            }
+            return;
+        }
+
+        badge.hidden = true;
+        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
+    }
+
+    function syncStreakBadgeFromPage() {
+        const stat = document.getElementById("stat-streak");
+        const parsed = parseInt(stat?.textContent ?? "0", 10);
+        updateStreakBadge(Number.isFinite(parsed) ? parsed : 0);
+    }
+
+    function showAchievementToast(achievements) {
+        if (!achievements?.length || !window.pushQuizNotify) return;
+        achievements.forEach((a, index) => {
+            setTimeout(() => {
+                window.pushQuizNotify({
+                    type: "achievement",
+                    title: "הישג חדש",
+                    message: `${a.emoji} <strong>${window.escapeHtml(a.title)}</strong> — ${window.escapeHtml(a.description)}`,
+                    durationMs: 6000
+                });
+            }, index * 120);
+        });
+    }
+
+    function showLevelUpToast(level) {
+        window.pushQuizNotify?.({
+            type: "levelUp",
+            title: "רמה חדשה!",
+            message: `עלית לרמה ${level}`,
+            durationMs: 5000
+        });
+    }
+
+    function showDailyCompleteModal(score, total) {
+        const modal = document.getElementById("daily-complete-modal");
+        const scoreEl = document.getElementById("daily-complete-score");
+        if (scoreEl) scoreEl.textContent = `${score}/${total}`;
+        if (modal) modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeDailyCompleteModal() {
+        const modal = document.getElementById("daily-complete-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName?.toLowerCase();
+        return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+    }
+
+    function bindKeyboardShortcuts() {
+        document.addEventListener("keydown", (e) => {
+            if (isTypingTarget(document.activeElement)) return;
+            if (document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open")) return;
+
+            const answerChecked = window.IndexQuiz?.isAnswerChecked?.() ?? false;
+            const quizBusy = window.IndexQuiz?.isQuizBusy?.() ?? false;
+
+            if (e.key === "Enter" && answerChecked && !quizBusy) {
+                const nextBtn = document.getElementById("next-question-btn");
+                if (nextBtn && !nextBtn.disabled) {
+                    e.preventDefault();
+                    nextBtn.click();
+                }
+                return;
+            }
+
+            if (answerChecked || quizBusy) return;
+            const idx = parseInt(e.key, 10);
+            if (idx < 1 || idx > 4) return;
+            const buttons = [...document.querySelectorAll("#answers-grid .answer-btn")];
+            const btn = buttons[idx - 1];
+            if (btn && !btn.disabled) {
+                e.preventDefault();
+                btn.click();
+            }
+        });
+    }
+
+    function bindDailyCompleteModal() {
+        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
+        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
+    }
+
+    function applyAnswerSideEffects(data) {
+        if (data.stats || data.feedback?.levelUpTo) {
+            const statsPayload = {
+                ...(data.stats ?? {}),
+                xpGain: data.feedback?.xpGain ?? 0
+            };
+            if (data.feedback?.levelUpTo) {
+                statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
+            }
+            const shouldPulse = Boolean(
+                data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
+            );
+            applyStatsData(statsPayload, {
+                pulse: shouldPulse,
+                skipStreakUpdate: true
+            });
+        }
+        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
+        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
+        showAchievementToast(data.achievements);
+        if (data.feedback?.dailyComplete) {
+            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
+        }
+        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
+            window.IndexModals?.openFeedbackModal?.(data.feedbackCampaignId, data.feedbackMilestone);
+        } else if (data.showGitHubStarPrompt) {
+            window.IndexModals?.openGitHubStarModal?.(data.githubStarMilestone, data.githubStarUrl);
+        }
+    }
+
+    window.IndexPage = { applyAnswerSideEffects, playFeedbackSound, updateStreakBadge, closeImageModal, closeAppDialog };
+
     document.addEventListener("DOMContentLoaded", () => {
         const pageData = document.getElementById("quiz-page-data");
-        answerChecked = pageData?.dataset.answerChecked === "1";
+        window.IndexQuiz?.setAnswerChecked(pageData?.dataset.answerChecked === "1");
 
-        bindClick("main-question-image", openImageModal);
+        bindImageModal();
         bindClick("open-difficulty-modal-btn", (e) => {
             e.preventDefault();
-            openDifficultyModal();
+            window.IndexModals?.openDifficultyModal?.();
         });
         bindClick("open-practice-options-btn", (e) => {
             e.preventDefault();
-            openPracticeOptionsModal();
+            window.IndexModals?.openPracticeOptionsModal?.();
         });
-        bindClick("close-difficulty-modal-btn", closeDifficultyModal);
-        bindClick("close-practice-options-btn", closePracticeOptionsModal);
-        bindClick("close-image-modal-btn", closeImageModal);
-        bindModalDismiss("image-modal", closeImageModal);
-        bindModalDismiss("difficulty-modal", closeDifficultyModal);
-        bindModalDismiss("practice-options-modal", closePracticeOptionsModal);
-        bindQuizAnswerForm();
-        bindNextQuestion();
+        bindClick("close-difficulty-modal-btn", () => window.IndexModals?.closeDifficultyModal?.());
+        bindClick("close-practice-options-btn", () => window.IndexModals?.closePracticeOptionsModal?.());
+        bindModalDismiss("difficulty-modal", () => window.IndexModals?.closeDifficultyModal?.());
+        bindModalDismiss("practice-options-modal", () => window.IndexModals?.closePracticeOptionsModal?.());
+        window.IndexQuiz?.bindQuizAnswerForm?.();
+        window.IndexQuiz?.bindNextQuestion?.();
         bindReportForm();
-        bindAppNotice();
-        bindFeedbackModal();
-        bindGitHubStarModal();
-        bindDifficultyChoices();
+        window.IndexModals?.bindAppNotice?.();
+        window.IndexModals?.bindFeedbackModal?.();
+        window.IndexModals?.bindGitHubStarModal?.();
+        window.IndexModals?.bindDifficultyChoices?.();
         bindSoundToggle();
         syncStreakBadgeFromPage();
         bindAchievementToast();
@@ -1412,14 +465,13 @@
 
         void initLevelProgressLive();
 
-        bindQuestionImageLoad(document.getElementById("main-question-image"), scheduleQuizViewportAdjust);
-        window.addEventListener("resize", scheduleQuizViewportAdjust);
-        schedulePrefetchNextQuestion();
+        window.QuizViewport?.bindQuizViewportHandlers?.();
+        window.IndexQuiz?.schedulePrefetchNextQuestion?.();
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
-                closeDifficultyModal();
-                closePracticeOptionsModal();
+                window.IndexModals?.closeDifficultyModal?.();
+                window.IndexModals?.closePracticeOptionsModal?.();
             }
         });
     });

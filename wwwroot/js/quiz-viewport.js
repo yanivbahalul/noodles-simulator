@@ -5,6 +5,20 @@
         return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     }
 
+    function getQuizScrollMargins(viewportH) {
+        const margin = 8;
+        const minTop = margin;
+        const maxBottom = viewportH - 16;
+        const topBar = document.querySelector(".top-bar");
+        if (!topBar) return { minTop, maxBottom };
+
+        const barRect = topBar.getBoundingClientRect();
+        if (barRect.top <= margin && barRect.bottom > barRect.top) {
+            return { minTop: Math.ceil(barRect.bottom) + margin, maxBottom };
+        }
+        return { minTop, maxBottom };
+    }
+
     function isQuizFullyVisible(rect, minTop, maxBottom) {
         return rect.top >= minTop - 3 && rect.bottom <= maxBottom + 3;
     }
@@ -16,15 +30,14 @@
     }
 
     function computeQuizScrollDelta(rect, viewportH) {
-        const marginTop = 8;
-        const marginBottom = 16;
-        const minTop = marginTop;
-        const maxBottom = viewportH - marginBottom;
-        const available = viewportH - marginTop - marginBottom;
+        const { minTop, maxBottom } = getQuizScrollMargins(viewportH);
+        const available = maxBottom - minTop;
 
         if (isQuizFullyVisible(rect, minTop, maxBottom)) return 0;
         if (rect.height <= available) return computeDeltaWhenFits(rect, minTop, maxBottom);
-        return rect.top - minTop;
+        if (rect.top < minTop) return rect.top - minTop;
+        if (rect.bottom > maxBottom) return rect.bottom - maxBottom;
+        return 0;
     }
 
     function scrollQuizIntoView() {
@@ -44,9 +57,11 @@
 
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
         const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
+        const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
             feedbackHeight +
+            hintHeight +
             32;
     }
 
@@ -67,13 +82,16 @@
         const buttonRow = container?.querySelector(".button-row");
         if (!container || !mainImg) return;
 
-        const marginTop = 8;
         const viewportH = window.innerHeight;
+        const { minTop } = getQuizScrollMargins(viewportH);
+        const containerRect = container.getBoundingClientRect();
         const reservedBelowQuestion = getReservedBelowQuestion(answers, buttonRow, feedback);
-        const availableForQuestion = viewportH - marginTop - reservedBelowQuestion;
+        const availableForQuestion = viewportH - Math.max(minTop, containerRect.top) - reservedBelowQuestion;
         applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH);
 
-        requestAnimationFrame(scrollQuizIntoView);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(scrollQuizIntoView);
+        });
     }
 
     function scheduleQuizViewportAdjust() {
@@ -91,6 +109,7 @@
             return;
         }
         img.addEventListener("load", onLoad, { once: true });
+        img.addEventListener("error", onLoad, { once: true });
     }
 
     function bindQuizViewportHandlers() {
@@ -104,6 +123,7 @@
 
     window.QuizViewport = {
         scheduleQuizViewportAdjust,
-        bindQuizViewportHandlers
+        bindQuizViewportHandlers,
+        bindQuestionImageLoad
     };
 })();

@@ -1,61 +1,46 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
-using NoodlesSimulator.Models;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace NoodlesSimulator.Services;
 
-public class DataRetentionService
+public class DataRetentionHostedService : BackgroundService
 {
-    public const int ActivityEventsRetentionDays = 90;
-    public const int TestSessionsRetentionDays = 180;
+    private const int ActivityEventsRetentionDays = 90;
+    private const int TestSessionsRetentionDays = 180;
 
-    private readonly ActivityEventService _activityEvents;
-    private readonly TestSessionService _testSessions;
+    private readonly IServiceProvider _services;
 
-    public DataRetentionService(
-        ActivityEventService activityEvents = null,
-        TestSessionService testSessions = null)
+    public DataRetentionHostedService(IServiceProvider services)
     {
-        _activityEvents = activityEvents;
-        _testSessions = testSessions;
+        _services = services;
     }
 
-    public async Task<(int ActivityEvents, int TestSessions)> RunCleanupAsync()
-    {
-        var activityDeleted = _activityEvents != null
-            ? await _activityEvents.PurgeOlderThanAsync(ActivityEventsRetentionDays)
-            : 0;
-        var sessionsDeleted = _testSessions != null
-            ? await _testSessions.PurgeOldSessionsAsync(TestSessionsRetentionDays)
-            : 0;
-
-        if (activityDeleted > 0 || sessionsDeleted > 0)
-        {
-            Console.WriteLine(
-                $"[DataRetention] Purged {activityDeleted} activity_events, {sessionsDeleted} old test_sessions");
-        }
-
-        return (activityDeleted, sessionsDeleted);
-    }
-}
-
-public class DataRetentionHostedService : Microsoft.Extensions.Hosting.BackgroundService
-{
-    private readonly DataRetentionService _retention;
-
-    public DataRetentionHostedService(DataRetentionService retention)
-    {
-        _retention = retention;
-    }
-
-    protected override async Task ExecuteAsync(System.Threading.CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await _retention.RunCleanupAsync();
+                using var scope = _services.CreateScope();
+                var activityEvents = scope.ServiceProvider.GetService<ActivityEventService>();
+                var testSessions = scope.ServiceProvider.GetService<TestSessionService>();
+
+                var activityDeleted = activityEvents != null
+                    ? await activityEvents.PurgeOlderThanAsync(ActivityEventsRetentionDays)
+                    : 0;
+                var sessionsDeleted = testSessions != null
+                    ? await testSessions.PurgeOldSessionsAsync(TestSessionsRetentionDays)
+                    : 0;
+
+                if (activityDeleted > 0 || sessionsDeleted > 0)
+                {
+                    Console.WriteLine(
+                        $"[DataRetention] Purged {activityDeleted} activity_events, {sessionsDeleted} old test_sessions");
+                }
             }
             catch (Exception ex)
             {

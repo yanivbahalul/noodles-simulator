@@ -109,14 +109,6 @@ public class DashboardDataService
         public int OpenQuestionReports { get; set; }
     }
 
-    public class RetentionSummary
-    {
-        public int NewUsersToday { get; set; }
-        public int NewUsersThisWeek { get; set; }
-        public int Inactive7Days { get; set; }
-        public int Inactive30Days { get; set; }
-    }
-
     public class SystemHealthSummary
     {
         public bool AllOk { get; set; }
@@ -162,7 +154,6 @@ public class DashboardDataService
         public List<ActiveExamRow> ActiveExams { get; set; } = new();
         public List<ActivityRow> RecentActivity { get; set; } = new();
         public List<ActivityRow> LiveActivity { get; set; } = new();
-        public RetentionSummary Retention { get; set; } = new();
         public SystemHealthSummary Health { get; set; } = new();
         public List<QuestionReportRow> QuestionReports { get; set; } = new();
         public List<ProblematicQuestionRow> ProblematicQuestions { get; set; } = new();
@@ -254,11 +245,11 @@ public class DashboardDataService
 
         var activeExams = await BuildActiveExamsAsync();
         var recentActivity = await BuildActivityFeedAsync(100);
-        var liveActivity = await BuildActivityFeedAsync(50);
+        var liveActivity = recentActivity.Take(50).ToList();
         var retention = await BuildRetentionAsync(allUsers, todayStartUtc, weekStartUtc);
         var health = await GetHealthSummaryAsync();
         var questionReports = BuildQuestionReports(50);
-        var problematic = await BuildProblematicQuestionsAsync();
+        var problematic = await GetProblematicQuestionsAsync();
 
         return new DashboardSnapshot
         {
@@ -287,14 +278,14 @@ public class DashboardDataService
             ActiveExams = activeExams,
             RecentActivity = recentActivity,
             LiveActivity = liveActivity,
-            Retention = retention,
             Health = health,
             QuestionReports = questionReports,
             ProblematicQuestions = problematic
         };
     }
 
-    private async Task<RetentionSummary> BuildRetentionAsync(List<User> allUsers, DateTime todayStartUtc, DateTime weekStartUtc)
+    private async Task<(int NewUsersToday, int NewUsersThisWeek, int Inactive7Days, int Inactive30Days)> BuildRetentionAsync(
+        List<User> allUsers, DateTime todayStartUtc, DateTime weekStartUtc)
     {
         var inactive7Cutoff = DateTime.UtcNow.AddDays(-7);
         var inactive30Cutoff = DateTime.UtcNow.AddDays(-30);
@@ -319,13 +310,7 @@ public class DashboardDataService
             newWeek = await _activityEvents.CountEventsSinceAsync(ActivityEventCatalog.Register, weekStartUtc);
         }
 
-        return new RetentionSummary
-        {
-            NewUsersToday = newToday,
-            NewUsersThisWeek = newWeek,
-            Inactive7Days = inactive7,
-            Inactive30Days = inactive30
-        };
+        return (newToday, newWeek, inactive7, inactive30);
     }
 
     private async Task<SystemHealthSummary> GetHealthSummaryAsync()
@@ -401,10 +386,7 @@ public class DashboardDataService
         }).ToList();
     }
 
-    public async Task<List<ProblematicQuestionRow>> GetProblematicQuestionsAsync() =>
-        await BuildProblematicQuestionsAsync();
-
-    private async Task<List<ProblematicQuestionRow>> BuildProblematicQuestionsAsync()
+    public async Task<List<ProblematicQuestionRow>> GetProblematicQuestionsAsync()
     {
         if (_difficulty == null) return new List<ProblematicQuestionRow>();
 
@@ -550,7 +532,9 @@ public class DashboardDataService
         var user = await _auth.GetUserAsync(username);
         if (user == null) return null;
 
-        var progress = _progressService?.Load(username);
+        var progress = _progressService != null
+            ? await _progressService.LoadAsync(username)
+            : null;
 
         var recentQuestions = new List<UserQuestionActivity>();
         if (_questionStatsStore?.IsEnabled == true)
@@ -675,13 +659,6 @@ public class DashboardDataService
             activeExams = snapshot.ActiveExams.Select(ToApiExam).ToList(),
             recentActivity = snapshot.RecentActivity.Select(ToApiActivity).ToList(),
             liveActivity = snapshot.LiveActivity.Select(ToApiActivity).ToList(),
-            retention = new
-            {
-                newUsersToday = snapshot.Retention.NewUsersToday,
-                newUsersThisWeek = snapshot.Retention.NewUsersThisWeek,
-                inactive7Days = snapshot.Retention.Inactive7Days,
-                inactive30Days = snapshot.Retention.Inactive30Days
-            },
             health = new
             {
                 allOk = snapshot.Health.AllOk,

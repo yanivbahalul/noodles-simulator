@@ -43,9 +43,9 @@ public class AchievementsModel : PageModel
 
         var user = await _auth.GetUserAsync(Username);
         if (user != null)
-            _achievements.CheckAllAchievements(Username, user);
+            await _achievements.CheckAllAchievementsAsync(Username, user);
 
-        var data = _progress.Load(Username);
+        var data = await _progress.LoadAsync(Username);
         DailyStreakDays = data.DailyStreakDays;
         DailyChallengesCompleted = data.DailyChallengesCompleted;
         DailyPerfectCount = data.DailyPerfectCount;

@@ -27,7 +27,6 @@
         updateLeaderboardTable(data.users, data.tab || activeTab);
         updateLeaderboardHint(data.hint);
         updateLeaderboardEmptyState(data.users.length);
-        window.__lastUpdateAt = Date.now();
     }
 
     async function fetchLeaderboardData() {

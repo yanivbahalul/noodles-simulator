@@ -132,11 +132,6 @@ builder.Services.AddRateLimiter(options =>
 });
 }
 
-var statsPath = isProd 
-    ? Path.Combine("/data-keys", "question_stats.json")
-    : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_stats.json");
-builder.Services.AddSingleton(new QuestionStatsService(statsPath));
-
 var questionReportsPath = isProd
     ? Path.Combine("/data-keys", "question_reports.json")
     : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "reports", "question_reports.json");
@@ -160,17 +155,46 @@ builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
 builder.Services.AddSingleton<UserFeedbackService>();
 builder.Services.AddSingleton<DashboardDataService>();
-builder.Services.AddSingleton<AdminUserSupportService>();
-builder.Services.AddSingleton<UserDeletionService>(sp =>
-    new UserDeletionService(
+builder.Services.AddSingleton<QuestionGroupLoader>(sp =>
+    new QuestionGroupLoader(sp.GetService<SupabaseStorageService>()));
+builder.Services.AddSingleton<PracticeQuestionPickerService>(sp =>
+    new PracticeQuestionPickerService(
+        sp.GetService<QuestionGroupLoader>(),
+        sp.GetService<QuestionDifficultyService>(),
+        sp.GetService<UserProgressService>()));
+builder.Services.AddSingleton<PracticeQuizService>(sp =>
+    new PracticeQuizService(
+        sp.GetRequiredService<PracticeQuestionPickerService>(),
+        sp.GetService<SupabaseStorageService>()));
+builder.Services.AddSingleton<PracticeAnswerService>(sp =>
+    new PracticeAnswerService(
         sp.GetRequiredService<AuthService>(),
-        sp.GetService<TestSessionService>(),
         sp.GetService<UserProgressService>(),
-        sp.GetService<UserStatsService>()));
-builder.Services.AddSingleton<DataRetentionService>(sp =>
-    new DataRetentionService(
+        sp.GetService<AchievementService>(),
         sp.GetService<ActivityEventService>(),
-        sp.GetService<TestSessionService>()));
+        sp.GetService<QuestionDifficultyService>(),
+        sp.GetRequiredService<PracticeQuizService>()));
+builder.Services.AddSingleton<PracticeIndexPageService>(sp =>
+    new PracticeIndexPageService(
+        sp.GetRequiredService<AuthService>(),
+        sp.GetService<UserProgressService>(),
+        sp.GetService<UserFeedbackService>(),
+        sp.GetService<ActivityEventService>(),
+        sp.GetRequiredService<PracticeQuizService>()));
+builder.Services.AddSingleton<TestExamService>(sp =>
+    new TestExamService(
+        sp.GetService<SupabaseStorageService>(),
+        sp.GetService<TestSessionService>(),
+        sp.GetService<QuestionDifficultyService>(),
+        sp.GetService<ActivityEventService>(),
+        sp.GetService<QuestionGroupLoader>()));
+builder.Services.AddSingleton<AdminUserService>(sp =>
+    new AdminUserService(
+        sp.GetRequiredService<AuthService>(),
+        sp.GetService<UserProgressService>(),
+        sp.GetService<TestSessionService>(),
+        sp.GetService<ActivityEventService>(),
+        sp.GetService<UserStatsService>()));
 builder.Services.AddHostedService<DataRetentionHostedService>();
 builder.Services.AddSingleton<SystemHealthService>();
 builder.Services.AddSingleton<SystemVerificationService>();
@@ -283,18 +307,18 @@ static void InvalidateDashboardCaches(IServiceProvider services)
     services.GetService<UserStatsService>()?.InvalidateCache();
 }
 
-static void RestoreUserStatsFromProgress(HttpContext context, User user)
+static async Task RestoreUserStatsFromProgressAsync(HttpContext context, User user)
 {
     var progress = context.RequestServices.GetService<UserProgressService>();
     if (progress == null) return;
 
-    var (total, correct) = progress.GetAnswerTotals(user.Username);
+    var (total, correct) = await progress.GetAnswerTotalsAsync(user.Username);
     if (total > user.TotalAnswered)
         user.TotalAnswered = total;
     if (correct > user.CorrectAnswers)
         user.CorrectAnswers = correct;
 
-    var data = progress.Load(user.Username);
+    var data = await progress.LoadAsync(user.Username);
     if (data.Xp > user.Xp)
         user.Xp = data.Xp;
     if (user.Xp > 0)
@@ -452,8 +476,8 @@ app.MapGet("/debug-random", async context =>
 
     try
     {
-        var (tracked, throttled) = NoodlesSimulator.Pages.IndexModel.GetThrottleSnapshot();
-        var hist = NoodlesSimulator.Pages.IndexModel.GetGroupShownHistogramSnapshot();
+        var (tracked, throttled) = PracticeQuestionPickerService.GetThrottleSnapshot();
+        var hist = PracticeQuestionPickerService.GetGroupShownHistogramSnapshot();
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("Randomizer Debug");
@@ -628,14 +652,17 @@ api.MapPost("/dashboard-user-action", async context =>
             user.IsCheater = cheaterEl.GetBoolean();
             if (wasCheater != user.IsCheater)
             {
-                ActivityEventCatalog.LogAdminAction(
-                    activity,
-                    adminUsername,
+                activity?.Log(
                     user.Username,
-                    user.IsCheater ? "cheater_mark" : "cheater_unmark");
+                    ActivityEventCatalog.AdminAction,
+                    new Dictionary<string, object>
+                    {
+                        ["action"] = user.IsCheater ? "cheater_mark" : "cheater_unmark",
+                        ["admin"] = adminUsername ?? "Admin"
+                    });
             }
             if (wasCheater && !user.IsCheater)
-                RestoreUserStatsFromProgress(context, user);
+                await RestoreUserStatsFromProgressAsync(context, user);
         }
 
         if (root.TryGetProperty("isBanned", out var bannedEl) &&
@@ -646,11 +673,14 @@ api.MapPost("/dashboard-user-action", async context =>
             user.IsBanned = bannedEl.GetBoolean();
             if (wasBanned != user.IsBanned)
             {
-                ActivityEventCatalog.LogAdminAction(
-                    activity,
-                    adminUsername,
+                activity?.Log(
                     user.Username,
-                    user.IsBanned ? "ban" : "unban");
+                    ActivityEventCatalog.AdminAction,
+                    new Dictionary<string, object>
+                    {
+                        ["action"] = user.IsBanned ? "ban" : "unban",
+                        ["admin"] = adminUsername ?? "Admin"
+                    });
             }
         }
 
@@ -676,10 +706,10 @@ api.MapPost("/dashboard-user-delete", async context =>
 
     try
     {
-        var deletion = context.RequestServices.GetService<UserDeletionService>();
-        if (deletion == null)
+        var admin = context.RequestServices.GetService<AdminUserService>();
+        if (admin == null)
         {
-            await WritePlainError(context, 503, "User deletion service not available");
+            await WritePlainError(context, 503, "Admin service not available");
             return;
         }
 
@@ -692,7 +722,7 @@ api.MapPost("/dashboard-user-delete", async context =>
             return;
         }
 
-        var (success, error) = await deletion.DeleteUserCompletelyAsync(username);
+        var (success, error) = await admin.DeleteUserCompletelyAsync(username);
         if (!success)
         {
             var status = string.Equals(error, "User not found", StringComparison.Ordinal) ? 404 : 400;
@@ -768,10 +798,10 @@ api.MapPost("/dashboard-user-reset", async context =>
 
     try
     {
-        var support = context.RequestServices.GetService<AdminUserSupportService>();
-        if (support == null)
+        var admin = context.RequestServices.GetService<AdminUserService>();
+        if (admin == null)
         {
-            await WritePlainError(context, 503, "Support service not available");
+            await WritePlainError(context, 503, "Admin service not available");
             return;
         }
 
@@ -783,7 +813,7 @@ api.MapPost("/dashboard-user-reset", async context =>
             return;
         }
 
-        var (success, error) = await support.ResetUserProgressAsync(username);
+        var (success, error) = await admin.ResetUserProgressAsync(username);
         if (!success)
         {
             var status = string.Equals(error, "User not found", StringComparison.Ordinal) ? 404 : 400;
@@ -810,10 +840,10 @@ api.MapPost("/dashboard-exam-expire", async context =>
 
     try
     {
-        var support = context.RequestServices.GetService<AdminUserSupportService>();
-        if (support == null)
+        var admin = context.RequestServices.GetService<AdminUserService>();
+        if (admin == null)
         {
-            await WritePlainError(context, 503, "Support service not available");
+            await WritePlainError(context, 503, "Admin service not available");
             return;
         }
 
@@ -825,7 +855,7 @@ api.MapPost("/dashboard-exam-expire", async context =>
             return;
         }
 
-        var (success, error) = await support.ExpireExamAsync(token);
+        var (success, error) = await admin.ExpireExamAsync(token);
         if (!success)
         {
             var status = string.Equals(error, "Exam not found", StringComparison.Ordinal) ? 404 : 400;
@@ -925,16 +955,22 @@ api.MapPost("/notices/dismiss", async context =>
 
         var activity = context.RequestServices.GetService<ActivityEventService>();
         if (AppNotices.IsValid(noticeId))
-            PromptActivityEvents.LogAppNoticeDismiss(activity, username, noticeId);
+            activity?.Log(username, ActivityEventCatalog.AppNoticeDismiss, new Dictionary<string, object>
+            {
+                ["noticeId"] = noticeId ?? ""
+            });
         else if (string.Equals(noticeId, GitHubStarPrompt.OptedInNoticeId, StringComparison.Ordinal))
-            PromptActivityEvents.LogGitHubStarAccept(activity, username);
+            activity?.Log(username, ActivityEventCatalog.GitHubStarAccept);
         else if (GitHubStarPrompt.IsGitHubStarNotice(noticeId))
         {
             var suffix = noticeId!.Length > "github-star-".Length
                 ? noticeId["github-star-".Length..]
                 : "";
             if (int.TryParse(suffix, out var milestone))
-                PromptActivityEvents.LogGitHubStarLater(activity, username, milestone);
+                activity?.Log(username, ActivityEventCatalog.GitHubStarLater, new Dictionary<string, object>
+                {
+                    ["milestone"] = milestone
+                });
         }
 
         await WriteJson(context, new { ok = true });
@@ -966,7 +1002,10 @@ api.MapPost("/feedback/submit", async context =>
         var campaignId = campaignIdEl.GetString();
         var isAdmin = IsAdminSession(context);
         var progress = context.RequestServices.GetService<UserProgressService>();
-        var achievementCount = progress?.Load(context.Session.GetString("Username")!)?.Achievements?.Count ?? 0;
+        var username = context.Session.GetString("Username")!;
+        var achievementCount = progress != null
+            ? (await progress.LoadAsync(username))?.Achievements?.Count ?? 0
+            : 0;
         var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
         if (string.IsNullOrWhiteSpace(campaignId) ||
             string.IsNullOrWhiteSpace(expectedCampaignId) ||
@@ -993,8 +1032,6 @@ api.MapPost("/feedback/submit", async context =>
             return;
         }
 
-        var username = context.Session.GetString("Username")!;
-
         var (success, alreadyResponded) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
         if (alreadyResponded)
         {
@@ -1009,7 +1046,11 @@ api.MapPost("/feedback/submit", async context =>
         }
 
         var activity = context.RequestServices.GetService<ActivityEventService>();
-        PromptActivityEvents.LogFeedbackSubmit(activity, username, rating, campaignId!);
+        activity?.Log(username, ActivityEventCatalog.FeedbackSubmit, new Dictionary<string, object>
+        {
+            ["rating"] = rating,
+            ["campaignId"] = campaignId!
+        });
 
         await WriteJson(context, new { ok = true });
     }
@@ -1039,7 +1080,10 @@ api.MapPost("/feedback/later", async context =>
         var campaignId = campaignIdEl.GetString();
         var isAdmin = IsAdminSession(context);
         var progress = context.RequestServices.GetService<UserProgressService>();
-        var achievementCount = progress?.Load(context.Session.GetString("Username")!)?.Achievements?.Count ?? 0;
+        var username = context.Session.GetString("Username")!;
+        var achievementCount = progress != null
+            ? (await progress.LoadAsync(username))?.Achievements?.Count ?? 0
+            : 0;
         var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
         if (string.IsNullOrWhiteSpace(campaignId) ||
             string.IsNullOrWhiteSpace(expectedCampaignId) ||
@@ -1056,7 +1100,6 @@ api.MapPost("/feedback/later", async context =>
             return;
         }
 
-        var username = context.Session.GetString("Username")!;
         var (success, alreadyResponded) = await feedbackService.RecordLaterAsync(username, campaignId);
         if (alreadyResponded)
         {
@@ -1072,7 +1115,11 @@ api.MapPost("/feedback/later", async context =>
 
         var activity = context.RequestServices.GetService<ActivityEventService>();
         var milestone = FeedbackCampaigns.ParseMilestoneFromCampaignId(campaignId);
-        PromptActivityEvents.LogFeedbackLater(activity, username, campaignId!, milestone);
+        activity?.Log(username, ActivityEventCatalog.FeedbackLater, new Dictionary<string, object>
+        {
+            ["campaignId"] = campaignId!,
+            ["milestone"] = milestone
+        });
 
         await WriteJson(context, new { ok = true });
     }
@@ -1119,7 +1166,11 @@ api.MapPost("/activity/prompt-shown", async context =>
                                 mEl.TryGetInt32(out var m)
                     ? m
                     : FeedbackCampaigns.ParseMilestoneFromCampaignId(campaignId);
-                PromptActivityEvents.LogFeedbackPrompt(activity, username, milestone, campaignId);
+                activity.Log(username, ActivityEventCatalog.FeedbackPrompt, new Dictionary<string, object>
+                {
+                    ["milestone"] = milestone,
+                    ["campaignId"] = campaignId
+                });
                 break;
             }
             case "github_star":
@@ -1128,7 +1179,10 @@ api.MapPost("/activity/prompt-shown", async context =>
                                 mEl.TryGetInt32(out var m)
                     ? m
                     : 0;
-                PromptActivityEvents.LogGitHubStarPrompt(activity, username, milestone);
+                activity.Log(username, ActivityEventCatalog.GitHubStarPrompt, new Dictionary<string, object>
+                {
+                    ["milestone"] = milestone
+                });
                 break;
             }
             case "app_notice":
@@ -1146,7 +1200,10 @@ api.MapPost("/activity/prompt-shown", async context =>
                     return;
                 }
 
-                PromptActivityEvents.LogAppNoticePrompt(activity, username, noticeId!);
+                activity.Log(username, ActivityEventCatalog.AppNoticePrompt, new Dictionary<string, object>
+                {
+                    ["noticeId"] = noticeId!
+                });
                 break;
             }
             default:
@@ -1245,7 +1302,7 @@ api.MapGet("/stats-data", async context =>
 
         if (progressService != null)
         {
-            var snap = progressService.GetQuizStatsSnapshot(username);
+            var snap = await progressService.GetQuizStatsSnapshotAsync(username);
             var successRate = snap.TotalAnswered > 0
                 ? (int)Math.Round((double)snap.CorrectAnswers / snap.TotalAnswered * 100)
                 : 0;
@@ -1301,13 +1358,13 @@ api.MapGet("/stats-data", async context =>
     }
 });
 
-api.MapGet("/question-difficulty", (HttpContext context) =>
+api.MapGet("/question-difficulty", async (HttpContext context) =>
 {
     try
     {
-        var svc = context.RequestServices.GetService<QuestionStatsService>();
-        if (svc == null) return Results.Problem("Stats service unavailable", statusCode: 503);
-        var items = svc.GetAll();
+        var svc = context.RequestServices.GetService<QuestionDifficultyService>();
+        if (svc == null) return Results.Problem("Difficulty service unavailable", statusCode: 503);
+        var items = await svc.GetAllQuestionsAsync();
         return Results.Json(new { items });
     }
     catch (Exception ex)

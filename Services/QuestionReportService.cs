@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -71,6 +72,52 @@ public class QuestionReportService
         }
 
         return entry;
+    }
+
+    public async Task SubmitAsync(
+        ErrorReportBuilder.ReportPayload payload,
+        string baseUrl,
+        EmailService? emailService = null,
+        ActivityEventService? activityEvents = null)
+    {
+        if (payload == null) return;
+
+        var htmlBody = ErrorReportBuilder.BuildHtmlBody(payload, baseUrl);
+        var reportSubject = ErrorReportBuilder.BuildSubject(payload.Username);
+        await TrySendEmailAsync(emailService, reportSubject, htmlBody);
+
+        Add(payload);
+
+        activityEvents?.Log(payload.Username, ActivityEventCatalog.QuestionReport, new Dictionary<string, object>
+        {
+            ["questionId"] = payload.QuestionImage ?? "",
+            ["explanation"] = payload.Explanation ?? ""
+        });
+    }
+
+    private static Task TrySendEmailAsync(EmailService? emailService, string subject, string htmlBody)
+    {
+        try
+        {
+            if (emailService == null || !emailService.IsConfigured)
+            {
+                Console.WriteLine("[Report] Email service not configured, skipping email notification");
+                return Task.CompletedTask;
+            }
+
+            Console.WriteLine("[Report] Sending error report email...");
+            var result = emailService.Send(subject, htmlBody);
+            if (result)
+                Console.WriteLine("[Report] Error report email sent successfully");
+            else
+                Console.WriteLine("[Report] Failed to send error report email");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ReportEmail Dispatch Error] {ex}");
+        }
+
+        return Task.CompletedTask;
     }
 
     public List<QuestionReportEntry> GetAll(int limit = 200)

@@ -18,20 +18,16 @@ public class UserFeedbackService
 
     public UserFeedbackService(IConfiguration config)
     {
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-        var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                     ?? SupabaseConfiguration.AnonApiKey(config);
-
-        _enabled = !string.IsNullOrWhiteSpace(_url) && !string.IsNullOrWhiteSpace(apiKey);
+        var rest = SupabaseRestClient.Create(config);
+        _url = rest.Url;
+        _enabled = rest.Enabled;
         if (!_enabled)
         {
             Console.WriteLine("[UserFeedbackService] Disabled — missing Supabase URL or API key");
             return;
         }
 
-        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        _client.DefaultRequestHeaders.Add("apikey", apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        _client = rest.Client!;
     }
 
     public bool IsEnabled => _enabled;
@@ -230,35 +226,6 @@ public class UserFeedbackService
         catch (Exception ex)
         {
             Console.WriteLine($"[UserFeedbackService] GetSubmittedFeedback exception: {ex.Message}");
-            return new List<UserFeedbackEntry>();
-        }
-    }
-
-    public async Task<List<UserFeedbackEntry>> GetAllMilestoneEntriesAsync(int limit = 500)
-    {
-        if (!_enabled)
-            return new List<UserFeedbackEntry>();
-
-        try
-        {
-            var milestoneLike = Uri.EscapeDataString($"{FeedbackCampaigns.MilestoneCampaignPrefix}*");
-            var legacyCampaign = Uri.EscapeDataString(FeedbackCampaigns.LegacyCampaignId);
-            var res = await _client.GetAsync(
-                $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at" +
-                $"&or=(campaign_id.like.{milestoneLike},campaign_id.eq.{legacyCampaign})" +
-                $"&order=created_at.desc&limit={limit}");
-            if (!res.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"[UserFeedbackService] GetAllMilestoneEntries failed: {res.StatusCode}");
-                return new List<UserFeedbackEntry>();
-            }
-
-            var json = await res.Content.ReadAsStringAsync();
-            return ParseEntries(json);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[UserFeedbackService] GetAllMilestoneEntries exception: {ex.Message}");
             return new List<UserFeedbackEntry>();
         }
     }

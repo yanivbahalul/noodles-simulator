@@ -28,9 +28,5 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const data = document.getElementById("test-review-data");
-        const imageUrl = data?.dataset.questionImageUrl || "";
-        bindImageModal(imageUrl);
-    });
+    window.ImageModal = { openImageModal, closeImageModal, bindImageModal };
 })();

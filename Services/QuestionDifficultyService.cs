@@ -16,29 +16,12 @@ public class QuestionDifficultyService
 {
         private readonly HttpClient _client;
         private readonly string _url;
-        private readonly string _apiKey;
-        
-        // Cache for performance
-        private Dictionary<string, string>? _difficultyCache;
-        private DateTime _cacheExpiry = DateTime.MinValue;
-        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(10);
 
         public QuestionDifficultyService(IConfiguration config)
         {
-            _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-            _apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                      ?? SupabaseConfiguration.AnonApiKey(config)
-                      ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_apiKey))
-                throw new InvalidOperationException("Missing Supabase ENV vars for QuestionDifficultyService.");
-
-            _client = new HttpClient
-            {
-                Timeout = TimeSpan.FromSeconds(10)
-            };
-            _client.DefaultRequestHeaders.Add("apikey", _apiKey);
-            _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+            var rest = SupabaseRestClient.Create(config, required: true);
+            _url = rest.Url;
+            _client = rest.Client!;
         }
 
         public async Task<List<string>> GetQuestionsByDifficultyAsync(string difficulty)
@@ -56,10 +39,7 @@ public class QuestionDifficultyService
                 }
 
                 var json = await res.Content.ReadAsStringAsync();
-                var items = JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var items = JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, AppJson.Options);
                 
                 return items?.Select(q => q.QuestionFile).ToList() ?? new List<string>();
             }
@@ -67,47 +47,6 @@ public class QuestionDifficultyService
             {
                 Console.WriteLine($"[QuestionDifficultyService] Exception: {ex.Message}");
                 return new List<string>();
-            }
-        }
-
-        public async Task<Dictionary<string, string>> GetAllDifficultiesMapAsync()
-        {
-            // Check cache first
-            if (_difficultyCache != null && DateTime.UtcNow < _cacheExpiry)
-            {
-                Console.WriteLine($"[QuestionDifficultyService] Using cached difficulties ({_difficultyCache.Count} entries)");
-                return _difficultyCache;
-            }
-
-            try
-            {
-                var res = await _client.GetAsync(
-                    $"{_url}/rest/v1/question_difficulties?select=QuestionFile,Difficulty"
-                );
-                
-                if (!res.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"[QuestionDifficultyService] Error getting all difficulties: {res.StatusCode}");
-                    return new Dictionary<string, string>();
-                }
-
-                var json = await res.Content.ReadAsStringAsync();
-                var items = JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                
-                _difficultyCache = items?.ToDictionary(q => q.QuestionFile, q => q.Difficulty) 
-                                   ?? new Dictionary<string, string>();
-                _cacheExpiry = DateTime.UtcNow.Add(_cacheDuration);
-                
-                Console.WriteLine($"[QuestionDifficultyService] Loaded {_difficultyCache.Count} difficulties into cache");
-                return _difficultyCache;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[QuestionDifficultyService] Exception: {ex.Message}");
-                return new Dictionary<string, string>();
             }
         }
 
@@ -164,10 +103,7 @@ public class QuestionDifficultyService
                     return null;
 
                 var json = await res.Content.ReadAsStringAsync();
-                var items = JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                var items = JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, AppJson.Options);
                 
                 return items?.FirstOrDefault();
             }
@@ -230,54 +166,11 @@ public class QuestionDifficultyService
                 request.Headers.Add("Prefer", "return=minimal");
 
                 var response = await _client.SendAsync(request);
-                
-                // Invalidate cache when data changes
-                if (response.IsSuccessStatusCode)
-                {
-                    _difficultyCache = null;
-                }
-                
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[QuestionDifficultyService] Error updating: {ex.Message}");
-                return false;
-            }
-        }
-
-        public async Task<bool> SetManualDifficultyAsync(string questionFile, string difficulty)
-        {
-            try
-            {
-                var patch = new
-                {
-                    Difficulty = difficulty,
-                    ManualOverride = true,
-                    LastUpdated = DateTime.UtcNow.ToString("o")
-                };
-
-                var content = new StringContent(JsonSerializer.Serialize(patch), Encoding.UTF8, "application/json");
-                var request = new HttpRequestMessage(new HttpMethod("PATCH"), 
-                    $"{_url}/rest/v1/question_difficulties?QuestionFile=eq.{Uri.EscapeDataString(questionFile)}")
-                {
-                    Content = content
-                };
-                request.Headers.Add("Prefer", "return=minimal");
-
-                var response = await _client.SendAsync(request);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    _difficultyCache = null; // Invalidate cache
-                    Console.WriteLine($"[QuestionDifficultyService] Manually set '{questionFile}' to '{difficulty}'");
-                }
-                
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[QuestionDifficultyService] Error setting manual difficulty: {ex.Message}");
                 return false;
             }
         }
@@ -294,7 +187,6 @@ public class QuestionDifficultyService
                 
                 if (res.IsSuccessStatusCode)
                 {
-                    _difficultyCache = null; // Invalidate cache
                     var result = await res.Content.ReadAsStringAsync();
                     return int.TryParse(result, out var count) ? count : 0;
                 }
@@ -323,22 +215,14 @@ public class QuestionDifficultyService
                 }
 
                 var json = await res.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                }) ?? new List<QuestionDifficulty>();
+                return JsonSerializer.Deserialize<List<QuestionDifficulty>>(json, AppJson.Options)
+                    ?? new List<QuestionDifficulty>();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[QuestionDifficultyService] Exception: {ex.Message}");
                 return new List<QuestionDifficulty>();
             }
-        }
-
-        public void ClearCache()
-        {
-            _difficultyCache = null;
-            Console.WriteLine("[QuestionDifficultyService] Cache cleared");
         }
     }
 

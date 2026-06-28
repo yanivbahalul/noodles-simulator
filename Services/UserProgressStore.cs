@@ -24,20 +24,16 @@ public class UserProgressStore
     public UserProgressStore(IConfiguration config, UserStatsService stats = null)
     {
         _stats = stats;
-        _url = SupabaseConfiguration.Url(config) ?? string.Empty;
-        var apiKey = SupabaseConfiguration.ServiceRoleApiKey(config)
-                     ?? SupabaseConfiguration.AnonApiKey(config);
-
-        _enabled = !string.IsNullOrWhiteSpace(_url) && !string.IsNullOrWhiteSpace(apiKey);
+        var rest = SupabaseRestClient.Create(config, timeoutSeconds: 15);
+        _url = rest.Url;
+        _enabled = rest.Enabled;
         if (!_enabled)
         {
             Console.WriteLine("[UserProgressStore] Disabled — missing Supabase URL or service key");
             return;
         }
 
-        _client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        _client.DefaultRequestHeaders.Add("apikey", apiKey);
-        _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        _client = rest.Client!;
         Console.WriteLine("[UserProgressStore] Enabled — progress persists to Supabase");
     }
 
@@ -47,13 +43,6 @@ public class UserProgressStore
     {
         public string Username { get; set; } = "";
         public DateTime UpdatedAt { get; set; }
-    }
-
-    public class AchievementUnlockRow
-    {
-        public string Username { get; set; } = "";
-        public string AchievementKey { get; set; } = "";
-        public DateTime UnlockedAt { get; set; }
     }
 
     public async Task<List<ProgressUpdateRow>> FetchRecentProgressUpdatesAsync(int limit = 25)
@@ -127,45 +116,6 @@ public class UserProgressStore
         {
             Console.WriteLine($"[UserProgressStore] GetAchievementCountLeaderboard failed: {ex.Message}");
             return new List<(string, int)>();
-        }
-    }
-
-    public async Task<List<AchievementUnlockRow>> FetchRecentAchievementsAsync(int limit = 25)
-    {
-        if (!_enabled) return new List<AchievementUnlockRow>();
-
-        try
-        {
-            var res = await _client.GetAsync(
-                $"{_url}/rest/v1/user_achievements?select=username,achievement_key,unlocked_at&order=unlocked_at.desc&limit={limit}");
-            if (!res.IsSuccessStatusCode) return new List<AchievementUnlockRow>();
-
-            var json = await res.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            var rows = new List<AchievementUnlockRow>();
-            foreach (var row in doc.RootElement.EnumerateArray())
-            {
-                var username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() : null;
-                var key = row.TryGetProperty("achievement_key", out var keyEl) ? keyEl.GetString() : null;
-                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(key)) continue;
-                if (!row.TryGetProperty("unlocked_at", out var atEl) ||
-                    !DateTime.TryParse(atEl.GetString(), out var unlockedAt))
-                    continue;
-
-                rows.Add(new AchievementUnlockRow
-                {
-                    Username = username,
-                    AchievementKey = key,
-                    UnlockedAt = unlockedAt.ToUniversalTime()
-                });
-            }
-
-            return rows;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[UserProgressStore] FetchRecentAchievements failed: {ex.Message}");
-            return new List<AchievementUnlockRow>();
         }
     }
 

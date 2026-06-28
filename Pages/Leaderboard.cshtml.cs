@@ -20,15 +20,8 @@ public class LeaderboardModel : PageModel
     public string ActiveTab { get; set; } = "total";
     public string ScoreColumnTitle { get; set; } = "תשובות נכונות";
     public string TabHint { get; set; } = "";
-    public List<LeaderboardEntry> Entries { get; set; } = new();
+    public List<LeaderboardDataService.Row> Entries { get; set; } = new();
     public string CurrentUsername { get; set; } = "";
-
-    public class LeaderboardEntry
-    {
-        public string Username { get; set; } = "";
-        public string ScoreDisplay { get; set; } = "";
-        public bool IsOnline { get; set; }
-    }
 
     public async Task OnGetAsync(string tab = "total")
     {
@@ -40,17 +33,12 @@ public class LeaderboardModel : PageModel
         {
             var (rows, hint) = await _leaderboard.GetRowsAsync(ActiveTab);
             TabHint = hint;
-            Entries = rows.Select(r => new LeaderboardEntry
-            {
-                Username = r.Username,
-                ScoreDisplay = r.ScoreDisplay,
-                IsOnline = r.IsOnline
-            }).ToList();
+            Entries = rows.ToList();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Leaderboard OnGetAsync Error] {ex}");
-            Entries = new List<LeaderboardEntry>();
+            Entries = new List<LeaderboardDataService.Row>();
         }
 
         ScoreColumnTitle = ActiveTab switch

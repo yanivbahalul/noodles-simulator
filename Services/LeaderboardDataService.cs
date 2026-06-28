@@ -76,8 +76,6 @@ public class LeaderboardDataService
         return (rows, hint);
     }
 
-    private bool UserIsOnline(User u) => AuthService.UserIsOnline(u);
-
     private async Task<List<Row>> BuildTotalAsync()
     {
         var users = await _auth.GetTopUsersAsync(LeaderboardSize);
@@ -85,7 +83,7 @@ public class LeaderboardDataService
         {
             Username = u.Username,
             ScoreDisplay = u.CorrectAnswers.ToString(),
-            IsOnline = UserIsOnline(u)
+            IsOnline = AuthService.UserIsOnline(u)
         }).ToList();
     }
 
@@ -137,7 +135,7 @@ public class LeaderboardDataService
         {
             Username = u.Username,
             ScoreDisplay = FormatSuccessRate(u),
-            IsOnline = UserIsOnline(u)
+            IsOnline = AuthService.UserIsOnline(u)
         }).ToList();
     }
 
@@ -152,7 +150,7 @@ public class LeaderboardDataService
 
         if (_progress != null)
         {
-            foreach (var (username, weeklyCorrect) in _progress.GetWeeklyLeaderboard(LeaderboardSize))
+            foreach (var (username, weeklyCorrect) in await _progress.GetWeeklyLeaderboardAsync(LeaderboardSize))
             {
                 if (!scores.ContainsKey(username))
                     scores[username] = weeklyCorrect;
@@ -216,17 +214,6 @@ public class LeaderboardDataService
             }
         }
 
-        if (_progress != null)
-        {
-            foreach (var (username, achievementCount) in _progress.GetAchievementCountLeaderboard(LeaderboardSize))
-            {
-                if (!counts.ContainsKey(username))
-                    counts[username] = achievementCount;
-                else if (achievementCount > counts[username])
-                    counts[username] = achievementCount;
-            }
-        }
-
         return ToRows(TopScores(counts, pool), pool, kv => kv.Value.ToString());
     }
 
@@ -237,7 +224,7 @@ public class LeaderboardDataService
             Username = kv.Key,
             ScoreDisplay = format(kv),
             IsOnline = onlineLookup.Any(u =>
-                string.Equals(u.Username, kv.Key, StringComparison.OrdinalIgnoreCase) && UserIsOnline(u))
+                string.Equals(u.Username, kv.Key, StringComparison.OrdinalIgnoreCase) && AuthService.UserIsOnline(u))
         }).ToList();
     }
 
@@ -251,17 +238,7 @@ public class LeaderboardDataService
 
         if (_progress != null)
         {
-            foreach (var (username, xp) in _progress.GetXpByUsername())
-            {
-                if (string.IsNullOrWhiteSpace(username) || xp <= 0) continue;
-                if (!xpMap.TryGetValue(username, out var current) || xp > current)
-                    xpMap[username] = xp;
-            }
-        }
-
-        if (_progressStore?.IsEnabled == true)
-        {
-            foreach (var (username, xp) in _progressStore.GetAllXpCached())
+            foreach (var (username, xp) in await _progress.GetXpByUsernameAsync())
             {
                 if (string.IsNullOrWhiteSpace(username) || xp <= 0) continue;
                 if (!xpMap.TryGetValue(username, out var current) || xp > current)
@@ -285,7 +262,7 @@ public class LeaderboardDataService
                 Username = x.Key,
                 ScoreDisplay = x.Level.ToString(),
                 IsOnline = pool.Any(u =>
-                    string.Equals(u.Username, x.Key, StringComparison.OrdinalIgnoreCase) && UserIsOnline(u))
+                    string.Equals(u.Username, x.Key, StringComparison.OrdinalIgnoreCase) && AuthService.UserIsOnline(u))
             })
             .ToList();
     }

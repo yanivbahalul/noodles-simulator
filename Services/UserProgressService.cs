@@ -127,7 +127,7 @@ public class UserProgressService
     private static string Sanitize(string username) =>
         string.Join("_", username.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
 
-    public UserProgressData Load(string username)
+    public async Task<UserProgressData> LoadAsync(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
@@ -140,101 +140,109 @@ public class UserProgressService
             return cached;
         }
 
-        lock (_lock)
-        {
-            if (cache.TryGetValue(username, out cached))
-            {
-                EnsureWeek(cached);
-                EnsureDay(cached);
-                return cached;
-            }
-
-            var data = LoadFromStorage(username);
-            EnsureWeek(data);
-            EnsureDay(data);
-            cache[username] = data;
-            return data;
-        }
+        var data = await LoadFromStorageAsync(username);
+        EnsureWeek(data);
+        EnsureDay(data);
+        cache[username] = data;
+        return data;
     }
 
-    private UserProgressData LoadFromStorage(string username)
+    private async Task<UserProgressData> LoadFromStorageAsync(string username)
     {
         ProgressDataDocument doc = null;
+        var storeEnabled = _store?.IsEnabled == true;
+        string? localJson = null;
 
-        var path = PathFor(username);
-        if (File.Exists(path))
-        {
-            try
-            {
-                var json = File.ReadAllText(path, Encoding.UTF8);
-                doc = TryDeserializeDocument(json);
-            }
-            catch { /* fall through */ }
-        }
-
-        if (doc == null && _store?.IsEnabled == true)
+        if (storeEnabled)
         {
             var (fromDb, _) = _store.TryLoadDocumentWithMeta(username);
             doc = fromDb;
         }
+        else
+        {
+            localJson = TryReadLocalProgressJson(username);
+            if (localJson != null)
+                doc = TryDeserializeDocument(localJson);
+        }
 
-        var data = doc != null ? FromDocument(doc) : new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
+        var data = doc != null
+            ? FromDocument(doc)
+            : new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
 
         if (_stats?.IsEnabled == true)
         {
-            var statsRow = _stats.GetAsync(username).GetAwaiter().GetResult();
+            var statsRow = await _stats.GetAsync(username);
             if (statsRow != null)
                 UserStatsService.ApplyToProgress(statsRow, data);
         }
 
         if (_questionStats?.IsEnabled == true)
         {
-            var qStats = _questionStats.LoadForUserAsync(username).GetAwaiter().GetResult();
+            var qStats = await _questionStats.LoadForUserAsync(username);
             if (qStats.Count > 0)
                 data.QuestionStats = qStats;
         }
-        else if (doc == null && File.Exists(path))
+        else if (!storeEnabled && doc == null && localJson != null)
         {
-            try
-            {
-                var legacyJson = File.ReadAllText(path, Encoding.UTF8);
-                var legacy = JsonSerializer.Deserialize<UserProgressData>(legacyJson, AppJson.Options);
-                if (legacy?.QuestionStats?.Count > 0)
-                    data.QuestionStats = legacy.QuestionStats;
-            }
-            catch { /* ignore */ }
+            TryMergeLegacyQuestionStats(localJson, data);
         }
 
-        if (_store?.IsEnabled == true)
-        {
-            var keys = _store.TryLoadAchievementKeys(username);
-            data.Achievements = keys ?? new List<string>();
-        }
-        else if (File.Exists(path))
-        {
-            try
-            {
-                var legacyJson = File.ReadAllText(path, Encoding.UTF8);
-                using var legacyDoc = JsonDocument.Parse(legacyJson);
-                if (legacyDoc.RootElement.TryGetProperty("Achievements", out var achEl) &&
-                    achEl.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var item in achEl.EnumerateArray())
-                    {
-                        var key = item.GetString();
-                        if (!string.IsNullOrWhiteSpace(key) &&
-                            !data.Achievements.Contains(key, StringComparer.OrdinalIgnoreCase))
-                            data.Achievements.Add(key);
-                    }
-                }
-            }
-            catch { /* ignore */ }
-        }
+        if (storeEnabled)
+            data.Achievements = _store.TryLoadAchievementKeys(username) ?? new List<string>();
+        else if (localJson != null)
+            TryMergeLegacyAchievements(localJson, data);
 
-        if (doc == null && !File.Exists(path))
+        if (!storeEnabled && doc == null && localJson == null)
             WriteFile(username, data);
 
         return data;
+    }
+
+    private string? TryReadLocalProgressJson(string username)
+    {
+        var path = PathFor(username);
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            return File.ReadAllText(path, Encoding.UTF8);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void TryMergeLegacyQuestionStats(string json, UserProgressData data)
+    {
+        try
+        {
+            var legacy = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+            if (legacy?.QuestionStats?.Count > 0)
+                data.QuestionStats = legacy.QuestionStats;
+        }
+        catch { /* ignore */ }
+    }
+
+    private static void TryMergeLegacyAchievements(string json, UserProgressData data)
+    {
+        try
+        {
+            using var legacyDoc = JsonDocument.Parse(json);
+            if (!legacyDoc.RootElement.TryGetProperty("Achievements", out var achEl) ||
+                achEl.ValueKind != JsonValueKind.Array)
+                return;
+
+            foreach (var item in achEl.EnumerateArray())
+            {
+                var key = item.GetString();
+                if (!string.IsNullOrWhiteSpace(key) &&
+                    !data.Achievements.Contains(key, StringComparer.OrdinalIgnoreCase))
+                    data.Achievements.Add(key);
+            }
+        }
+        catch { /* ignore */ }
     }
 
     private static ProgressDataDocument TryDeserializeDocument(string json)
@@ -316,9 +324,12 @@ public class UserProgressService
     {
         GetRequestCache()[username] = data;
 
-        lock (_lock)
+        if (_store?.IsEnabled != true)
         {
-            WriteFile(username, data);
+            lock (_lock)
+            {
+                WriteFile(username, data);
+            }
         }
 
         _ = Task.Run(async () =>
@@ -355,12 +366,18 @@ public class UserProgressService
             data.BestExamCorrect);
     }
 
-    public void RecordAnswer(string username, string questionId, bool isCorrect, int xpGained)
+    private async Task<UserProgressData> LoadForMutationAsync(string username)
     {
-        if (string.IsNullOrWhiteSpace(username)) return;
-        var data = Load(username);
+        var data = await LoadAsync(username);
         EnsureWeek(data);
         EnsureDay(data);
+        return data;
+    }
+
+    public async Task RecordAnswerAsync(string username, string questionId, bool isCorrect, int xpGained)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return;
+        var data = await LoadForMutationAsync(username);
 
         if (!string.IsNullOrWhiteSpace(questionId))
         {
@@ -391,7 +408,7 @@ public class UserProgressService
         Save(username, data);
     }
 
-    public void ResetAll(string username)
+    public async Task ResetAllAsync(string username)
     {
         if (string.IsNullOrWhiteSpace(username)) return;
 
@@ -403,9 +420,12 @@ public class UserProgressService
 
         GetRequestCache()[username] = fresh;
 
-        lock (_lock)
+        if (_store?.IsEnabled != true)
         {
-            WriteFile(username, fresh);
+            lock (_lock)
+            {
+                WriteFile(username, fresh);
+            }
         }
 
         try
@@ -413,9 +433,9 @@ public class UserProgressService
             _store?.SaveDocument(username, ToDocument(fresh));
             _store?.ClearAchievements(username);
             if (_questionStats?.IsEnabled == true)
-                _questionStats.ClearForUserAsync(username).GetAwaiter().GetResult();
+                await _questionStats.ClearForUserAsync(username);
             if (_stats?.IsEnabled == true)
-                _stats.UpsertAsync(UserStatsService.FromProgress(username, fresh)).GetAwaiter().GetResult();
+                await _stats.UpsertAsync(UserStatsService.FromProgress(username, fresh));
         }
         catch (Exception ex)
         {
@@ -425,9 +445,9 @@ public class UserProgressService
         QueueDbSync(username, fresh);
     }
 
-    public int RecordExamComplete(string username, int correctCount, int totalQuestions, int score)
+    public async Task<int> RecordExamCompleteAsync(string username, int correctCount, int totalQuestions, int score)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         var previousExamCorrect = data.LastExamCorrect;
         var hadPreviousExam = data.ExamsCompleted > 0;
         data.ExamsCompleted++;
@@ -450,9 +470,9 @@ public class UserProgressService
         return previousExamCorrect;
     }
 
-    public void RecordDailyChallengeAnswer(string username, bool isCorrect)
+    public async Task RecordDailyChallengeAnswerAsync(string username, bool isCorrect)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         var today = TodayKey();
         if (data.DailyChallengeDate != today)
         {
@@ -463,9 +483,9 @@ public class UserProgressService
         Save(username, data);
     }
 
-    public void RecordDailyChallengeComplete(string username, bool isPerfect)
+    public async Task RecordDailyChallengeCompleteAsync(string username, bool isPerfect)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         var today = TodayKey();
         var yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
         if (data.LastDailyCompleteDate == today)
@@ -485,31 +505,31 @@ public class UserProgressService
         Save(username, data);
     }
 
-    public void IncrementReviewClear(string username)
+    public async Task IncrementReviewClearAsync(string username)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         data.ReviewClearCount++;
         Save(username, data);
     }
 
-    public void IncrementWeakCorrect(string username)
+    public async Task IncrementWeakCorrectAsync(string username)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         data.WeakModeCorrectCount++;
         Save(username, data);
     }
 
-    public void IncrementHardCorrect(string username)
+    public async Task IncrementHardCorrectAsync(string username)
     {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         data.HardCorrectCount++;
         Save(username, data);
     }
 
-    public bool RemoveSessionMistake(string username, string questionId)
+    public async Task<bool> RemoveSessionMistakeAsync(string username, string questionId)
     {
         if (string.IsNullOrWhiteSpace(questionId)) return false;
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         var hadMistakes = data.SessionMistakes.Count > 0;
         data.SessionMistakes.RemoveAll(q => string.Equals(q, questionId, StringComparison.OrdinalIgnoreCase));
         var cleared = hadMistakes && data.SessionMistakes.Count == 0;
@@ -517,9 +537,11 @@ public class UserProgressService
         return cleared;
     }
 
-    public (double Accuracy, int DistinctQuestions) GetOverallAccuracyStats(string username)
+    public async Task<(double Accuracy, int DistinctQuestions)> GetOverallAccuracyStatsAsync(string username) =>
+        GetOverallAccuracyStatsFromData(await LoadAsync(username));
+
+    private static (double Accuracy, int DistinctQuestions) GetOverallAccuracyStatsFromData(UserProgressData data)
     {
-        var data = Load(username);
         var stats = data.QuestionStats.Values.Where(s => s.Attempts > 0).ToList();
         var distinct = stats.Count;
         if (distinct == 0) return (0, 0);
@@ -529,16 +551,9 @@ public class UserProgressService
         return (totalCorrect / (double)totalAttempts, distinct);
     }
 
-    public void ClearSessionMistakes(string username)
+    public async Task AddSessionMistakesAsync(string username, IEnumerable<string> questionIds)
     {
-        var data = Load(username);
-        data.SessionMistakes.Clear();
-        Save(username, data);
-    }
-
-    public void AddSessionMistakes(string username, IEnumerable<string> questionIds)
-    {
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         foreach (var q in questionIds)
         {
             if (string.IsNullOrWhiteSpace(q)) continue;
@@ -548,9 +563,9 @@ public class UserProgressService
         Save(username, data);
     }
 
-    public List<string> UnlockAchievements(string username, IEnumerable<string> keys)
+    public async Task<List<string>> UnlockAchievementsAsync(string username, IEnumerable<string> keys)
     {
-        var data = Load(username);
+        var data = await LoadAsync(username);
         var newly = new List<string>();
         foreach (var key in keys)
         {
@@ -572,31 +587,14 @@ public class UserProgressService
         return newly;
     }
 
-    public bool HasAchievement(string username, string key)
+    public async Task<List<string>> GetWeakQuestionsAsync(string username, double threshold = 0.5)
     {
-        var data = Load(username);
-        return data.Achievements.Contains(key, StringComparer.OrdinalIgnoreCase);
-    }
-
-    public double GetUserSuccessRate(string username, string questionId)
-    {
-        var data = Load(username);
-        if (!data.QuestionStats.TryGetValue(questionId, out var stat) || stat.Attempts == 0)
-            return 1.0;
-        return (double)stat.Correct / stat.Attempts;
-    }
-
-    public List<string> GetWeakQuestions(string username, double threshold = 0.5)
-    {
-        var data = Load(username);
+        var data = await LoadAsync(username);
         return data.QuestionStats
             .Where(kv => kv.Value.Attempts >= 1 && (double)kv.Value.Correct / kv.Value.Attempts < threshold)
             .Select(kv => kv.Key)
             .ToList();
     }
-
-    public int GetSpacedPriority(string username, string questionId) =>
-        GetSpacedPriority(Load(username), questionId);
 
     public int GetSpacedPriority(UserProgressData data, string questionId)
     {
@@ -613,10 +611,10 @@ public class UserProgressService
         return 1;
     }
 
-    public void UpdateBestStreak(string username, int streak)
+    public async Task UpdateBestStreakAsync(string username, int streak)
     {
         if (streak <= 0) return;
-        var data = Load(username);
+        var data = await LoadForMutationAsync(username);
         if (streak > data.BestStreak)
         {
             data.BestStreak = streak;
@@ -624,11 +622,11 @@ public class UserProgressService
         }
     }
 
-    public Dictionary<string, int> GetXpByUsername()
+    public async Task<Dictionary<string, int>> GetXpByUsernameAsync()
     {
         if (_stats?.IsEnabled == true)
         {
-            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            var all = await _stats.GetAllCachedAsync();
             return all.ToDictionary(
                 kv => kv.Key,
                 kv => kv.Value.Xp,
@@ -642,12 +640,10 @@ public class UserProgressService
         {
             try
             {
-                var json = File.ReadAllText(file, Encoding.UTF8);
-                var doc = TryDeserializeDocument(json);
-                if (doc == null) continue;
                 var username = System.IO.Path.GetFileNameWithoutExtension(file);
+                var xp = (await LoadAsync(username)).Xp;
                 if (!results.ContainsKey(username))
-                    results[username] = 0;
+                    results[username] = xp;
             }
             catch { /* skip */ }
         }
@@ -655,28 +651,12 @@ public class UserProgressService
         return results;
     }
 
-    public List<(string Username, int Score)> GetDailyLeaderboard(string date, int limit = 50)
-    {
-        if (_stats?.IsEnabled == true)
-        {
-            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
-            return all.Values
-                .Where(s => s.DayKey == date && s.DailyCorrect > 0)
-                .OrderByDescending(s => s.DailyCorrect)
-                .Take(limit)
-                .Select(s => (s.Username, s.DailyCorrect))
-                .ToList();
-        }
-
-        return new List<(string, int)>();
-    }
-
-    public List<(string Username, int WeeklyCorrect)> GetWeeklyLeaderboard(int limit = 50)
+    public async Task<List<(string Username, int WeeklyCorrect)>> GetWeeklyLeaderboardAsync(int limit = 50)
     {
         var weekKey = GetWeekKey();
         if (_stats?.IsEnabled == true)
         {
-            var all = _stats.GetAllCachedAsync().GetAwaiter().GetResult();
+            var all = await _stats.GetAllCachedAsync();
             return all.Values
                 .Where(s => s.WeekKey == weekKey && s.WeeklyCorrect > 0)
                 .OrderByDescending(s => s.WeeklyCorrect)
@@ -690,6 +670,9 @@ public class UserProgressService
 
     public List<(string Username, int ExamCount)> GetExamCountLeaderboard(int limit = 50)
     {
+        if (_store?.IsEnabled == true)
+            return new List<(string, int)>();
+
         var results = new List<(string, int)>();
         if (!Directory.Exists(_progressDir)) return results;
 
@@ -711,20 +694,12 @@ public class UserProgressService
         return results.OrderByDescending(r => r.Item2).Take(limit).ToList();
     }
 
-    public List<(string Username, int AchievementCount)> GetAchievementCountLeaderboard(int limit = 50)
-    {
-        return new List<(string, int)>();
-    }
+    public async Task<(int TotalAnswered, int CorrectAnswers)> GetAnswerTotalsAsync(string username) =>
+        SumQuestionStats(await LoadAsync(username));
 
-    public (int TotalAnswered, int CorrectAnswers) GetAnswerTotals(string username)
+    public async Task<QuizStatsSnapshot> GetQuizStatsSnapshotAsync(string username)
     {
-        var data = Load(username);
-        return SumQuestionStats(data);
-    }
-
-    public QuizStatsSnapshot GetQuizStatsSnapshot(string username)
-    {
-        var data = Load(username);
+        var data = await LoadAsync(username);
         var (total, correct) = SumQuestionStats(data);
         var xp = data?.Xp ?? 0;
         var level = QuizGamification.LevelFromXp(xp);

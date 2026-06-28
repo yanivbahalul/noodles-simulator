@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -15,64 +17,69 @@ public class AchievementService
         _activityEvents = activityEvents;
     }
 
-    public List<string> CheckPracticeAchievements(string username, int streak, int totalAnswered, int xp)
+    public async Task<List<string>> CheckPracticeAchievementsAsync(string username, int streak, int totalAnswered, int xp)
     {
-        var data = _progress.Load(username);
+        var data = await _progress.LoadAsync(username);
         var candidates = new List<string>();
         candidates.AddRange(CollectStreakCandidates(data, streak));
         candidates.AddRange(CollectVolumeCandidates(totalAnswered, xp));
         candidates.AddRange(CollectWeeklyCandidates(data));
         candidates.AddRange(CollectModeCandidates(data));
-        candidates.AddRange(CollectAccuracyCandidates(username));
-        return UnlockAndLog(username, candidates);
+        candidates.AddRange(await CollectAccuracyCandidatesAsync(username));
+        return await UnlockAndLogAsync(username, candidates);
     }
 
-    public List<string> CheckExamAchievements(string username, int correctCount, int totalQuestions, bool isFirstExam, int previousExamCorrect)
+    public async Task<List<string>> CheckExamAchievementsAsync(
+        string username,
+        int correctCount,
+        int totalQuestions,
+        bool isFirstExam,
+        int previousExamCorrect)
     {
-        var data = _progress.Load(username);
+        var data = await _progress.LoadAsync(username);
         var candidates = new List<string>();
         candidates.AddRange(CollectExamCountCandidates(data.ExamsCompleted));
         candidates.AddRange(CollectExamBestCandidates(data.BestExamCorrect));
         candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
         if (!isFirstExam)
             candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
-        return UnlockAndLog(username, candidates);
+        return await UnlockAndLogAsync(username, candidates);
     }
 
-    public List<string> CheckDailyAchievements(string username)
+    public async Task<List<string>> CheckDailyAchievementsAsync(string username)
     {
-        var data = _progress.Load(username);
-        return UnlockAndLog(username, CollectDailyCandidates(data, forCompletion: true));
+        var data = await _progress.LoadAsync(username);
+        return await UnlockAndLogAsync(username, CollectDailyCandidates(data, forCompletion: true));
     }
 
-    public List<string> CheckReviewClear(string username)
+    public async Task<List<string>> CheckReviewClearAsync(string username)
     {
-        var data = _progress.Load(username);
-        return UnlockAndLog(username, CollectReviewCandidates(data.ReviewClearCount));
+        var data = await _progress.LoadAsync(username);
+        return await UnlockAndLogAsync(username, CollectReviewCandidates(data.ReviewClearCount));
     }
 
-    public List<string> CheckAllAchievements(string username, User user)
+    public async Task<List<string>> CheckAllAchievementsAsync(string username, User user)
     {
-        var data = _progress.Load(username);
+        var data = await _progress.LoadAsync(username);
         var totalAnswered = user?.TotalAnswered ?? 0;
         var candidates = new List<string>();
         candidates.AddRange(CollectStreakCandidates(data, data.BestStreak));
         candidates.AddRange(CollectVolumeCandidates(totalAnswered, data.Xp));
         candidates.AddRange(CollectWeeklyCandidates(data));
         candidates.AddRange(CollectModeCandidates(data));
-        candidates.AddRange(CollectAccuracyCandidates(username));
+        candidates.AddRange(await CollectAccuracyCandidatesAsync(username));
         candidates.AddRange(CollectDailyCandidates(data, forCompletion: false));
         candidates.AddRange(CollectExamCountCandidates(data.ExamsCompleted));
         candidates.AddRange(CollectExamBestCandidates(data.BestExamCorrect));
         candidates.AddRange(CollectPerfectExamCandidates(data.PerfectExamsCount));
         candidates.AddRange(CollectExamImproveCandidates(data.MaxExamImprovement));
         candidates.AddRange(CollectReviewCandidates(data.ReviewClearCount));
-        return UnlockAndLog(username, candidates);
+        return await UnlockAndLogAsync(username, candidates);
     }
 
-    private List<string> UnlockAndLog(string username, IEnumerable<string> candidates)
+    private async Task<List<string>> UnlockAndLogAsync(string username, IEnumerable<string> candidates)
     {
-        var newly = _progress.UnlockAchievements(username, candidates);
+        var newly = await _progress.UnlockAchievementsAsync(username, candidates);
         if (_activityEvents == null || newly.Count == 0) return newly;
 
         foreach (var key in newly)
@@ -88,23 +95,9 @@ public class AchievementService
         return newly;
     }
 
-    public List<AchievementDefinition> GetUnlocked(string username)
-    {
-        var data = _progress.Load(username);
-        return AchievementCatalog.All
-            .Where(a => data.Achievements.Contains(a.Key, System.StringComparer.OrdinalIgnoreCase))
-            .ToList();
-    }
-
-    public List<AchievementDefinition> GetAllWithStatus(string username) =>
-        AchievementCatalog.All.ToList();
-
-    public bool IsUnlocked(string username, string key) =>
-        _progress.HasAchievement(username, key);
-
     private static List<string> CollectStreakCandidates(UserProgressService.UserProgressData data, int streak)
     {
-        var best = System.Math.Max(data.BestStreak, streak);
+        var best = Math.Max(data.BestStreak, streak);
         return ThresholdKeys(AchievementCatalogBuilder.StreakKeys, best);
     }
 
@@ -128,9 +121,9 @@ public class AchievementService
     private static List<string> CollectReviewCandidates(int reviewClearCount) =>
         ThresholdKeys(AchievementCatalogBuilder.ReviewKeys, reviewClearCount);
 
-    private List<string> CollectAccuracyCandidates(string username)
+    private async Task<List<string>> CollectAccuracyCandidatesAsync(string username)
     {
-        var (accuracy, distinct) = _progress.GetOverallAccuracyStats(username);
+        var (accuracy, distinct) = await _progress.GetOverallAccuracyStatsAsync(username);
         var candidates = new List<string>();
         foreach (var tier in AchievementCatalogBuilder.AccuracyKeys)
         {

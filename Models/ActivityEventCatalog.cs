@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Models;
 
@@ -102,98 +101,6 @@ public static class ActivityEventCatalog
             _ => eventType
         };
     }
-
-    public static void LogRegister(ActivityEventService svc, string username) =>
-        svc?.Log(username, Register);
-
-    public static void LogDailyComplete(ActivityEventService svc, string username, int score, int total) =>
-        svc?.Log(username, DailyComplete, new Dictionary<string, object>
-        {
-            ["score"] = score,
-            ["total"] = total
-        });
-
-    public static void LogQuestionReport(ActivityEventService svc, string username, string questionId, string explanation = null) =>
-        svc?.Log(username, QuestionReport, new Dictionary<string, object>
-        {
-            ["questionId"] = questionId ?? "",
-            ["explanation"] = explanation ?? ""
-        });
-
-    public static void LogAdminAction(ActivityEventService svc, string adminUsername, string targetUsername, string action) =>
-        svc?.Log(targetUsername, AdminAction, new Dictionary<string, object>
-        {
-            ["action"] = action ?? "",
-            ["admin"] = adminUsername ?? "Admin"
-        });
-
-    public static void LogLevelUp(ActivityEventService svc, string username, int level) =>
-        svc?.Log(username, LevelUp, new Dictionary<string, object>
-        {
-            ["level"] = level
-        });
-
-    public static void LogPracticeStart(ActivityEventService svc, string username, string mode) =>
-        svc?.Log(username, PracticeStart, new Dictionary<string, object>
-        {
-            ["mode"] = mode ?? "normal"
-        });
-
-    public static void LogExamExpired(ActivityEventService svc, string username, int score, int maxScore, int currentIndex) =>
-        svc?.Log(username, ExamExpired, new Dictionary<string, object>
-        {
-            ["score"] = score,
-            ["maxScore"] = maxScore,
-            ["currentIndex"] = currentIndex
-        });
-
-    public static void LogFeedbackPrompt(ActivityEventService svc, string username, int milestone, string campaignId) =>
-        svc?.Log(username, FeedbackPrompt, new Dictionary<string, object>
-        {
-            ["milestone"] = milestone,
-            ["campaignId"] = campaignId ?? ""
-        });
-
-    public static void LogFeedbackSubmit(ActivityEventService svc, string username, int rating, string campaignId) =>
-        svc?.Log(username, FeedbackSubmit, new Dictionary<string, object>
-        {
-            ["rating"] = rating,
-            ["campaignId"] = campaignId ?? ""
-        });
-
-    public static void LogFeedbackLater(ActivityEventService svc, string username, string campaignId, int milestone) =>
-        svc?.Log(username, FeedbackLater, new Dictionary<string, object>
-        {
-            ["campaignId"] = campaignId ?? "",
-            ["milestone"] = milestone
-        });
-
-    public static void LogGitHubStarPrompt(ActivityEventService svc, string username, int milestone) =>
-        svc?.Log(username, GitHubStarPrompt, new Dictionary<string, object>
-        {
-            ["milestone"] = milestone
-        });
-
-    public static void LogGitHubStarAccept(ActivityEventService svc, string username) =>
-        svc?.Log(username, GitHubStarAccept);
-
-    public static void LogGitHubStarLater(ActivityEventService svc, string username, int milestone) =>
-        svc?.Log(username, GitHubStarLater, new Dictionary<string, object>
-        {
-            ["milestone"] = milestone
-        });
-
-    public static void LogAppNoticePrompt(ActivityEventService svc, string username, string noticeId) =>
-        svc?.Log(username, AppNoticePrompt, new Dictionary<string, object>
-        {
-            ["noticeId"] = noticeId ?? ""
-        });
-
-    public static void LogAppNoticeDismiss(ActivityEventService svc, string username, string noticeId) =>
-        svc?.Log(username, AppNoticeDismiss, new Dictionary<string, object>
-        {
-            ["noticeId"] = noticeId ?? ""
-        });
 
     private static string FormatDailyComplete(Dictionary<string, object> payload)
     {

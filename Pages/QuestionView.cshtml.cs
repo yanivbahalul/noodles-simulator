@@ -1,11 +1,9 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using NoodlesSimulator.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace NoodlesSimulator.Pages;
@@ -15,10 +13,12 @@ public class QuestionViewModel : PageModel
     private static readonly string[] AnswerKeys = { "correct", "a", "b", "c" };
 
     private readonly SupabaseStorageService _storage;
+    private readonly QuestionGroupLoader _questionGroups;
 
-    public QuestionViewModel(SupabaseStorageService storage = null)
+    public QuestionViewModel(SupabaseStorageService storage = null, QuestionGroupLoader questionGroups = null)
     {
         _storage = storage;
+        _questionGroups = questionGroups;
     }
 
     public string QuestionImageUrl { get; set; }
@@ -42,12 +42,7 @@ public class QuestionViewModel : PageModel
             return Page();
 
         var selectedFile = ApplyQueryParameters();
-
-        if (_storage != null)
-            await LoadQuestionFromStorageAsync(questionId, selectedFile);
-        else
-            LoadQuestionFromLocalFiles(questionId, selectedFile);
-
+        await LoadQuestionAsync(questionId, selectedFile);
         return Page();
     }
 
@@ -64,52 +59,30 @@ public class QuestionViewModel : PageModel
         return selectedFile;
     }
 
-    private async Task LoadQuestionFromStorageAsync(string questionId, string selectedFile)
+    private async Task LoadQuestionAsync(string questionId, string selectedFile)
     {
-        var all = await _storage.ListFilesAsync("");
-        var group = FindQuestionGroup(FilterImageNames(all), questionId);
+        if (_questionGroups == null)
+            return;
+
+        var group = await _questionGroups.FindGroupByQuestionIdAsync(questionId);
         if (group == null)
             return;
 
-        var signed = await _storage.GetSignedUrlsAsync(group);
-        QuestionImageUrl = signed.TryGetValue(group[0], out var questionUrl) ? questionUrl : string.Empty;
-        PopulateAnswerUrls(group, (key, file) =>
-            !string.IsNullOrWhiteSpace(file) && signed.TryGetValue(file, out var url) ? url : null);
-        ResolveSelectedAnswerKey(group, selectedFile);
-    }
-
-    private void LoadQuestionFromLocalFiles(string questionId, string selectedFile)
-    {
-        var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-        if (!Directory.Exists(imagesDir))
-            return;
-
-        var group = FindQuestionGroup(
-            Directory.GetFiles(imagesDir)
-                .Where(IsImageFile)
-                .Select(Path.GetFileName)
-                .OrderBy(name => name)
-                .ToList(),
-            questionId);
-        if (group == null)
-            return;
-
-        QuestionImageUrl = $"/images/{group[0]}";
-        PopulateAnswerUrls(group, (key, file) =>
-            string.IsNullOrWhiteSpace(file) ? null : $"/images/{file}");
-        ResolveSelectedAnswerKey(group, selectedFile);
-    }
-
-    private static List<string> FindQuestionGroup(List<string> sortedImages, string questionId)
-    {
-        for (var i = 0; i + 4 < sortedImages.Count; i += 5)
+        if (_storage != null)
         {
-            var group = sortedImages.GetRange(i, 5);
-            if (string.Equals(group[0], questionId, StringComparison.OrdinalIgnoreCase))
-                return group;
+            var signed = await _storage.GetSignedUrlsAsync(group);
+            QuestionImageUrl = signed.TryGetValue(group[0], out var questionUrl) ? questionUrl : string.Empty;
+            PopulateAnswerUrls(group, (key, file) =>
+                !string.IsNullOrWhiteSpace(file) && signed.TryGetValue(file, out var url) ? url : null);
+        }
+        else
+        {
+            QuestionImageUrl = $"/images/{group[0]}";
+            PopulateAnswerUrls(group, (key, file) =>
+                string.IsNullOrWhiteSpace(file) ? null : $"/images/{file}");
         }
 
-        return null;
+        ResolveSelectedAnswerKey(group, selectedFile);
     }
 
     private void PopulateAnswerUrls(List<string> group, Func<string, string, string> resolveUrl)
@@ -137,15 +110,6 @@ public class QuestionViewModel : PageModel
             }
         }
     }
-
-    private static List<string> FilterImageNames(IEnumerable<string> names) =>
-        names.Where(IsImageFile).OrderBy(name => name).ToList();
-
-    private static bool IsImageFile(string path) =>
-        path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)
-        || path.EndsWith(".webp", StringComparison.OrdinalIgnoreCase);
 
     private void SetBackNavigation(string from, string scope)
     {

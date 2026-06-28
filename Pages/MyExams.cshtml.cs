@@ -81,8 +81,8 @@ public class MyExamsModel : PageModel
 
                 session.Status = "completed";
                 session.CompletedUtc = DateTime.UtcNow;
-                session.Score = correctCount * 6;
-                session.MaxScore = questions.Count * 6;
+                session.Score = ExamScoring.ScoreFromCorrectCount(correctCount);
+                session.MaxScore = ExamScoring.MaxScore(questions.Count);
 
                 Console.WriteLine($"[MyExams OnPost] Updating session - Score: {session.Score}/{session.MaxScore}, Status: completed");
                 await _testSession.UpdateSessionAsync(session);

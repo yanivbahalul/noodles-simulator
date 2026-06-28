@@ -9,11 +9,11 @@ using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using NoodlesSimulator.Services;
+using NoodlesSimulator.Models;
 
 #nullable enable
 
-namespace NoodlesSimulator.Models;
+namespace NoodlesSimulator.Services;
 
 public class AuthService
 {
@@ -558,35 +558,6 @@ public class AuthService
             Console.WriteLine($"[SyncLeaderboardStatsAsync Exception] {ex}");
             return false;
         }
-    }
-
-    public List<User> GetWeeklyLeaderboardFromUsers(IEnumerable<User> users, int limit = 50)
-    {
-        var weekKey = Services.UserProgressService.GetWeekKey();
-        return users
-            .Where(u => !u.IsBanned && !u.IsCheater && u.WeekKey == weekKey && u.WeeklyCorrect > 0)
-            .OrderByDescending(u => u.WeeklyCorrect)
-            .Take(limit)
-            .ToList();
-    }
-
-    public List<User> GetDailyLeaderboardFromUsers(IEnumerable<User> users, string date, int limit = 50)
-    {
-        return users
-            .Where(u => !u.IsBanned && !u.IsCheater && u.DayKey == date && u.DailyCorrect > 0)
-            .OrderByDescending(u => u.DailyCorrect)
-            .Take(limit)
-            .ToList();
-    }
-
-    public List<User> GetExamLeaderboardFromUsers(IEnumerable<User> users, int limit = 50)
-    {
-        return users
-            .Where(u => !u.IsBanned && !u.IsCheater && u.BestExamScore > 0)
-            .OrderByDescending(u => u.BestExamScore)
-            .ThenByDescending(u => u.BestExamCorrect)
-            .Take(limit)
-            .ToList();
     }
 
     private static bool IsHashedPassword(string storedPassword)

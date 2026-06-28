@@ -45,8 +45,8 @@
             tr.id = `check-row-${id}`;
             tr.className = "system-check-row-pending";
             tr.innerHTML = `
-                <td class="system-check-category">${escapeHtml(category)}</td>
-                <td>${escapeHtml(name)}</td>
+                <td class="system-check-category">${window.escapeHtml(category)}</td>
+                <td>${window.escapeHtml(name)}</td>
                 <td><span class="system-check-badge system-check-badge-pending">${statusLabel.pending}</span></td>
                 <td class="system-check-detail">—</td>
                 <td class="system-check-time">—</td>
@@ -54,12 +54,6 @@
             tbody.appendChild(tr);
             rows.set(id, tr);
         }
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
     }
 
     function setBanner(kind, text) {

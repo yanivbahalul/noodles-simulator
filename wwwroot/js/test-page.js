@@ -1,27 +1,6 @@
 (function () {
     let testBusy = false;
 
-    function openImageModal(imageUrl) {
-        const modal = document.getElementById("image-modal");
-        const modalImg = document.getElementById("modal-img");
-        if (!modal || !modalImg) return;
-        modalImg.src = imageUrl || "";
-        modal.classList.add("modal-open");
-    }
-
-    function closeImageModal() {
-        const modal = document.getElementById("image-modal");
-        if (modal) modal.classList.remove("modal-open");
-    }
-
-    function bindModalDismiss(modalId, closeFn) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeFn();
-        });
-    }
-
     function bindClick(id, handler) {
         const el = document.getElementById(id);
         if (el) el.addEventListener("click", handler);
@@ -56,20 +35,7 @@
     }
 
     function renderAnswerButtons(grid, answers) {
-        grid.innerHTML = "";
-        answers.forEach((a) => {
-            const btn = document.createElement("button");
-            btn.type = "submit";
-            btn.name = "answer";
-            btn.value = a.key;
-            btn.className = "answer-btn";
-            const img = document.createElement("img");
-            img.src = a.imageUrl;
-            img.alt = "תשובה";
-            img.loading = "lazy";
-            btn.appendChild(img);
-            grid.appendChild(btn);
-        });
+        window.QuizAnswers?.renderAnswerButtons(grid, answers);
     }
 
     function renderTestQuestion(data) {
@@ -172,10 +138,15 @@
     function initTestPage(endUtc) {
         bindClick("main-question-image", () => {
             const mainImg = document.getElementById("main-question-image");
-            openImageModal(mainImg?.src || "");
+            window.ImageModal?.openImageModal(mainImg?.src || "");
         });
-        bindClick("close-image-modal-btn", closeImageModal);
-        bindModalDismiss("image-modal", closeImageModal);
+        bindClick("close-image-modal-btn", () => window.ImageModal?.closeImageModal());
+        const imageModal = document.getElementById("image-modal");
+        if (imageModal) {
+            imageModal.addEventListener("click", (e) => {
+                if (e.target === imageModal) window.ImageModal?.closeImageModal();
+            });
+        }
         bindTestAnswerForm();
 
         if (window.bindConfirmEndTestButtons) {
