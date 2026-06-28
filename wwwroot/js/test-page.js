@@ -70,6 +70,14 @@
         return { res, data };
     }
 
+    async function showTestSubmitError() {
+        if (window.showAppToast) {
+            window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
+        } else if (window.showAppAlert) {
+            await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
+        }
+    }
+
     async function handleTestAnswerSubmit(e, form) {
         e.preventDefault();
         if (testBusy) return;
@@ -97,11 +105,7 @@
                 form.requestSubmit(submitter);
                 return;
             }
-            if (window.showAppToast) {
-                window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
-            } else if (window.showAppAlert) {
-                await window.showAppAlert("שגיאה בשליחת התשובה. נסה שוב.");
-            }
+            await showTestSubmitError();
         } finally {
             setTestBusy(false);
         }

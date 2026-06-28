@@ -91,11 +91,15 @@
         if (typeof elapsedMs === "number") timeCell.textContent = `${elapsedMs} ms`;
     }
 
+    const STATUS_LOOKUP = new Map([
+        ["ok", "ok"], ["Ok", "ok"], [2, "ok"],
+        ["warn", "warn"], ["Warn", "warn"], [4, "warn"],
+        ["fail", "fail"], ["Fail", "fail"], [3, "fail"],
+        ["running", "running"], ["Running", "running"], [1, "running"]
+    ]);
+
     function normalizeStatus(raw) {
-        if (raw === "ok" || raw === "Ok" || raw === 2) return "ok";
-        if (raw === "warn" || raw === "Warn" || raw === 4) return "warn";
-        if (raw === "fail" || raw === "Fail" || raw === 3) return "fail";
-        if (raw === "running" || raw === "Running" || raw === 1) return "running";
+        if (STATUS_LOOKUP.has(raw)) return STATUS_LOOKUP.get(raw);
         if (typeof raw === "string") return raw.toLowerCase();
         return "fail";
     }
@@ -104,63 +108,81 @@
         return evt.phase || evt.Phase || "";
     }
 
+    function finishStream() {
+        streamFinished = true;
+        runBtn.disabled = false;
+        runBtn.classList.remove("is-running");
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+    }
+
+    function handlePhaseError(evt) {
+        setBanner("fail", `❌ שגיאה: ${evt.detail || evt.Detail || "לא ידוע"}`);
+        finishStream();
+    }
+
+    function handlePhaseStart(evt) {
+        const planItems = evt.plan || evt.Plan;
+        totalChecks = planItems?.length || plan.length;
+        setBanner("running", "⏳ מריץ בדיקות...");
+        updateClock(`התחיל ב-${formatTime(new Date())}`);
+    }
+
+    function handlePhaseRunning(evt) {
+        applyRowState(evt.id || evt.Id, "running", "בודק…");
+    }
+
+    function recordCheckResult(status) {
+        completedChecks++;
+        if (status === "ok") counts.passed++;
+        else if (status === "warn") counts.warnings++;
+        else counts.failed++;
+        updateProgress();
+        updateSummary();
+        summary.hidden = false;
+    }
+
+    function handlePhaseCheck(evt) {
+        const status = normalizeStatus(evt.status ?? evt.Status);
+        applyRowState(evt.id || evt.Id, status, evt.detail || evt.Detail || "", evt.elapsedMs ?? evt.ElapsedMs);
+        recordCheckResult(status);
+    }
+
+    function completeBannerText(failed, warnings) {
+        if (failed > 0) return `❌ הסתיים — ${failed} נכשלו, ${warnings} אזהרות`;
+        if (warnings > 0) return `⚠️ הסתיים — הכל עבר עם ${warnings} אזהרות`;
+        return "✅ כל הבדיקות עברו בהצלחה";
+    }
+
+    function handlePhaseComplete(evt) {
+        const failed = evt.failed ?? evt.Failed ?? counts.failed;
+        const warnings = evt.warnings ?? evt.Warnings ?? counts.warnings;
+        const bannerKind = failed > 0 ? "fail" : warnings > 0 ? "warn" : "ok";
+        setBanner(bannerKind, completeBannerText(failed, warnings));
+        updateClock(`הסתיים ב-${formatTime(new Date())}`);
+        finishStream();
+    }
+
+    const PHASE_HANDLERS = {
+        error: handlePhaseError,
+        start: handlePhaseStart,
+        running: handlePhaseRunning,
+        check: handlePhaseCheck,
+        complete: handlePhaseComplete
+    };
+
     function handleEvent(evt) {
-        const phase = getPhase(evt);
+        const handler = PHASE_HANDLERS[getPhase(evt)];
+        if (handler) handler(evt);
+    }
 
-        if (phase === "error") {
-            streamFinished = true;
-            setBanner("fail", `❌ שגיאה: ${evt.detail || evt.Detail || "לא ידוע"}`);
-            runBtn.disabled = false;
-            runBtn.classList.remove("is-running");
-            return;
-        }
-
-        if (phase === "start") {
-            const planItems = evt.plan || evt.Plan;
-            totalChecks = (planItems && planItems.length) || plan.length;
-            setBanner("running", "⏳ מריץ בדיקות...");
-            updateClock(`התחיל ב-${formatTime(new Date())}`);
-            return;
-        }
-
-        if (phase === "running") {
-            applyRowState(evt.id || evt.Id, "running", "בודק…");
-            return;
-        }
-
-        if (phase === "check") {
-            const status = normalizeStatus(evt.status ?? evt.Status);
-
-            applyRowState(evt.id || evt.Id, status, evt.detail || evt.Detail || "", evt.elapsedMs ?? evt.ElapsedMs);
-            completedChecks++;
-            if (status === "ok") counts.passed++;
-            else if (status === "warn") counts.warnings++;
-            else counts.failed++;
-            updateProgress();
-            updateSummary();
-            summary.hidden = false;
-            return;
-        }
-
-        if (phase === "complete") {
-            streamFinished = true;
-            const failed = evt.failed ?? evt.Failed ?? counts.failed;
-            const warnings = evt.warnings ?? evt.Warnings ?? counts.warnings;
-            if (failed > 0) {
-                setBanner("fail", `❌ הסתיים — ${failed} נכשלו, ${warnings} אזהרות`);
-            } else if (warnings > 0) {
-                setBanner("warn", `⚠️ הסתיים — הכל עבר עם ${warnings} אזהרות`);
-            } else {
-                setBanner("ok", "✅ כל הבדיקות עברו בהצלחה");
-            }
-            updateClock(`הסתיים ב-${formatTime(new Date())}`);
-            runBtn.disabled = false;
-            runBtn.classList.remove("is-running");
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
-        }
+    function handleStreamError() {
+        if (streamFinished) return;
+        if (completedChecks > 0 && eventSource?.readyState === EventSource.CLOSED) return;
+        setBanner("fail", "❌ החיבור לבדיקות נותק — נסה שוב");
+        finishStream();
     }
 
     function formatTime(d) {
@@ -191,17 +213,7 @@
             }
         };
 
-        eventSource.onerror = () => {
-            if (streamFinished) return;
-            if (completedChecks > 0 && eventSource && eventSource.readyState === EventSource.CLOSED) return;
-            setBanner("fail", "❌ החיבור לבדיקות נותק — נסה שוב");
-            runBtn.disabled = false;
-            runBtn.classList.remove("is-running");
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
-        };
+        eventSource.onerror = handleStreamError;
     }
 
     runBtn.addEventListener("click", startRun);

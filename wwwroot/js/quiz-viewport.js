@@ -55,12 +55,15 @@
         });
     }
 
+    function getVisibleHeight(el) {
+        return el && !el.hidden ? el.offsetHeight : 0;
+    }
+
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
-        const feedbackHeight = feedback && !feedback.hidden ? feedback.offsetHeight : 0;
         const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
-            feedbackHeight +
+            getVisibleHeight(feedback) +
             hintHeight +
             32;
     }

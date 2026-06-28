@@ -18,7 +18,11 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt, ...details })
-        }).catch(() => {});
+        }).catch(window.ignoreBackgroundError);
+    }
+
+    function ignoreDismissError() {
+        window.ignoreBackgroundError?.();
     }
 
     function ensureFeedbackPrompt(campaignId, milestone) {
@@ -72,7 +76,10 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ noticeId })
-        }).then((res) => res.ok).catch(() => false);
+        }).then((res) => res.ok).catch(() => {
+            window.ignoreBackgroundError?.();
+            return false;
+        });
     }
 
     function openGitHubStarModal(milestone, url) {
@@ -98,10 +105,6 @@
             parseInt(prompt.dataset.milestone, 10),
             prompt.dataset.repoUrl
         );
-    }
-
-    function ignoreDismissError() {
-        // Best-effort dismiss after the modal is already closed.
     }
 
     function openDifficultyModal() {
@@ -242,6 +245,34 @@
         if (messageEl) messageEl.value = "";
     }
 
+    function openFeedbackOnLoad() {
+        const prompt = document.getElementById("feedback-prompt");
+        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1") {
+            openFeedbackModalIfPending();
+        } else {
+            openGitHubStarModalIfPending();
+        }
+    }
+
+    function bindFeedbackModalDismiss(modal, laterBtn) {
+        laterBtn.addEventListener("click", () => {
+            const prompt = document.getElementById("feedback-prompt");
+            if (prompt) recordFeedbackLater(prompt, laterBtn);
+        });
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeFeedbackModal();
+        });
+    }
+
+    function bindFeedbackModalSubmit(submitBtn, messageEl) {
+        submitBtn.addEventListener("click", () => {
+            const prompt = document.getElementById("feedback-prompt");
+            if (prompt) {
+                submitFeedbackRating(prompt, feedbackSelectedRating, messageEl, submitBtn);
+            }
+        });
+    }
+
     function bindFeedbackModal() {
         const modal = document.getElementById("feedback-modal");
         const submitBtn = document.getElementById("feedback-submit-btn");
@@ -254,29 +285,9 @@
             feedbackSelectedRating = rating;
         });
         bindFeedbackStarClicks(starsEl, updateStars);
-
-        laterBtn.addEventListener("click", () => {
-            const prompt = document.getElementById("feedback-prompt");
-            if (prompt) recordFeedbackLater(prompt, laterBtn);
-        });
-
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeFeedbackModal();
-        });
-
-        submitBtn.addEventListener("click", () => {
-            const prompt = document.getElementById("feedback-prompt");
-            if (prompt) {
-                submitFeedbackRating(prompt, feedbackSelectedRating, messageEl, submitBtn);
-            }
-        });
-
-        const prompt = document.getElementById("feedback-prompt");
-        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1") {
-            openFeedbackModalIfPending();
-        } else {
-            openGitHubStarModalIfPending();
-        }
+        bindFeedbackModalDismiss(modal, laterBtn);
+        bindFeedbackModalSubmit(submitBtn, messageEl);
+        openFeedbackOnLoad();
     }
 
     function bindGitHubStarModal() {

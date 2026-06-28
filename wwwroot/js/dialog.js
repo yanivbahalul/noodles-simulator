@@ -77,6 +77,21 @@
         setTimeout(() => card.remove(), 280);
     }
 
+    function buildNotifyCard(type, title, message) {
+        const card = document.createElement("div");
+        card.className = `quiz-notify-card quiz-notify-card--${type}`;
+        card.innerHTML = title
+            ? `<p class="quiz-notify-title">${title}</p><p class="quiz-notify-message">${message ?? ""}</p>`
+            : `<p class="quiz-notify-message">${message ?? ""}</p>`;
+        return card;
+    }
+
+    function trimNotifyStack(stack, maxVisible) {
+        while (stack.children.length > maxVisible) {
+            dismissQuizNotifyCard(stack.firstElementChild);
+        }
+    }
+
     window.pushQuizNotify = function pushQuizNotify(options = {}) {
         const {
             type = "info",
@@ -88,19 +103,12 @@
         if (!text && !title) return null;
 
         const stack = ensureQuizNotifyStack();
-        const card = document.createElement("div");
-        card.className = `quiz-notify-card quiz-notify-card--${type}`;
-        card.innerHTML = title
-            ? `<p class="quiz-notify-title">${title}</p><p class="quiz-notify-message">${message ?? ""}</p>`
-            : `<p class="quiz-notify-message">${message ?? ""}</p>`;
+        const card = buildNotifyCard(type, title, message);
 
         stack.appendChild(card);
         requestAnimationFrame(() => card.classList.add("quiz-notify-card--visible"));
 
-        const maxVisible = 6;
-        while (stack.children.length > maxVisible) {
-            dismissQuizNotifyCard(stack.firstElementChild);
-        }
+        trimNotifyStack(stack, 6);
 
         const timer = setTimeout(() => dismissQuizNotifyCard(card), durationMs);
         card.addEventListener("click", () => {

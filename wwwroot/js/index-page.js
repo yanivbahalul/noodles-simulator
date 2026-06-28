@@ -32,12 +32,13 @@
         if (el) el.textContent = value;
     }
 
-    function applyLevelProgressLive(data, options = {}) {
-        if (data?.level !== undefined) {
-            setText("live-level", data.level);
-            setText("stat-level-value", data.level);
-            setText("stat-level-label", data.level);
-        }
+    function applyLevelFields(level) {
+        setText("live-level", level);
+        setText("stat-level-value", level);
+        setText("stat-level-label", level);
+    }
+
+    function applyXpProgressFields(data, options) {
         if (data?.xpProgressPercent !== undefined) {
             const fill = document.getElementById("live-xp-fill");
             if (fill) {
@@ -53,6 +54,11 @@
         }
         if (data?.xp !== undefined) setText("stat-xp-value", data.xp);
         if (options.pulse && data?.xpGain > 0) pulseLevelBar();
+    }
+
+    function applyLevelProgressLive(data, options = {}) {
+        if (data?.level !== undefined) applyLevelFields(data.level);
+        applyXpProgressFields(data, options);
     }
 
     function enableLevelProgressTransitions() {
@@ -74,7 +80,7 @@
         const fill = document.getElementById("live-xp-fill");
         if (!fill) return;
         fill.classList.remove("level-progress-live-fill--pulse");
-        void fill.offsetWidth;
+        window.replayCssAnimation?.(fill);
         fill.classList.add("level-progress-live-fill--pulse");
     }
 
@@ -295,6 +301,23 @@
 
 
 
+    function showActiveStreakBadge(badge, text, value, options) {
+        badge.hidden = false;
+        if (text) text.textContent = String(value);
+        badge.classList.toggle("streak-badge--hot", value >= 7);
+        if (options.pulse) {
+            badge.classList.remove("streak-badge--burst");
+            window.replayCssAnimation?.(badge);
+            badge.classList.add("streak-badge--burst");
+            setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
+        }
+    }
+
+    function hideStreakBadge(badge) {
+        badge.hidden = true;
+        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
+    }
+
     function updateStreakBadge(streak, options = {}) {
         const badge = document.getElementById("streak-badge");
         const text = document.getElementById("streak-badge-text");
@@ -302,20 +325,10 @@
 
         const value = Number(streak) || 0;
         if (value > 0) {
-            badge.hidden = false;
-            if (text) text.textContent = String(value);
-            badge.classList.toggle("streak-badge--hot", value >= 7);
-            if (options.pulse) {
-                badge.classList.remove("streak-badge--burst");
-                void badge.offsetWidth;
-                badge.classList.add("streak-badge--burst");
-                setTimeout(() => badge.classList.remove("streak-badge--burst"), 450);
-            }
+            showActiveStreakBadge(badge, text, value, options);
             return;
         }
-
-        badge.hidden = true;
-        badge.classList.remove("streak-badge--hot", "streak-badge--burst");
+        hideStreakBadge(badge);
     }
 
     function syncStreakBadgeFromPage() {
@@ -365,32 +378,40 @@
         return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
     }
 
+    function isQuizShortcutBlocked() {
+        return Boolean(document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open"));
+    }
+
+    function tryAdvanceToNextQuestion(e, quizBusy) {
+        if (e.key !== "Enter" || quizBusy) return false;
+        const nextBtn = document.getElementById("next-question-btn");
+        if (!nextBtn || nextBtn.disabled) return false;
+        e.preventDefault();
+        nextBtn.click();
+        return true;
+    }
+
+    function trySelectAnswerByKey(e, answerChecked, quizBusy) {
+        if (answerChecked || quizBusy) return false;
+        const idx = parseInt(e.key, 10);
+        if (idx < 1 || idx > 4) return false;
+        const btn = document.querySelectorAll("#answers-grid .answer-btn")[idx - 1];
+        if (!btn || btn.disabled) return false;
+        e.preventDefault();
+        btn.click();
+        return true;
+    }
+
     function bindKeyboardShortcuts() {
         document.addEventListener("keydown", (e) => {
             if (isTypingTarget(document.activeElement)) return;
-            if (document.querySelector(".difficulty-modal-open, .modal-open, .notice-modal-open")) return;
+            if (isQuizShortcutBlocked()) return;
 
             const answerChecked = window.IndexQuiz?.isAnswerChecked?.() ?? false;
             const quizBusy = window.IndexQuiz?.isQuizBusy?.() ?? false;
 
-            if (e.key === "Enter" && !quizBusy) {
-                const nextBtn = document.getElementById("next-question-btn");
-                if (nextBtn && !nextBtn.disabled) {
-                    e.preventDefault();
-                    nextBtn.click();
-                }
-                return;
-            }
-
-            if (answerChecked || quizBusy) return;
-            const idx = parseInt(e.key, 10);
-            if (idx < 1 || idx > 4) return;
-            const buttons = [...document.querySelectorAll("#answers-grid .answer-btn")];
-            const btn = buttons[idx - 1];
-            if (btn && !btn.disabled) {
-                e.preventDefault();
-                btn.click();
-            }
+            if (tryAdvanceToNextQuestion(e, quizBusy)) return;
+            trySelectAnswerByKey(e, answerChecked, quizBusy);
         });
     }
 
@@ -399,34 +420,43 @@
         bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
     }
 
-    function applyAnswerSideEffects(data) {
-        if (data.stats || data.feedback?.levelUpTo) {
-            const statsPayload = {
-                ...(data.stats ?? {}),
-                xpGain: data.feedback?.xpGain ?? 0
-            };
-            if (data.feedback?.levelUpTo) {
-                statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
-            }
-            const shouldPulse = Boolean(
-                data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
-            );
-            applyStatsData(statsPayload, {
-                pulse: shouldPulse,
-                skipStreakUpdate: true
-            });
+    function applyAnswerStats(data) {
+        if (!data.stats && !data.feedback?.levelUpTo) return;
+        const statsPayload = {
+            ...(data.stats ?? {}),
+            xpGain: data.feedback?.xpGain ?? 0
+        };
+        if (data.feedback?.levelUpTo) {
+            statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
         }
+        const shouldPulse = Boolean(
+            data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
+        );
+        applyStatsData(statsPayload, {
+            pulse: shouldPulse,
+            skipStreakUpdate: true
+        });
+    }
+
+    function applyAnswerPrompts(data) {
+        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
+            window.IndexModals?.openFeedbackModal?.(data.feedbackCampaignId, data.feedbackMilestone);
+            return;
+        }
+        if (data.showGitHubStarPrompt) {
+            window.IndexModals?.openGitHubStarModal?.(data.githubStarMilestone, data.githubStarUrl);
+        }
+    }
+
+    function applyAnswerSideEffects(data) {
+        applyAnswerStats(data);
         updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
         if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
         showAchievementToast(data.achievements);
         if (data.feedback?.dailyComplete) {
             showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
         }
-        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
-            window.IndexModals?.openFeedbackModal?.(data.feedbackCampaignId, data.feedbackMilestone);
-        } else if (data.showGitHubStarPrompt) {
-            window.IndexModals?.openGitHubStarModal?.(data.githubStarMilestone, data.githubStarUrl);
-        }
+        applyAnswerPrompts(data);
     }
 
     window.IndexPage = { applyAnswerSideEffects, playFeedbackSound, updateStreakBadge, closeImageModal, closeAppDialog };
@@ -463,7 +493,7 @@
         bindDailyCompleteModal();
         bindKeyboardShortcuts();
 
-        void initLevelProgressLive();
+        initLevelProgressLive().catch(window.ignoreBackgroundError);
 
         window.QuizViewport?.bindQuizViewportHandlers?.();
         window.IndexQuiz?.schedulePrefetchNextQuestion?.();
