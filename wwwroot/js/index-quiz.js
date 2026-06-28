@@ -1,10 +1,10 @@
 (function () {
+    const prefetch = window.IndexQuizPrefetch;
+    const feedback = window.IndexQuizFeedback;
+
     let answerChecked = false;
     let quizBusy = false;
     let questionRenderSeq = 0;
-    let prefetchedQuestion = null;
-    let prefetchAnchor = null;
-    let prefetchPromise = null;
 
     function getAntiForgeryToken() {
         return document.querySelector('#quiz-answer-form input[name="__RequestVerificationToken"]')?.value ?? "";
@@ -31,101 +31,6 @@
         if (container) container.classList.toggle("quiz-swapping", on);
     }
 
-    function preloadImage(url, timeoutMs = 12000) {
-        return new Promise((resolve) => {
-            if (!url) {
-                resolve();
-                return;
-            }
-            const img = new Image();
-            let done = false;
-            const finish = () => {
-                if (done) return;
-                done = true;
-                resolve();
-            };
-            const timer = setTimeout(finish, timeoutMs);
-            img.onload = () => {
-                clearTimeout(timer);
-                finish();
-            };
-            img.onerror = () => {
-                clearTimeout(timer);
-                finish();
-            };
-            img.src = url;
-        });
-    }
-
-    async function preloadQuestionImages(data) {
-        const urls = [
-            data.questionImageUrl,
-            ...(data.answers?.map((a) => a.imageUrl) ?? [])
-        ].filter(Boolean);
-        await Promise.all(urls.map((url) => preloadImage(url)));
-    }
-
-    function invalidatePrefetchCache() {
-        prefetchedQuestion = null;
-        prefetchAnchor = null;
-        prefetchPromise = null;
-    }
-
-    function getCurrentQuestionAnchor() {
-        return document.getElementById("quiz-question-image")?.value ?? "";
-    }
-
-    async function fetchNextQuestionData() {
-        const res = await window.RequestChannels.quizFetch("/Index?handler=PrefetchNextQuestion");
-        if (res.status === 204 || !res.ok) return null;
-        const data = await res.json();
-        return data?.questionImage ? data : null;
-    }
-
-    function storePrefetchedQuestion(anchor, data) {
-        prefetchAnchor = anchor;
-        prefetchedQuestion = data;
-    }
-
-    async function loadPrefetchNextQuestion() {
-        try {
-            const anchor = getCurrentQuestionAnchor();
-            if (!anchor) return null;
-
-            const data = await fetchNextQuestionData();
-            if (!data) return null;
-
-            await preloadQuestionImages(data);
-            if (getCurrentQuestionAnchor() !== anchor) return null;
-
-            storePrefetchedQuestion(anchor, data);
-            return data;
-        } catch {
-            return null;
-        } finally {
-            prefetchPromise = null;
-        }
-    }
-
-    function fetchPrefetchNextQuestion() {
-        if (prefetchPromise) return prefetchPromise;
-        prefetchPromise = loadPrefetchNextQuestion();
-        return prefetchPromise;
-    }
-
-    function schedulePrefetchNextQuestion() {
-        invalidatePrefetchCache();
-        window.setTimeout(() => {
-            fetchPrefetchNextQuestion();
-        }, 0);
-    }
-
-    function getCachedNextQuestion() {
-        const current = document.getElementById("quiz-question-image")?.value ?? "";
-        if (!prefetchedQuestion || prefetchAnchor !== current) return null;
-        return prefetchedQuestion;
-    }
-
     function scheduleQuizViewportAdjust() {
         window.QuizViewport?.scheduleQuizViewportAdjust?.();
     }
@@ -138,79 +43,6 @@
         } else {
             badge.textContent = data.practiceModeLabel;
         }
-    }
-
-    function answerFileFromUrl(url) {
-        if (!url) return "";
-        try {
-            const pathname = new URL(url, window.location.origin).pathname;
-            return decodeURIComponent(pathname.split("/").pop() || "");
-        } catch {
-            return url.split("/").pop()?.split("?")[0]?.split("#")[0] ?? "";
-        }
-    }
-
-    function filesMatchCorrectAnswer(file, imgFile, correctAnswerFile) {
-        if (!correctAnswerFile) return false;
-        return (file && file === correctAnswerFile) ||
-            (imgFile && imgFile === correctAnswerFile);
-    }
-
-    function matchesCorrectAnswerFromList(file, imgFile, data) {
-        if (!data.answers?.length || !data.correctKey) return false;
-        const correct = data.answers.find((a) => a.key === data.correctKey);
-        if (!correct?.fileName) return false;
-        return file === correct.fileName || imgFile === correct.fileName;
-    }
-
-    function matchesCorrectAnswerUrl(imgFile, data) {
-        if (!data.correctAnswerUrl) return false;
-        const correctFile = answerFileFromUrl(data.correctAnswerUrl);
-        return Boolean(correctFile && imgFile && correctFile === imgFile);
-    }
-
-    function isAnswerButtonCorrect(btn, data) {
-        const key = btn.value;
-        const img = btn.querySelector("img");
-        const file = img?.dataset?.answerFile ?? "";
-        const imgFile = answerFileFromUrl(img?.src ?? "");
-
-        const matchers = [
-            () => data.correctKey && key === data.correctKey,
-            () => filesMatchCorrectAnswer(file, imgFile, data.correctAnswerFile),
-            () => matchesCorrectAnswerUrl(imgFile, data),
-            () => matchesCorrectAnswerFromList(file, imgFile, data)
-        ];
-        return matchers.some((match) => match());
-    }
-
-    function styleAnswerButtons(grid, data) {
-        if (!grid) return;
-        grid.querySelectorAll(".answer-btn").forEach((btn) => {
-            btn.disabled = true;
-            btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct");
-
-            if (isAnswerButtonCorrect(btn, data)) {
-                btn.classList.add("correct", data.isCorrect ? "answer-pulse" : "answer-reveal-correct");
-            } else if (btn.value === data.selectedKey) {
-                btn.classList.add("incorrect", "answer-shake");
-            }
-        });
-    }
-
-    function showAnswerFeedback(data) {
-        const feedback = document.getElementById("answer-feedback");
-        if (!feedback) return;
-
-        feedback.hidden = false;
-        feedback.classList.toggle("is-correct", data.isCorrect);
-        feedback.classList.toggle("is-incorrect", !data.isCorrect);
-        feedback.textContent = data.isCorrect ? "תשובה נכונה!" : "תשובה שגויה";
-    }
-
-    function triggerHaptic(isCorrect) {
-        if (!isCorrect || !navigator.vibrate) return;
-        try { navigator.vibrate(20); } catch { /* unsupported */ }
     }
 
     function setInputValue(input, value) {
@@ -241,18 +73,17 @@
         setInputValue(form.querySelector('input[name="answers"]'), buildReportAnswersJson(data.answers));
     }
 
-    
     function applyAnswerResult(data) {
-        styleAnswerButtons(document.getElementById("answers-grid"), data);
-        showAnswerFeedback(data);
+        feedback?.styleAnswerButtons?.(document.getElementById("answers-grid"), data);
+        feedback?.showAnswerFeedback?.(data);
 
         window.IndexPage?.playFeedbackSound?.(data.isCorrect);
-        triggerHaptic(data.isCorrect);
+        feedback?.triggerHaptic?.(data.isCorrect);
         window.IndexPage?.applyAnswerSideEffects?.(data);
 
         syncReportFormFromAnswerResult(data);
         scheduleQuizViewportAdjust();
-        schedulePrefetchNextQuestion();
+        prefetch?.schedulePrefetchNextQuestion?.();
     }
 
     function setImageSource(img, url) {
@@ -270,11 +101,11 @@
         window.QuizAnswers?.renderAnswerButtons(grid, answers, { eager: true });
     }
 
-    function clearAnswerFeedback(feedback) {
-        if (!feedback) return;
-        feedback.hidden = true;
-        feedback.classList.remove("is-correct", "is-incorrect");
-        feedback.textContent = "";
+    function clearAnswerFeedback(el) {
+        if (!el) return;
+        el.hidden = true;
+        el.classList.remove("is-correct", "is-incorrect");
+        el.textContent = "";
     }
 
     function syncReportFormForQuestion(data) {
@@ -316,13 +147,13 @@
 
     async function renderQuestion(data, seq, options = {}) {
         if (!options.imagesPreloaded) {
-            await preloadQuestionImages(data);
+            await prefetch?.preloadQuestionImages?.(data);
         }
         if (seq !== questionRenderSeq) return;
 
         applyRenderedQuestionDom(data);
         scheduleQuizViewportAdjust();
-        schedulePrefetchNextQuestion();
+        prefetch?.schedulePrefetchNextQuestion?.();
     }
 
     function getQuizAnswerPayload(e, form) {
@@ -436,7 +267,7 @@
     async function applyNextQuestion(data, mySeq, cached) {
         const imagesPreloaded = cached && cached.questionImage === data.questionImage;
         await renderQuestion(data, mySeq, { imagesPreloaded });
-        invalidatePrefetchCache();
+        prefetch?.invalidatePrefetchCache?.();
         if (mySeq === questionRenderSeq) answerChecked = false;
     }
 
@@ -466,7 +297,7 @@
         if (quizBusy) return;
 
         const mySeq = ++questionRenderSeq;
-        const cached = getCachedNextQuestion();
+        const cached = prefetch?.getCachedNextQuestion?.();
         setQuizSwapping(true);
         setQuizBusy(true);
         let responseReceived = false;
@@ -490,11 +321,10 @@
         });
     }
 
-
     window.IndexQuiz = {
         bindQuizAnswerForm,
         bindNextQuestion,
-        schedulePrefetchNextQuestion,
+        schedulePrefetchNextQuestion: () => prefetch?.schedulePrefetchNextQuestion?.(),
         setAnswerChecked: (value) => { answerChecked = value; },
         isAnswerChecked: () => answerChecked,
         isQuizBusy: () => quizBusy,

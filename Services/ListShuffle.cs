@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 
 namespace NoodlesSimulator.Services;
 
+// ponytail: in-memory Fisher-Yates shuffle — O(n), fine for small answer lists; not for huge arrays.
 public static class ListShuffle
 {
     public static void FisherYates<T>(IList<T> list)

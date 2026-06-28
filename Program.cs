@@ -37,6 +37,12 @@ static void LoadDotEnv(string path = ".env")
 
 LoadDotEnv();
 
+if (args.Contains("--ponytail-check", StringComparer.OrdinalIgnoreCase))
+{
+    PonytailSelfCheck.Run();
+    return;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
@@ -141,6 +147,8 @@ var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 builder.Services.AddSingleton<RememberMeService>();
+builder.Services.AddSingleton<LoginPageService>();
+builder.Services.AddSingleton<TestResultsPageService>();
 builder.Services.AddSingleton<UserProgressStore>(sp =>
     new UserProgressStore(sp.GetRequiredService<IConfiguration>(), sp.GetService<UserStatsService>()));
 builder.Services.AddSingleton<UserProgressService>(sp =>

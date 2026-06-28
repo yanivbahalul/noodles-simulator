@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 
 namespace NoodlesSimulator.Services;
 
+// ponytail: process-wide ConcurrentDictionary — keys expire after AttemptWindow; not suitable for multi-instance without shared store.
 public static class LoginThrottle
 {
     private class AttemptState
