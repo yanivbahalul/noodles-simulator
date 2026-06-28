@@ -279,6 +279,32 @@ static bool IsAdminSession(HttpContext context)
     return string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
 }
 
+static bool IsWidgetAuthorized(HttpContext context, IConfiguration config)
+{
+    var expected = NoodlesSimulator.Models.AdminConfiguration.WidgetToken(config);
+    if (string.IsNullOrWhiteSpace(expected))
+        return false;
+
+    var auth = context.Request.Headers.Authorization.ToString();
+    if (auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        var token = auth["Bearer ".Length..].Trim();
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(token),
+            System.Text.Encoding.UTF8.GetBytes(expected));
+    }
+
+    if (context.Request.Headers.TryGetValue("X-Noodles-Widget-Token", out var headerValues))
+    {
+        var token = headerValues.ToString();
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(token),
+            System.Text.Encoding.UTF8.GetBytes(expected));
+    }
+
+    return false;
+}
+
 static bool IsAuthenticated(HttpContext context)
 {
     var username = context.Session.GetString("Username");
@@ -535,6 +561,34 @@ api.MapGet("/dashboard-data", async context =>
     catch (Exception ex)
     {
         await WriteServerError(context, "Dashboard API Error", ex);
+    }
+});
+
+api.MapGet("/dashboard-widget", async context =>
+{
+    var config = context.RequestServices.GetRequiredService<IConfiguration>();
+    if (!IsWidgetAuthorized(context, config))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        var dashboard = context.RequestServices.GetService<DashboardDataService>();
+        if (dashboard == null)
+        {
+            await WritePlainError(context, 503, "Dashboard service not available");
+            return;
+        }
+
+        var forceRefresh = context.Request.Query.ContainsKey("fresh");
+        var snapshot = await dashboard.GetSnapshotAsync(forceRefresh);
+        await WriteJson(context, dashboard.ToWidgetPayload(snapshot));
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Dashboard Widget API Error", ex);
     }
 });
 

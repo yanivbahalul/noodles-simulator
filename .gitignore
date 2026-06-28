@@ -17,3 +17,6 @@ scripts/
 
 # Supabase — local CLI + manual SQL editor, not versioned
 supabase/
+
+# macOS admin widget — local Xcode project, not deployed
+widget/

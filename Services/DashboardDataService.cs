@@ -667,6 +667,35 @@ public class DashboardDataService
         public List<UserExamRow> Exams { get; set; } = new();
     }
 
+    public object ToWidgetPayload(DashboardSnapshot snapshot)
+    {
+        var s = snapshot.Summary;
+        return new
+        {
+            allUsersCount = s.AllUsersCount,
+            onlineUsersCount = s.OnlineUsersCount,
+            cheatersCount = s.CheatersCount,
+            bannedUsersCount = s.BannedUsersCount,
+            averageSuccessRate = s.AverageSuccessRate,
+            activeToday = s.ActiveToday,
+            answersToday = s.AnswersToday,
+            dailySuccessRate = s.DailySuccessRate,
+            activeThisWeek = s.ActiveThisWeek,
+            answersThisWeek = s.AnswersThisWeek,
+            weeklySuccessRate = s.WeeklySuccessRate,
+            newUsersToday = s.NewUsersToday,
+            newUsersThisWeek = s.NewUsersThisWeek,
+            inactive7Days = s.Inactive7Days,
+            inactive30Days = s.Inactive30Days,
+            openQuestionReports = s.OpenQuestionReports,
+            health = new
+            {
+                allOk = snapshot.Health.AllOk,
+                checkedAtIso = snapshot.Health.CheckedAtIso
+            }
+        };
+    }
+
     public object ToApiPayload(DashboardSnapshot snapshot)
     {
         var s = snapshot.Summary;
