@@ -37,7 +37,12 @@ Env vars:
   TTS_VOICE=he-IL-HilaNeural # or he-IL-AvriNeural (male)
   TTS_RATE=-8%               # slightly slower = clearer Hebrew
 
-Better quality (paid API key):
+Better quality with same Gemini API key (Gemini Pro / AI Studio):
+  TTS_PROVIDER=gemini
+  GEMINI_API_KEY=...              # from aistudio.google.com/apikey
+  GEMINI_TTS_MODEL=gemini-2.5-flash-preview-tts
+  GEMINI_TTS_VOICE=Kore           # try other voices in AI Studio
+
   TTS_PROVIDER=google
   GOOGLE_CLOUD_TTS_API_KEY=...   # enable Cloud Text-to-Speech API
   GOOGLE_TTS_VOICE=he-IL-Wavenet-B

@@ -59,6 +59,76 @@ def tts_config() -> dict[str, str]:
     }
 
 
+def _google_tts(text: str, out_path: Path, cfg: dict[str, str]) -> None:
+    key = cfg["google_key"]
+    if not key:
+        raise RuntimeError("GOOGLE_CLOUD_TTS_API_KEY required for TTS_PROVIDER=google")
+    url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={key}"
+    body = {
+        "input": {"text": text},
+        "voice": {"languageCode": "he-IL", "name": cfg["google_voice"]},
+        "audioConfig": {"audioEncoding": "MP3", "speakingRate": 0.92, "pitch": 0},
+    }
+    resp = requests.post(url, json=body, timeout=60)
+    resp.raise_for_status()
+    audio = resp.json().get("audioContent")
+    if not audio:
+        raise RuntimeError("Google TTS returned no audio")
+    out_path.write_bytes(base64.b64decode(audio))
+
+
+def _pcm_to_mp3(pcm: bytes, out_path: Path, rate: int = 24000) -> None:
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        wav_path = Path(tmp.name)
+    try:
+        with wave.open(str(wav_path), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(pcm)
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(wav_path), "-codec:a", "libmp3lame", "-q:a", "4", str(out_path)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    finally:
+        wav_path.unlink(missing_ok=True)
+
+
+def _gemini_tts(text: str, out_path: Path, cfg: dict[str, str]) -> None:
+    key = cfg["gemini_key"]
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY required for TTS_PROVIDER=gemini")
+    model = cfg["gemini_model"]
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    body = {
+        "contents": [{"parts": [{"text": f"[friendly] {text}"}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+                "voiceConfig": {
+                    "prebuiltVoiceConfig": {"voiceName": cfg["gemini_voice"]}
+                }
+            },
+        },
+    }
+    resp = requests.post(url, json=body, timeout=120)
+    resp.raise_for_status()
+    data = resp.json()
+    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+    inline = next((p.get("inlineData") for p in parts if p.get("inlineData")), None)
+    if not inline or not inline.get("data"):
+        raise RuntimeError("Gemini TTS returned no audio")
+    pcm = base64.b64decode(inline["data"])
+    rate = 24000
+    mime = inline.get("mimeType") or ""
+    m = re.search(r"rate=(\d+)", mime)
+    if m:
+        rate = int(m.group(1))
+    _pcm_to_mp3(pcm, out_path, rate)
+
+
 def _elevenlabs_tts(text: str, out_path: Path, cfg: dict[str, str]) -> None:
     key = cfg["elevenlabs_key"]
     if not key:
@@ -86,7 +156,9 @@ async def synthesize_mp3(text: str, out_path: Path) -> None:
     cfg = tts_config()
     provider = cfg["provider"]
 
-    if provider == "google":
+    if provider == "gemini":
+        _gemini_tts(prepared, out_path, cfg)
+    elif provider == "google":
         _google_tts(prepared, out_path, cfg)
     elif provider == "elevenlabs":
         _elevenlabs_tts(prepared, out_path, cfg)
