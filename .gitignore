@@ -20,3 +20,6 @@ supabase/
 
 # macOS admin widget — local Xcode project, not deployed
 widget/
+
+# Hebrew nikud model (~294MB) — download via tools/generate-explanations/download-phonikud-model.sh
+tools/generate-explanations/models/

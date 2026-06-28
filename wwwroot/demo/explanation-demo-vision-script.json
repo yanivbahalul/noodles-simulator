@@ -1,0 +1,31 @@
+{
+  "answerCodes": ["int&", "int*", "int", "T"],
+  "slides": [
+    {
+      "narration": "השאלה בודקת איזה טיפוס החזרה מאפשר לכתוב אף שווה לחמש.",
+      "imageRef": "full",
+      "highlightAnswer": null
+    },
+    {
+      "narration": "מחזיר reference ל x, אז אפשר לשים בו ערך.",
+      "imageRef": "full",
+      "highlightAnswer": 1
+    },
+    {
+      "narration": "מחזיר pointer, לא value. צריך star לפני שמניחים value.",
+      "imageRef": "full",
+      "highlightAnswer": 2
+    },
+    {
+      "narration": "מחזיר copy, ואי אפשר לשים בו value.",
+      "imageRef": "full",
+      "highlightAnswer": 3
+    },
+    {
+      "narration": "פשוט לא נכון. T זה לא return type.",
+      "imageRef": "full",
+      "highlightAnswer": 4
+    }
+  ],
+  "needsReview": false
+}

@@ -2,11 +2,26 @@ Question explanation video pipeline
 ===============================
 
 Generates Hebrew slide+narration videos for each quiz question (offline batch).
+User clicks "למה טעיתי?" after a wrong answer and gets a pre-rendered MP4.
+
+Recommended production setup
+----------------------------
+  GEMINI_VISION_MODEL=gemini-2.5-flash     # script quality
+  TTS_PROVIDER=edge           # recommended for batch (Gemini TTS rate-limits)
+  TTS_PROVIDER=google         # premium: GOOGLE_CLOUD_TTS_API_KEY + he-IL-Wavenet-B
+  TTS_PROVIDER=gemini         # optional; often rate-limited in batch
+
+Quality workflow (do this once before full batch):
+  1. Run SQL: supabase/question_explanations.sql in Supabase SQL editor
+  2. ./tools/generate-explanations/run-pilot.sh
+  3. Listen to all 10 videos; fix any with needsReview in dashboard
+  4. ./tools/generate-explanations/run-full-batch.sh
 
 Prerequisites
 -------------
 - Python 3.10+
 - ffmpeg + ffprobe on PATH
+- tesseract on PATH (OCR for answer labels in TTS — brew install tesseract)
 - `.env` in repo root with:
   - GEMINI_API_KEY
   - SUPABASE_URL
@@ -15,40 +30,40 @@ Prerequisites
 
 Setup
 -----
-1. Run SQL migration: supabase/question_explanations.sql in Supabase SQL editor
-2. pip install -r tools/generate-explanations/requirements.txt
+  pip install -r tools/generate-explanations/requirements.txt
 
 Usage
 -----
-  python tools/generate-explanations/generate.py --limit 10
-  python tools/generate-explanations/generate.py --only-missing
-  python tools/generate-explanations/generate.py --question-id "your-question.png"
+  ./tools/generate-explanations/run-pilot.sh          # first 10 questions
+  ./tools/generate-explanations/run-full-batch.sh     # all missing (one shot)
+  ./tools/generate-explanations/run-until-done.sh     # same, auto-resumes daily after quota
 
-Pilot then full batch:
-  python tools/generate-explanations/generate.py --limit 10
-  python tools/generate-explanations/generate.py --only-missing
+  # Long batch in background (survives quota limits):
+  # nohup bash tools/generate-explanations/run-until-done.sh >> tools/generate-explanations/batch.log 2>&1 &
 
-Text-to-speech (Hebrew quality)
--------------------------------
-Default: Microsoft Edge TTS (free, no API key). Quality is OK but not premium.
+  python tools/generate-explanations/generate.py --question-id "foo.png"
+  python tools/generate-explanations/generate.py --script-file script.json --local-copy out.mp4
 
-Env vars:
-  TTS_PROVIDER=edge          # default; free
+Text-to-speech providers
+------------------------
+  TTS_PROVIDER=edge          # free, fast — good for pilot (default if no Google key)
   TTS_VOICE=he-IL-HilaNeural # or he-IL-AvriNeural (male)
-  TTS_RATE=-8%               # slightly slower = clearer Hebrew
 
-Better quality with same Gemini API key (Gemini Pro / AI Studio):
-  TTS_PROVIDER=gemini
-  GEMINI_API_KEY=...              # from aistudio.google.com/apikey
-  GEMINI_TTS_MODEL=gemini-2.5-flash-preview-tts
-  GEMINI_TTS_VOICE=Kore           # try other voices in AI Studio
-
-  TTS_PROVIDER=google
-  GOOGLE_CLOUD_TTS_API_KEY=...   # enable Cloud Text-to-Speech API
+  TTS_PROVIDER=google        # recommended production (~$4/1M chars)
+  GOOGLE_CLOUD_TTS_API_KEY=...
   GOOGLE_TTS_VOICE=he-IL-Wavenet-B
 
-  TTS_PROVIDER=elevenlabs
+  TTS_PROVIDER=elevenlabs    # premium, expensive at scale
   ELEVENLABS_API_KEY=...
-  ELEVENLABS_VOICE_ID=...        # multilingual voice
 
-Gemini (GEMINI_API_KEY) is only for reading images and writing the script — not for voice.
+Avoid TTS_PROVIDER=gemini for batch — rate-limited and slow (12s pause per slide).
+
+Demo (local, no DB):
+  source tools/generate-explanations/env-defaults.sh
+  python tools/generate-explanations/generate.py --limit 1 --skip-db \
+    --local-copy wwwroot/demo/explanation-demo-edge.mp4
+
+Manual script edit (hard questions):
+  python tools/generate-explanations/generate.py --script-only --script-out script.json --question-id "..."
+  # edit script.json, then:
+  python tools/generate-explanations/generate.py --script-file script.json --question-id "..."
