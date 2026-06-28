@@ -25,7 +25,7 @@
     function matchesCorrectAnswerUrl(imgFile, data) {
         if (!data.correctAnswerUrl) return false;
         const correctFile = answerFileFromUrl(data.correctAnswerUrl);
-        return Boolean(correctFile && imgFile && correctFile === correctFile);
+        return Boolean(correctFile && imgFile && correctFile === imgFile);
     }
 
     function isAnswerButtonCorrect(btn, data) {

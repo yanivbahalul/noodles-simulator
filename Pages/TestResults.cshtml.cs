@@ -52,6 +52,10 @@ public class TestResultsModel : PageModel
                 return RedirectToPage("/Test", new { token = result.Token });
             case TestResultsRedirect.ServiceUnavailable:
                 return StatusCode(503, "Test session service is not available.");
+            case TestResultsRedirect.None:
+                break;
+            default:
+                return StatusCode(500, "Unexpected test results state.");
         }
 
         ApplyPageData(result.Data);
