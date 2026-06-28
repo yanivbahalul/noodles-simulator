@@ -566,11 +566,9 @@ public class DashboardDataService
                 .ToList();
         }
 
-        List<string> achievementKeys;
-        if (_progressStore?.IsEnabled == true)
-            achievementKeys = await Task.Run(() => _progressStore.TryLoadAchievementKeys(username));
-        else
-            achievementKeys = progress?.Achievements ?? new List<string>();
+        var achievementKeys = _progressStore?.IsEnabled == true
+            ? await Task.Run(() => _progressStore.TryLoadAchievementKeys(username))
+            : progress?.Achievements ?? new List<string>();
 
         var achievements = AchievementCatalog.All
             .Where(a => achievementKeys.Contains(a.Key, StringComparer.OrdinalIgnoreCase))

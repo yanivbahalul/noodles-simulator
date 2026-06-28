@@ -223,7 +223,7 @@
         return map[status] || status || "—";
     }
 
-    function formatAttemptScore(correct, attempts) {
+    function formatAttemptScore(correct) {
         return String(correct);
     }
 
@@ -555,7 +555,7 @@
                     <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                 </span>
             </td>
-            <td class="dashboard-num-cell">${formatAttemptScore(q.correct, q.attempts)}</td>
+            <td class="dashboard-num-cell">${formatAttemptScore(q.correct)}</td>
             <td class="dashboard-num-cell">${formatAttemptTotal(q.attempts)}</td>
             <td title="האם הניסיון האחרון על השאלה היה נכון">${resultBadge(q.lastWasCorrect)}</td>
             <td class="dashboard-time-cell">${formatRelativeTime(q.lastAnsweredIso)}</td>

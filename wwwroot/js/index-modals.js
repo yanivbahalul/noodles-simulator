@@ -1,17 +1,4 @@
 (function () {
-    function bindClick(id, handler) {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener("click", handler);
-    }
-
-    function bindModalDismiss(modalId, closeFn) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        modal.addEventListener("click", (e) => {
-            if (e.target === modal) closeFn();
-        });
-    }
-
     function dismissAppNotice() {
         const modal = document.getElementById("app-notice-modal");
         const prompt = document.getElementById("app-notice-prompt");

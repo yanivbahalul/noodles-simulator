@@ -105,16 +105,14 @@ public class PracticeAnswerService
             return true;
 
         if (string.Equals(session.GetString(PracticeQuizService.PracticeQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
-            && _practiceQuiz != null
-            && _practiceQuiz.TryHydrateFromPracticeSession(session, out var fromPractice))
+            && _practiceQuiz?.TryHydrateFromPracticeSession(session, out var fromPractice) == true)
         {
             ApplyQuestionState(evaluation, fromPractice);
             return true;
         }
 
         if (string.Equals(session.GetString(PracticeQuizService.FlashQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
-            && _practiceQuiz != null
-            && _practiceQuiz.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash))
+            && _practiceQuiz?.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash) == true)
         {
             ApplyQuestionState(evaluation, fromFlash);
             return true;
@@ -128,16 +126,14 @@ public class PracticeAnswerService
         EnsurePracticeHydrated(session, questionImage, evaluation);
 
         if (string.Equals(session.GetString(PracticeQuizService.PracticeQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
-            && _practiceQuiz != null
-            && _practiceQuiz.TryHydrateFromPracticeSession(session, out var fromPractice))
+            && _practiceQuiz?.TryHydrateFromPracticeSession(session, out var fromPractice) == true)
         {
             ApplyQuestionState(evaluation, fromPractice);
             return;
         }
 
         if (string.Equals(session.GetString(PracticeQuizService.FlashQuestionKey), questionImage, StringComparison.OrdinalIgnoreCase)
-            && _practiceQuiz != null
-            && _practiceQuiz.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash))
+            && _practiceQuiz?.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash) == true)
             ApplyQuestionState(evaluation, fromFlash);
     }
 
@@ -147,8 +143,7 @@ public class PracticeAnswerService
         if (string.Equals(sessionQuestion, questionImage, StringComparison.OrdinalIgnoreCase))
             return;
 
-        if (_practiceQuiz != null
-            && _practiceQuiz.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash))
+        if (_practiceQuiz?.TryHydrateFromFlash(session, persistToPractice: true, out var fromFlash) == true)
             ApplyQuestionState(evaluation, fromFlash);
     }
 

@@ -194,6 +194,9 @@ public class SystemVerificationService
         Status = SystemVerificationStatus.Running
     };
 
+    private static SystemVerificationStatus ResolveCheckStatus(bool ok, bool warn) =>
+        ok ? SystemVerificationStatus.Ok : warn ? SystemVerificationStatus.Warn : SystemVerificationStatus.Fail;
+
     private static SystemVerificationEvent Result(
         string id, string name, string category, bool ok, string detail, long elapsedMs, bool warn) => new()
     {
@@ -201,7 +204,7 @@ public class SystemVerificationService
         Id = id,
         Name = name,
         Category = category,
-        Status = ok ? SystemVerificationStatus.Ok : (warn ? SystemVerificationStatus.Warn : SystemVerificationStatus.Fail),
+        Status = ResolveCheckStatus(ok, warn),
         Detail = detail,
         ElapsedMs = elapsedMs
     };

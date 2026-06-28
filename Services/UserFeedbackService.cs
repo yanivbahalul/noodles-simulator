@@ -211,9 +211,9 @@ public class UserFeedbackService
             var legacyCampaign = Uri.EscapeDataString(FeedbackCampaigns.LegacyCampaignId);
             var res = await _client.GetAsync(
                 $"{_url}/rest/v1/user_feedback?select=id,username,campaign_id,rating,message,created_at" +
-                $"&rating=gte.1" +
-                $"&or=(campaign_id.like.{milestoneLike},campaign_id.eq.{legacyCampaign})" +
-                $"&order=created_at.desc&limit={limit}");
+                "&rating=gte.1" +
+                "&or=(campaign_id.like." + milestoneLike + ",campaign_id.eq." + legacyCampaign + ")" +
+                "&order=created_at.desc&limit=" + limit);
             if (!res.IsSuccessStatusCode)
             {
                 Console.WriteLine($"[UserFeedbackService] GetSubmittedFeedback failed: {res.StatusCode}");
