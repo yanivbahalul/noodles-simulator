@@ -107,44 +107,53 @@ public class ActivityEventService
 
     public async Task<(int Total, int Correct)> GetAnswerStatsSinceAsync(DateTime sinceUtc)
     {
-        if (!_enabled) return (0, 0);
+        var activity = await GetAnswerActivitySinceAsync(sinceUtc);
+        return (activity.Total, activity.Correct);
+    }
+
+    public async Task<(int Total, int Correct, HashSet<string> UsersWithCorrect)> GetAnswerActivitySinceAsync(DateTime sinceUtc)
+    {
+        if (!_enabled) return (0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
 
         try
         {
             var since = Uri.EscapeDataString(sinceUtc.ToUniversalTime().ToString("o"));
             var res = await _client.GetAsync(
-                $"{_url}/rest/v1/activity_events?select=payload&event_type=eq.answer&created_at=gte.{since}&limit=10000");
+                $"{_url}/rest/v1/activity_events?select=username,payload&event_type=eq.answer&created_at=gte.{since}&limit=10000");
             if (!res.IsSuccessStatusCode)
             {
-                Console.WriteLine($"[ActivityEventService] GetAnswerStatsSince failed: {res.StatusCode}");
-                return (0, 0);
+                Console.WriteLine($"[ActivityEventService] GetAnswerActivitySince failed: {res.StatusCode}");
+                return (0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
             }
 
             var json = await res.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
             var total = 0;
             var correct = 0;
+            var usersWithCorrect = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var row in doc.RootElement.EnumerateArray())
             {
-                if (!row.TryGetProperty("payload", out var payloadEl) ||
-                    payloadEl.ValueKind != JsonValueKind.Object)
-                {
-                    total++;
-                    continue;
-                }
-
                 total++;
-                if (payloadEl.TryGetProperty("correct", out var correctEl) &&
-                    correctEl.ValueKind == JsonValueKind.True)
-                    correct++;
+                var username = row.TryGetProperty("username", out var userEl)
+                    ? userEl.GetString() ?? ""
+                    : "";
+                var isCorrect = row.TryGetProperty("payload", out var payloadEl) &&
+                                payloadEl.ValueKind == JsonValueKind.Object &&
+                                payloadEl.TryGetProperty("correct", out var correctEl) &&
+                                correctEl.ValueKind == JsonValueKind.True;
+                if (!isCorrect) continue;
+
+                correct++;
+                if (!string.IsNullOrWhiteSpace(username))
+                    usersWithCorrect.Add(username);
             }
 
-            return (total, correct);
+            return (total, correct, usersWithCorrect);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ActivityEventService] GetAnswerStatsSince exception: {ex.Message}");
-            return (0, 0);
+            Console.WriteLine($"[ActivityEventService] GetAnswerActivitySince exception: {ex.Message}");
+            return (0, 0, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         }
     }
 

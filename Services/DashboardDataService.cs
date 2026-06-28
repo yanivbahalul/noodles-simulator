@@ -190,6 +190,23 @@ public class DashboardDataService
         return snapshot;
     }
 
+    private static void NormalizeUserPeriodStats(User user, string todayKey, string weekKey)
+    {
+        if (user == null) return;
+        if (!string.Equals(user.DayKey, todayKey, StringComparison.Ordinal))
+            user.DailyCorrect = 0;
+        if (!string.Equals(user.WeekKey, weekKey, StringComparison.Ordinal))
+            user.WeeklyCorrect = 0;
+    }
+
+    private static int CountAllowedUsers(HashSet<string> usernames, IEnumerable<User> allUsers)
+    {
+        if (usernames == null || usernames.Count == 0) return 0;
+        return allUsers.Count(u =>
+            !u.IsBanned && !u.IsCheater &&
+            usernames.Contains(u.Username));
+    }
+
     private async Task<DashboardSnapshot> BuildSnapshotAsync()
     {
         var allUsers = await _auth.GetAllUsersLightAsync();
@@ -197,6 +214,9 @@ public class DashboardDataService
         var weekKey = UserProgressService.GetWeekKey();
         var todayStartUtc = DateTime.UtcNow.Date;
         var weekStartUtc = todayStartUtc.AddDays(-(int)DateTime.UtcNow.DayOfWeek);
+
+        foreach (var user in allUsers)
+            NormalizeUserPeriodStats(user, todayKey, weekKey);
 
         var userRows = allUsers
             .Select(MapUserRow)
@@ -215,26 +235,43 @@ public class DashboardDataService
             .DefaultIfEmpty(0)
             .Average() * 100;
 
-        var activeToday = allUsers.Count(u =>
-            u.DayKey == todayKey && u.DailyCorrect > 0 && !u.IsBanned && !u.IsCheater);
+        int activeToday;
+        int answersToday;
+        int activeThisWeek;
+        int answersThisWeek;
+        int dailyTotal;
+        int dailyCorrect;
+        int weeklyTotal;
+        int weeklyCorrect;
 
-        var answersToday = allUsers
-            .Where(u => u.DayKey == todayKey)
-            .Sum(u => u.DailyCorrect);
+        if (_activityEvents != null && _activityEvents.IsEnabled)
+        {
+            var daily = await _activityEvents.GetAnswerActivitySinceAsync(todayStartUtc);
+            dailyTotal = daily.Total;
+            dailyCorrect = daily.Correct;
+            answersToday = daily.Correct;
+            activeToday = CountAllowedUsers(daily.UsersWithCorrect, allUsers);
 
-        var activeThisWeek = allUsers.Count(u =>
-            u.WeekKey == weekKey && u.WeeklyCorrect > 0 && !u.IsBanned && !u.IsCheater);
+            var weekly = await _activityEvents.GetAnswerActivitySinceAsync(weekStartUtc);
+            weeklyTotal = weekly.Total;
+            weeklyCorrect = weekly.Correct;
+            answersThisWeek = weekly.Correct;
+            activeThisWeek = CountAllowedUsers(weekly.UsersWithCorrect, allUsers);
+        }
+        else
+        {
+            activeToday = allUsers.Count(u =>
+                u.DailyCorrect > 0 && !u.IsBanned && !u.IsCheater);
+            answersToday = allUsers.Sum(u => u.DailyCorrect);
+            activeThisWeek = allUsers.Count(u =>
+                u.WeeklyCorrect > 0 && !u.IsBanned && !u.IsCheater);
+            answersThisWeek = allUsers.Sum(u => u.WeeklyCorrect);
 
-        var answersThisWeek = allUsers
-            .Where(u => u.WeekKey == weekKey)
-            .Sum(u => u.WeeklyCorrect);
-
-        var (dailyTotal, dailyCorrect) = _activityEvents != null
-            ? await _activityEvents.GetAnswerStatsSinceAsync(todayStartUtc)
-            : (0, 0);
-        var (weeklyTotal, weeklyCorrect) = _activityEvents != null
-            ? await _activityEvents.GetAnswerStatsSinceAsync(weekStartUtc)
-            : (0, 0);
+            dailyTotal = 0;
+            dailyCorrect = 0;
+            weeklyTotal = 0;
+            weeklyCorrect = 0;
+        }
 
         var dailySuccessRate = dailyTotal > 0
             ? Math.Round((double)dailyCorrect / dailyTotal * 100, 1)

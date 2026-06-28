@@ -96,7 +96,7 @@
         document.getElementById("banned-users-count").textContent = data.bannedUsersCount;
         document.getElementById("average-success-rate").textContent = `${data.averageSuccessRate}%`;
         setText("new-users-today", data.newUsersToday);
-        setText("new-users-week", data.newUsersWeek);
+        setText("new-users-week", data.newUsersThisWeek);
         setText("inactive-7-count", data.inactive7Days);
         setText("inactive-30-count", data.inactive30Days);
         updateOpenReportsBadge(data.openQuestionReports ?? 0);
