@@ -373,7 +373,7 @@
             const answerChecked = window.IndexQuiz?.isAnswerChecked?.() ?? false;
             const quizBusy = window.IndexQuiz?.isQuizBusy?.() ?? false;
 
-            if (e.key === "Enter" && answerChecked && !quizBusy) {
+            if (e.key === "Enter" && !quizBusy) {
                 const nextBtn = document.getElementById("next-question-btn");
                 if (nextBtn && !nextBtn.disabled) {
                     e.preventDefault();

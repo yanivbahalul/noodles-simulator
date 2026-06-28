@@ -53,6 +53,7 @@
 
         renderAnswerButtons(grid, data.answers);
         updateTestProgress(data);
+        syncCountdown(data.remainingSeconds);
         scheduleQuizViewportAdjust();
     }
 
@@ -114,28 +115,47 @@
         });
     }
 
-    function startCountdown(endUtc) {
-        if (!endUtc) return;
-        const end = new Date(endUtc).getTime();
+    function formatCountdown(totalSeconds) {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const pad = (n) => (n < 10 ? `0${n}` : String(n));
+        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    let countdownRemaining = null;
+    let countdownTimer = null;
+
+    function updateCountdownDisplay() {
+        const el = document.getElementById("countdown");
+        if (el && countdownRemaining !== null) {
+            el.textContent = formatCountdown(countdownRemaining);
+        }
+    }
+
+    function syncCountdown(remainingSeconds) {
+        if (remainingSeconds === undefined || remainingSeconds === null) return;
+        countdownRemaining = Math.max(0, Math.floor(remainingSeconds));
+        updateCountdownDisplay();
+    }
+
+    function startCountdown(initialSeconds) {
+        countdownRemaining = Math.max(0, Math.floor(initialSeconds));
+        if (countdownTimer) clearTimeout(countdownTimer);
+
         function tick() {
-            const now = new Date().getTime();
-            const diff = Math.max(0, end - now);
-            const hours = Math.floor(diff / 3600000);
-            const minutes = Math.floor((diff % 3600000) / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
-            const pad = (n) => (n < 10 ? `0${n}` : String(n));
-            const el = document.getElementById("countdown");
-            if (el) el.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-            if (diff <= 0) {
+            updateCountdownDisplay();
+            if (countdownRemaining <= 0) {
                 window.location.reload();
                 return;
             }
-            setTimeout(tick, 1000);
+            countdownRemaining--;
+            countdownTimer = setTimeout(tick, 1000);
         }
         tick();
     }
 
-    function initTestPage(endUtc) {
+    function initTestPage(remainingSeconds) {
         bindClick("main-question-image", () => {
             const mainImg = document.getElementById("main-question-image");
             window.ImageModal?.openImageModal(mainImg?.src || "");
@@ -154,12 +174,13 @@
         }
 
         window.QuizViewport?.bindQuizViewportHandlers();
-        startCountdown(endUtc);
+        startCountdown(remainingSeconds);
     }
 
     document.addEventListener("DOMContentLoaded", () => {
         const data = document.getElementById("test-page-data");
         if (!data) return;
-        initTestPage(data.dataset.testEndUtc || "");
+        const remaining = parseInt(data.dataset.testRemainingSeconds ?? "0", 10);
+        initTestPage(Number.isFinite(remaining) ? remaining : 0);
     });
 })();

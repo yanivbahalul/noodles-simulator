@@ -13,7 +13,7 @@ public static class FeedbackCampaigns
     public const int MilestoneInterval = 5;
 
     /// <summary>When true, only Admin sees the feedback modal (for testing).</summary>
-    public const bool AdminPreviewOnly = false;
+    public static readonly bool AdminPreviewOnly = false;
 
     private static readonly TimeZoneInfo IsraelTimeZone = ResolveIsraelTimeZone();
 

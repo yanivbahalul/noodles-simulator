@@ -48,6 +48,7 @@ public class TestQuestionBinding
     public Dictionary<string, string> ShuffledAnswers { get; init; } = new();
     public Dictionary<string, string> AnswerImageUrls { get; init; } = new();
     public string TestEndUtcString { get; init; } = "";
+    public int TestRemainingSeconds { get; init; }
 }
 
 public class TestExamService
@@ -290,6 +291,7 @@ public class TestExamService
             displayQuestionNumber = binding.DisplayQuestionNumber,
             totalQuestions = binding.TotalQuestions,
             progressPercent = binding.ProgressPercent,
+            remainingSeconds = binding.TestRemainingSeconds,
             answers = binding.ShuffledAnswers
                 .Select(kv => new
                 {
@@ -349,7 +351,8 @@ public class TestExamService
             QuestionImageUrl = resolved.QuestionUrl,
             ShuffledAnswers = q.Answers ?? new Dictionary<string, string>(),
             AnswerImageUrls = resolved.AnswerUrls,
-            TestEndUtcString = end.ToString("o")
+            TestEndUtcString = end.ToString("o"),
+            TestRemainingSeconds = TestSessionService.GetRemainingSeconds(state.StartedUtc)
         };
     }
 

@@ -767,11 +767,11 @@ api.MapPost("/dashboard-report-status", async context =>
             return;
         }
 
-        var ok = string.Equals(status, QuestionReportService.StatusResolved, StringComparison.OrdinalIgnoreCase)
-            ? reports.MarkResolved(id)
-            : string.Equals(status, QuestionReportService.StatusOpen, StringComparison.OrdinalIgnoreCase)
-                ? reports.Reopen(id)
-                : false;
+        var ok = false;
+        if (string.Equals(status, QuestionReportService.StatusResolved, StringComparison.OrdinalIgnoreCase))
+            ok = reports.MarkResolved(id);
+        else if (string.Equals(status, QuestionReportService.StatusOpen, StringComparison.OrdinalIgnoreCase))
+            ok = reports.Reopen(id);
 
         if (!ok)
         {

@@ -39,6 +39,32 @@ public static class QuizGamification
         "medium" => MediumXpPerCorrect,
         _ => BaseXpPerCorrect
     };
+
+    /// <summary>
+    /// XP multiplier by streak: +0.1× per step within each block of 5,
+    /// then ×2 at streak 5, 10, 15… (2×, 4×, 8×…).
+    /// </summary>
+    public static double StreakXpMultiplier(int streak)
+    {
+        if (streak <= 0) return 1.0;
+
+        if (streak % 5 == 0)
+            return Math.Pow(2, streak / 5);
+
+        var tier = streak / 5;
+        var baseMultiplier = Math.Pow(2, tier);
+        var stepsInTier = streak - tier * 5;
+        var increment = tier == 0 ? stepsInTier - 1 : stepsInTier;
+        return baseMultiplier + 0.1 * increment;
+    }
+
+    public static int XpForCorrectAnswer(string practiceMode, string practiceDifficulty, int streak)
+    {
+        var baseXp = practiceMode == "daily"
+            ? DailyChallengeXpPerCorrect
+            : XpForDifficulty(practiceDifficulty);
+        return (int)Math.Round(baseXp * StreakXpMultiplier(streak));
+    }
 }
 
 public class AchievementDefinition

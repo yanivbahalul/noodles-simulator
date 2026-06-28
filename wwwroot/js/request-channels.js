@@ -5,8 +5,8 @@
 
     function supportsFetchPriority() {
         try {
-            new Request("/", { priority: "high" });
-            return true;
+            const probe = new Request("/", { priority: "high" });
+            return probe.priority === "high";
         } catch {
             return false;
         }

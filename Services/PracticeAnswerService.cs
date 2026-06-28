@@ -60,10 +60,8 @@ public class PracticeAnswerService
         _practiceQuiz = practiceQuiz;
     }
 
-    public static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty) =>
-        practiceMode == "daily"
-            ? QuizGamification.DailyChallengeXpPerCorrect
-            : QuizGamification.XpForDifficulty(practiceDifficulty);
+    public static int XpGainForCorrectAnswer(string practiceMode, string practiceDifficulty, int streak) =>
+        QuizGamification.XpForCorrectAnswer(practiceMode, practiceDifficulty, streak);
 
     public static bool EvaluateAnswer(string? correctKey, string selected, Dictionary<string, string>? options)
     {
@@ -198,11 +196,11 @@ public class PracticeAnswerService
         var feedback = new PracticeAnswerFeedback();
         var practiceMode = session.GetString("PracticeMode") ?? "normal";
         var practiceDifficulty = session.GetString("PracticeDifficulty") ?? "";
-        var xpGain = isCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty) : 0;
-        feedback.XpGain = xpGain;
 
         var streak = UpdateAnswerStreak(session, isCorrect, feedback);
         feedback.CurrentStreak = streak;
+        var xpGain = isCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty, streak) : 0;
+        feedback.XpGain = xpGain;
 
         await RecordPracticeProgressAsync(session, user, questionImage, isCorrect, streak, practiceMode, practiceDifficulty, xpGain, dailyTotal, feedback);
         await SyncUserLevelFromProgressAsync(user, feedback);

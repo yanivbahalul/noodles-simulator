@@ -31,6 +31,7 @@ public class TestModel : PageModel
     public int QuestionCount => TestExamService.DefaultQuestionCount;
     public int ProgressPercent => QuestionCount == 0 ? 0 : CurrentIndex * 100 / QuestionCount;
     public string TestEndUtcString { get; set; }
+    public int TestRemainingSeconds { get; set; }
 
     public async Task<IActionResult> OnGet()
     {
@@ -155,5 +156,6 @@ public class TestModel : PageModel
         ShuffledAnswers = binding.ShuffledAnswers;
         AnswerImageUrls = binding.AnswerImageUrls;
         TestEndUtcString = binding.TestEndUtcString;
+        TestRemainingSeconds = binding.TestRemainingSeconds;
     }
 }
