@@ -1,39 +1,35 @@
 (function () {
-    let updateInterval = null;
-    let currentFilter = null;
-    let userFilter = "all";
-    let userSearch = "";
-    let allUsersCache = [];
-    let liveActivityCache = [];
-    let recentActivityCache = [];
-    let liveActivityFilter = "all";
-    let recentActivityFilter = "all";
-    let reportFilter = "open";
-    let questionReportsCache = [];
-    let activeTab = "overview";
+    const D = window.Dashboard = window.Dashboard || {};
 
-    const DIFFICULTY_TEXT = { easy: "קל", medium: "בינוני", hard: "קשה" };
-    const DIFFICULTY_LABELS = { easy: "קלות", medium: "בינוניות", hard: "קשות" };
-
-    function isInactiveDays(iso, days) {
-        if (!iso) return false;
-        const then = new Date(iso);
-        if (Number.isNaN(then.getTime())) return false;
-        return Date.now() - then.getTime() >= days * 86400000;
-    }
+    D.state = {
+        updateInterval: null,
+        currentFilter: null,
+        userFilter: "all",
+        userSearch: "",
+        allUsersCache: [],
+        liveActivityCache: [],
+        recentActivityCache: [],
+        liveActivityFilter: "all",
+        recentActivityFilter: "all",
+        reportFilter: "open",
+        questionReportsCache: [],
+        activeTab: "overview"
+    };
 
     function setText(id, value) {
         const el = document.getElementById(id);
         if (el) el.textContent = value ?? "—";
     }
 
-    async function showDashboardError(message) {
-        await window.notifyAppError?.(message);
-    }
+    D.setText = setText;
 
-    async function confirmDashboardAction(message) {
+    D.showDashboardError = async function showDashboardError(message) {
+        await window.notifyAppError?.(message);
+    };
+
+    D.confirmDashboardAction = async function confirmDashboardAction(message) {
         return await window.confirmAppAction?.(message) ?? false;
-    }
+    };
 
     function updateOpenReportsBadge(count) {
         const badge = document.getElementById("open-reports-badge");
@@ -51,18 +47,18 @@
     }
 
     function switchTab(tabId) {
-        activeTab = tabId || "overview";
+        D.state.activeTab = tabId || "overview";
         document.querySelectorAll(".dashboard-tab").forEach((btn) => {
-            const isActive = btn.dataset.dashboardTab === activeTab;
+            const isActive = btn.dataset.dashboardTab === D.state.activeTab;
             btn.classList.toggle("is-active", isActive);
             btn.setAttribute("aria-selected", isActive ? "true" : "false");
         });
         document.querySelectorAll(".dashboard-tab-panel").forEach((panel) => {
-            const isActive = panel.dataset.dashboardPanel === activeTab;
+            const isActive = panel.dataset.dashboardPanel === D.state.activeTab;
             panel.classList.toggle("is-active", isActive);
             panel.hidden = !isActive;
         });
-        try { localStorage.setItem("dashboardTab", activeTab); } catch { /* ignore */ }
+        try { localStorage.setItem("dashboardTab", D.state.activeTab); } catch { /* ignore */ }
     }
 
     function renderHealthWidget(health) {
@@ -77,7 +73,7 @@
         widget.innerHTML = `
             <div class="dashboard-health-header ${statusClass}">
                 <span>${statusText}</span>
-                <span class="dashboard-health-time">${formatRelativeTime(health.checkedAtIso)}</span>
+                <span class="dashboard-health-time">${D.formatRelativeTime(health.checkedAtIso)}</span>
             </div>
             <ul class="dashboard-health-list">
                 ${health.checks.map((c) => `
@@ -89,168 +85,6 @@
             </ul>`;
     }
 
-    function renderProblematicQuestions(items) {
-        const tbody = document.getElementById("problematic-questions-tbody");
-        if (!tbody) return;
-        if (!items?.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="dashboard-empty-cell">אין שאלות בעייתיות כרגע</td></tr>';
-            return;
-        }
-        tbody.innerHTML = items.map((q) => {
-            const diff = DIFFICULTY_TEXT[q.difficulty] || q.difficulty || "—";
-            const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
-            return `<tr>
-                <td class="difficulty-question-cell"><span class="difficulty-question-text" title="${window.escapeHtml(q.questionId)}">${window.escapeHtml(formatQuestionLabel(q.questionId))}</span></td>
-                <td>${window.escapeHtml(q.reason)}</td>
-                <td>${window.escapeHtml(diff)}</td>
-                <td>${q.successRate}%</td>
-                <td>${q.totalAttempts}</td>
-                <td>${q.openReports}</td>
-                <td><a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a></td>
-            </tr>`;
-        }).join("");
-    }
-
-    function passesReportFilter(report) {
-        if (reportFilter === "all") return true;
-        return report.status === reportFilter;
-    }
-
-    function renderQuestionReports(reports) {
-        questionReportsCache = reports || [];
-        const tbody = document.getElementById("question-reports-tbody");
-        const emptyHint = document.getElementById("question-reports-empty");
-        if (!tbody) return;
-
-        const filtered = questionReportsCache.filter(passesReportFilter);
-        if (!filtered.length) {
-            tbody.innerHTML = "";
-            if (emptyHint) {
-                emptyHint.hidden = false;
-                emptyHint.textContent = questionReportsCache.length
-                    ? "אין דיווחים בסינון הנוכחי"
-                    : "עדיין אין דיווחי שאלות — יופיעו כאן אחרי דיווח מהאתר";
-            }
-            return;
-        }
-        if (emptyHint) emptyHint.hidden = true;
-
-        tbody.innerHTML = filtered.map((r) => {
-            const isOpen = r.status === "open";
-            const statusLabel = isOpen ? "פתוח" : "טופל";
-            const statusClass = isOpen ? "dashboard-badge-warn" : "dashboard-badge-ok";
-            const viewUrl = `/QuestionView?id=${encodeURIComponent(r.questionId)}&from=dashboard`;
-            const actionBtn = isOpen
-                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="resolve" data-report-id="${window.escapeHtml(r.id)}">סמן טופל</button>`
-                : `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-report-action="reopen" data-report-id="${window.escapeHtml(r.id)}">פתח מחדש</button>`;
-            return `<tr data-report-id="${window.escapeHtml(r.id)}" data-report-status="${window.escapeHtml(r.status)}">
-                <td>${formatClock(r.createdAtIso)}</td>
-                <td>${window.escapeHtml(r.username)}</td>
-                <td class="difficulty-question-cell">
-                    <span class="difficulty-question-content">
-                        <span class="difficulty-question-text" title="${window.escapeHtml(r.questionId)}">${window.escapeHtml(formatQuestionLabel(r.questionId))}</span>
-                        <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
-                    </span>
-                </td>
-                <td>${window.escapeHtml(r.explanation || "—")}</td>
-                <td><span class="dashboard-badge ${statusClass}">${statusLabel}</span></td>
-                <td>${actionBtn}</td>
-            </tr>`;
-        }).join("");
-
-        tbody.querySelectorAll("[data-report-action]").forEach((btn) => {
-            btn.addEventListener("click", () => runReportAction(btn.dataset.reportAction, btn.dataset.reportId));
-        });
-    }
-
-    async function runReportAction(action, id) {
-        const status = action === "resolve" ? "resolved" : "open";
-        try {
-            const res = await fetch("/api/dashboard-report-status", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, status })
-            });
-            if (!res.ok) throw new Error("failed");
-            await fetchDashboardData(true);
-        } catch {
-            await showDashboardError("עדכון סטטוס הדיווח נכשל");
-        }
-    }
-
-    async function expireExam(token) {
-        if (!token) return;
-        const confirmed = await confirmDashboardAction("לסיים את המבחן הפעיל? המשתמש לא יוכל להמשיך לענות.");
-        if (!confirmed) return;
-        try {
-            const res = await fetch("/api/dashboard-exam-expire", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token })
-            });
-            if (!res.ok) throw new Error("failed");
-            await fetchDashboardData(true);
-        } catch {
-            await showDashboardError("סיום המבחן נכשל");
-        }
-    }
-
-    function formatRelativeSeconds(diffSec) {
-        if (diffSec < 60) return "לפני פחות מדקה";
-        if (diffSec < 3600) return `לפני ${Math.floor(diffSec / 60)} דק׳`;
-        if (diffSec < 86400) return `לפני ${Math.floor(diffSec / 3600)} שע׳`;
-        return null;
-    }
-
-    function formatRelativeTime(iso) {
-        if (!iso) return "—";
-        const then = new Date(iso);
-        if (Number.isNaN(then.getTime())) return "—";
-        const diffSec = Math.floor((Date.now() - then.getTime()) / 1000);
-        const relative = formatRelativeSeconds(diffSec);
-        if (relative) return relative;
-        return then.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    }
-
-    function formatClock(iso) {
-        if (!iso) return "—";
-        const date = new Date(iso);
-        if (Number.isNaN(date.getTime())) return "—";
-        return date.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    }
-
-    function formatQuestionLabel(questionId) {
-        if (!questionId) return "—";
-        const name = String(questionId).split("/").pop().replace(/\.(png|jpg|jpeg|webp)$/i, "");
-        const screenshotMatch = name.match(/^Screenshot at (\w{3}) (\d{1,2}) (\d{2})-(\d{2})-(\d{2})$/i);
-        if (screenshotMatch) {
-            const months = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" };
-            const mon = months[screenshotMatch[1]] || screenshotMatch[1];
-            return `${screenshotMatch[2].padStart(2, "0")}/${mon} ${screenshotMatch[3]}:${screenshotMatch[4]}`;
-        }
-        if (name.length > 28) return `${name.slice(0, 25)}…`;
-        return name;
-    }
-
-    function formatExamStatus(status) {
-        const map = { active: "פעיל", completed: "הושלם", expired: "פג תוקף" };
-        return map[status] || status || "—";
-    }
-
-    function formatAttemptScore(correct) {
-        return String(correct);
-    }
-
-    function formatAttemptTotal(attempts) {
-        return String(attempts);
-    }
-
-    function resultBadge(wasCorrect) {
-        return wasCorrect
-            ? '<span class="dashboard-result-badge dashboard-result-badge-ok">נכון</span>'
-            : '<span class="dashboard-result-badge dashboard-result-badge-bad">שגוי</span>';
-    }
-
     function applyDashboardCounts(data) {
         document.getElementById("all-users-count").textContent = data.allUsersCount;
         document.getElementById("online-users-count").textContent = data.onlineUsersCount;
@@ -258,7 +92,7 @@
         document.getElementById("banned-users-count").textContent = data.bannedUsersCount;
         document.getElementById("average-success-rate").textContent = `${data.averageSuccessRate}%`;
         setText("new-users-today", data.newUsersToday);
-        setText("new-users-week", data.newUsersThisWeek);
+        setText("new-users-week", data.newUsersWeek);
         setText("inactive-7-count", data.inactive7Days);
         setText("inactive-30-count", data.inactive30Days);
         updateOpenReportsBadge(data.openQuestionReports ?? 0);
@@ -281,18 +115,18 @@
 
     function applyDashboardLists(data) {
         renderHealthWidget(data.health);
-        renderProblematicQuestions(data.problematicQuestions);
-        renderQuestionReports(data.questionReports);
-        allUsersCache = data.allUsersList || [];
-        renderAllUsersTable();
-        renderActiveExams(data.activeExams || []);
-        liveActivityCache = data.liveActivity || [];
-        recentActivityCache = data.recentActivity || [];
-        renderActivityFeed("live-activity-feed", liveActivityCache, true, liveActivityFilter);
-        renderActivityFeed("recent-activity-feed", recentActivityCache, false, recentActivityFilter);
+        D.renderProblematicQuestions?.(data.problematicQuestions);
+        D.renderQuestionReports?.(data.questionReports);
+        D.state.allUsersCache = data.allUsersList || [];
+        D.renderAllUsersTable?.();
+        D.renderActiveExams?.(data.activeExams || []);
+        D.state.liveActivityCache = data.liveActivity || [];
+        D.state.recentActivityCache = data.recentActivity || [];
+        renderActivityFeed("live-activity-feed", D.state.liveActivityCache, true, D.state.liveActivityFilter);
+        renderActivityFeed("recent-activity-feed", D.state.recentActivityCache, false, D.state.recentActivityFilter);
     }
 
-    async function fetchDashboardData(fresh = false) {
+    D.fetchDashboardData = async function fetchDashboardData(fresh = false) {
         try {
             const freshParam = fresh ? "&fresh=1" : "";
             const response = await fetch(`/api/dashboard-data?_=${Date.now()}${freshParam}`);
@@ -305,19 +139,18 @@
             const lastUpdate = document.getElementById("last-update");
             if (lastUpdate) lastUpdate.textContent = "(שגיאה בעדכון - מחכה...)";
         }
-    }
+    };
 
     function passesActivityFilter(item, filter) {
         if (!filter || filter === "all") return true;
-        const category = item.category || "other";
-        return category === filter;
+        return (item.category || "other") === filter;
     }
 
     function buildActivityItemHtml(item) {
         const kindClass = `dashboard-activity-kind dashboard-activity-kind-${window.escapeHtml(item.kind || "other")}`;
         const kindText = window.escapeHtml(item.kindLabel || item.kind || "");
         return `<div class="dashboard-activity-item">
-            <span class="dashboard-activity-time" title="${window.escapeHtml(item.timestampIso)}">${formatRelativeTime(item.timestampIso)}</span>
+            <span class="dashboard-activity-time" title="${window.escapeHtml(item.timestampIso)}">${D.formatRelativeTime(item.timestampIso)}</span>
             <span class="${kindClass}">${kindText}</span>
             <button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(item.username)}">${window.escapeHtml(item.username)}</button>
             <span class="dashboard-activity-message">${window.escapeHtml(item.message)}</span>
@@ -329,7 +162,6 @@
         if (!container) return;
 
         const filtered = (items || []).filter((item) => passesActivityFilter(item, filter));
-
         if (!filtered.length) {
             const emptyMsg = !items?.length
                 ? (isLive ? "אין עדיין אירועים — יופיעו אחרי פעילות משתמשים" : "אין פעילות אחרונה")
@@ -339,9 +171,8 @@
         }
 
         container.innerHTML = filtered.map(buildActivityItemHtml).join("");
-
         container.querySelectorAll(".dashboard-user-link").forEach((btn) => {
-            btn.addEventListener("click", () => openUserDetail(btn.dataset.username));
+            btn.addEventListener("click", () => D.openUserDetail?.(btn.dataset.username));
         });
     }
 
@@ -355,384 +186,31 @@
                 btn.classList.add("is-active");
                 const filter = btn.dataset.activityFilter || "all";
                 if (cacheKey === "live") {
-                    liveActivityFilter = filter;
-                    renderActivityFeed("live-activity-feed", liveActivityCache, true, liveActivityFilter);
+                    D.state.liveActivityFilter = filter;
+                    renderActivityFeed("live-activity-feed", D.state.liveActivityCache, true, D.state.liveActivityFilter);
                 } else {
-                    recentActivityFilter = filter;
-                    renderActivityFeed("recent-activity-feed", recentActivityCache, false, recentActivityFilter);
+                    D.state.recentActivityFilter = filter;
+                    renderActivityFeed("recent-activity-feed", D.state.recentActivityCache, false, D.state.recentActivityFilter);
                 }
             });
         });
     }
 
-    function renderActiveExams(exams) {
-        const table = document.getElementById("active-exams-table");
-        if (!table) return;
-        const headerRow = table.querySelector("tr");
-        table.innerHTML = "";
-        if (headerRow) table.appendChild(headerRow);
-
-        if (!exams.length) {
-            const row = table.insertRow();
-            const cell = row.insertCell();
-            cell.colSpan = 7;
-            cell.className = "dashboard-empty-cell";
-            cell.textContent = "אין מבחנים פעילים כרגע";
-            return;
-        }
-
-        exams.forEach((exam) => {
-            const row = table.insertRow();
-            const qDisplay = exam.totalQuestions > 0
-                ? `${exam.currentIndex + 1}/${exam.totalQuestions}`
-                : `${exam.currentIndex + 1}`;
-
-            const userCell = row.insertCell();
-            userCell.innerHTML = `<button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(exam.username)}">${window.escapeHtml(exam.username)}</button>`;
-            userCell.querySelector(".dashboard-user-link").addEventListener("click", () => openUserDetail(exam.username));
-
-            [formatClock(exam.startedIso), formatRelativeTime(exam.updatedIso), qDisplay, `${exam.score}/${exam.maxScore}`, `${exam.remainingMinutes} דק׳`]
-                .forEach((text) => { row.insertCell().textContent = text; });
-
-            const actionCell = row.insertCell();
-            actionCell.innerHTML = `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-token="${window.escapeHtml(exam.token)}">סיים מבחן</button>`;
-            actionCell.querySelector("[data-expire-token]").addEventListener("click", () => expireExam(exam.token));
-        });
-    }
-
-    const USER_FILTER_PREDICATES = {
-        all: () => true,
-        online: (user) => user.isOnline,
-        today: (user) => (user.dailyCorrect || 0) > 0,
-        cheaters: (user) => user.isCheater,
-        banned: (user) => user.isBanned,
-        inactive7: (user) =>
-            !user.isBanned && !user.isCheater && (user.totalAnswered || 0) > 0 && isInactiveDays(user.lastSeenIso, 7)
-    };
-
-    function passesUserFilter(user) {
-        if (userSearch && !user.username.toLowerCase().includes(userSearch.toLowerCase())) return false;
-        const predicate = USER_FILTER_PREDICATES[userFilter] ?? USER_FILTER_PREDICATES.all;
-        return predicate(user);
-    }
-
-    function buildUserRowCells(user) {
-        const flags = [];
-        if (user.isCheater) flags.push('<span class="dashboard-badge dashboard-badge-warn">cheater</span>');
-        if (user.isBanned) flags.push('<span class="dashboard-badge dashboard-badge-danger">חסום</span>');
-        const status = user.isOnline
-            ? '<span class="dashboard-status-online"><span class="dashboard-online-dot"></span>מחובר</span>'
-            : '<span class="dashboard-status-offline">לא מחובר</span>';
-        const bestExam = user.bestExamScore > 0
-            ? `${user.bestExamCorrect} (${user.bestExamScore})`
-            : "—";
-        return [
-            `<button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(user.username)}">${window.escapeHtml(user.username)}</button>`,
-            status,
-            formatRelativeTime(user.lastSeenIso),
-            user.level,
-            user.xp,
-            user.dailyCorrect,
-            user.weeklyCorrect,
-            user.totalAnswered,
-            user.correctAnswers,
-            `${user.successRate}%`,
-            bestExam,
-            flags.join(" ") || "—"
-        ];
-    }
-
-    function insertUserRow(table, user) {
-        const row = table.insertRow();
-        const values = buildUserRowCells(user);
-        values.forEach((html, i) => {
-            const cell = row.insertCell();
-            if (i === 0) cell.className = "dashboard-sticky-col";
-            cell.innerHTML = html;
-        });
-        row.querySelector(".dashboard-user-link").addEventListener("click", () => openUserDetail(user.username));
-    }
-
-    function renderAllUsersTable() {
-        const table = document.getElementById("all-users-table");
-        if (!table) return;
-        const headerRow = table.querySelector("tr");
-        table.innerHTML = "";
-        if (headerRow) table.appendChild(headerRow);
-
-        const filtered = allUsersCache.filter(passesUserFilter);
-        if (!filtered.length) {
-            const row = table.insertRow();
-            const cell = row.insertCell();
-            cell.colSpan = 12;
-            cell.className = "dashboard-empty-cell";
-            cell.textContent = "אין משתמשים להצגה";
-            return;
-        }
-
-        filtered.forEach((user) => insertUserRow(table, user));
-    }
-
-    async function openUserDetail(username) {
-        const modal = document.getElementById("user-detail-modal");
-        const body = document.getElementById("user-detail-body");
-        const actions = document.getElementById("user-detail-actions");
-        const title = document.getElementById("user-detail-title");
-        if (!modal || !body) return;
-
-        title.textContent = `פרטי משתמש: ${username}`;
-        body.innerHTML = '<p class="dashboard-empty-hint">טוען...</p>';
-        actions.innerHTML = "";
-        modal.hidden = false;
-        modal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("dashboard-modal-open");
-
-        try {
-            const res = await fetch(`/api/dashboard-user?username=${encodeURIComponent(username)}`);
-            if (!res.ok) throw new Error("failed");
-            const detail = await res.json();
-            renderUserDetail(detail, body, actions);
-            body.scrollTop = 0;
-        } catch {
-            body.innerHTML = '<p class="dashboard-empty-hint">שגיאה בטעינת פרטי משתמש</p>';
-        }
-    }
-
-    function renderUserDetail(detail, body, actions) {
-        const user = detail.user;
-        const statusBadge = user.isOnline
-            ? '<span class="dashboard-status-online"><span class="dashboard-online-dot"></span>מחובר</span>'
-            : '<span class="dashboard-status-offline">לא מחובר</span>';
-
-        body.innerHTML = `
-            <div class="dashboard-user-stats">
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">סטטוס</span>
-                    <span class="dashboard-user-stat-value">${statusBadge}</span>
-                </div>
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">נראה לאחרונה</span>
-                    <span class="dashboard-user-stat-value">${formatRelativeTime(user.lastSeenIso)}</span>
-                </div>
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">רמה / XP</span>
-                    <span class="dashboard-user-stat-value dashboard-stat-ltr">רמה ${user.level} · ${user.xp} XP</span>
-                </div>
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">היום / השבוע</span>
-                    <span class="dashboard-user-stat-value">${user.dailyCorrect} / ${user.weeklyCorrect}</span>
-                </div>
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">סה״כ הצלחה</span>
-                    <span class="dashboard-user-stat-value">${user.correctAnswers}/${user.totalAnswered} (${user.successRate}%)</span>
-                </div>
-                <div class="dashboard-user-stat">
-                    <span class="dashboard-user-stat-label">מבחן מיטבי</span>
-                    <span class="dashboard-user-stat-value">${user.bestExamScore > 0 ? `${user.bestExamCorrect} נק׳ (${user.bestExamScore})` : "—"}</span>
-                </div>
-            </div>
-            <section class="dashboard-modal-section">
-                <h4 class="dashboard-detail-subtitle">שאלות אחרונות</h4>
-                ${renderQuestionsTable(detail.recentQuestions)}
-            </section>
-            <section class="dashboard-modal-section">
-                <h4 class="dashboard-detail-subtitle">הישגים <span class="dashboard-detail-count">${(detail.achievements || []).length}</span></h4>
-                <div class="dashboard-achievement-chips">${renderAchievementChips(detail.achievements)}</div>
-            </section>
-            <section class="dashboard-modal-section">
-                <h4 class="dashboard-detail-subtitle">מבחנים</h4>
-                ${renderExamsTable(detail.exams)}
-            </section>
-        `;
-
-        body.querySelectorAll("[data-expire-exam]").forEach((btn) => {
-            btn.addEventListener("click", () => expireExam(btn.dataset.expireExam));
-        });
-
-        actions.innerHTML = `
-            ${canSupportUser(user.username) ? `
-            <button type="button" class="dashboard-action-btn" data-action="reset-progress" data-username="${window.escapeHtml(user.username)}">
-                אפס התקדמות
-            </button>` : ""}
-            <button type="button" class="dashboard-action-btn" data-action="toggle-cheater" data-username="${window.escapeHtml(user.username)}" data-value="${!user.isCheater}">
-                ${user.isCheater ? "הסר סימון cheater" : "סמן כ-cheater"}
-            </button>
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${window.escapeHtml(user.username)}" data-value="${!user.isBanned}">
-                ${user.isBanned ? "בטל חסימה" : "חסום משתמש"}
-            </button>
-            ${canDeleteUser(user.username) ? `
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${window.escapeHtml(user.username)}">
-                מחק משתמש לצמיתות
-            </button>` : ""}
-        `;
-
-        actions.querySelectorAll(".dashboard-action-btn").forEach((btn) => {
-            btn.addEventListener("click", () => runUserAction(btn.dataset.action, btn.dataset.username, btn.dataset.value === "true"));
-        });
-    }
-
-    function renderQuestionsTable(questions) {
-        if (!questions?.length) return '<p class="dashboard-empty-hint">אין נתוני שאלות</p>';
-        const rows = questions.map((q) => {
-            const label = formatQuestionLabel(q.questionId);
-            const full = window.escapeHtml(q.questionId);
-            const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
-            return `<tr>
-            <td>
-                <span class="dashboard-question-cell">
-                    <span class="dashboard-question-label" title="${full}">${window.escapeHtml(label)}</span>
-                    <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
-                </span>
-            </td>
-            <td class="dashboard-num-cell">${formatAttemptScore(q.correct)}</td>
-            <td class="dashboard-num-cell">${formatAttemptTotal(q.attempts)}</td>
-            <td title="האם הניסיון האחרון על השאלה היה נכון">${resultBadge(q.lastWasCorrect)}</td>
-            <td class="dashboard-time-cell">${formatRelativeTime(q.lastAnsweredIso)}</td>
-        </tr>`;
-        }).join("");
-        return `<div class="dashboard-table-shell dashboard-modal-table-shell">
-            <table class="dashboard-table dashboard-table-compact dashboard-modal-table">
-                <tr>
-                    <th>שאלה</th>
-                    <th>נכונות</th>
-                    <th>ניסיונות</th>
-                    <th title="האם הניסיון האחרון היה נכון">ניסיון אחרון</th>
-                    <th>מתי</th>
-                </tr>
-                ${rows}
-            </table>
-        </div>`;
-    }
-
-    function renderAchievementChips(achievements) {
-        if (!achievements?.length) return '<p class="dashboard-empty-hint">אין הישגים</p>';
-        return achievements.map((a) => `<span class="dashboard-achievement-chip">${window.escapeHtml(a.emoji)} ${window.escapeHtml(a.title)}</span>`).join("");
-    }
-
-    function renderExamsTable(exams) {
-        if (!exams?.length) return '<p class="dashboard-empty-hint">אין מבחנים</p>';
-        const rows = exams.map((e) => {
-            const expireBtn = e.status === "active"
-                ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-exam="${window.escapeHtml(e.token)}">סיים</button>`
-                : "—";
-            return `<tr>
-            <td>${window.escapeHtml(formatExamStatus(e.status))}</td>
-            <td>${e.score}/${e.maxScore}</td>
-            <td class="dashboard-time-cell">${formatClock(e.startedIso)}</td>
-            <td class="dashboard-time-cell">${e.completedIso ? formatClock(e.completedIso) : "—"}</td>
-            <td>${expireBtn}</td>
-        </tr>`;
-        }).join("");
-        return `<div class="dashboard-table-shell dashboard-modal-table-shell">
-            <table class="dashboard-table dashboard-table-compact dashboard-modal-table">
-                <tr><th>סטטוס</th><th>ציון</th><th>התחיל</th><th>הסתיים</th><th>פעולה</th></tr>
-                ${rows}
-            </table>
-        </div>`;
-    }
-
-    function canSupportUser(username) {
-        return username && username.toLowerCase() !== "admin";
-    }
-
-    function canDeleteUser(username) {
-        return username && username.toLowerCase() !== "admin";
-    }
-
-    async function resetUserProgress(username) {
-        if (!canSupportUser(username)) return;
-        const confirmed = await confirmDashboardAction(
-            `לאפס את כל ההתקדמות של "${username}"?\n\nהמשתמש יאבד XP, הישגים, וסטטיסטיקות — פעולה בלתי הפיכה.`
-        );
-        if (!confirmed) return;
-        try {
-            const res = await fetch("/api/dashboard-user-reset", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username })
-            });
-            if (!res.ok) throw new Error("failed");
-            await openUserDetail(username);
-            await fetchDashboardData(true);
-        } catch {
-            await showDashboardError("איפוס ההתקדמות נכשל");
-        }
-    }
-
-    async function deleteUser(username) {
-        if (!canDeleteUser(username)) return;
-        const confirmed = await confirmDashboardAction(
-            `האם למחוק את המשתמש "${username}" לצמיתות?\n\nפעולה זו בלתי הפיכה ותמחק את כל הנתונים שלו מהמערכת.`
-        );
-        if (!confirmed) return;
-
-        try {
-            const res = await fetch("/api/dashboard-user-delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username })
-            });
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg || "failed");
-            }
-            closeUserModal();
-            await fetchDashboardData(true);
-        } catch (err) {
-            const suffix = err?.message ? `: ${err.message}` : "";
-            await showDashboardError(`מחיקת המשתמש נכשלה${suffix}`);
-        }
-    }
-
-    async function toggleUserProperty(username, action, value) {
-        const payload = { username };
-        if (action === "toggle-cheater") payload.isCheater = value;
-        if (action === "toggle-ban") payload.isBanned = value;
-
-        try {
-            const res = await fetch("/api/dashboard-user-action", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) throw new Error("failed");
-            await openUserDetail(username);
-            await fetchDashboardData(true);
-        } catch {
-            await showDashboardError("הפעולה נכשלה");
-        }
-    }
-
-    async function runUserAction(action, username, value) {
-        if (action === "reset-progress") return resetUserProgress(username);
-        if (action === "delete-user") return deleteUser(username);
-        return toggleUserProperty(username, action, value);
-    }
-
-    function closeUserModal() {
-        const modal = document.getElementById("user-detail-modal");
-        if (!modal) return;
-        modal.hidden = true;
-        modal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("dashboard-modal-open");
-    }
-
     function startAutoUpdate() {
-        updateInterval = setInterval(fetchDashboardData, 5000);
+        D.state.updateInterval = setInterval(D.fetchDashboardData, 5000);
         if (!window.__dashClockInterval) {
             window.__dashClockInterval = setInterval(() => {
                 const el = document.getElementById("last-update");
                 if (!el) return;
-                const now = new Date();
-                el.textContent = `(עודכן ב-${now.toLocaleTimeString("he-IL")})`;
+                el.textContent = `(עודכן ב-${new Date().toLocaleTimeString("he-IL")})`;
             }, 1000);
         }
     }
 
     function stopAutoUpdate() {
-        if (updateInterval) {
-            clearInterval(updateInterval);
-            updateInterval = null;
+        if (D.state.updateInterval) {
+            clearInterval(D.state.updateInterval);
+            D.state.updateInterval = null;
         }
     }
 
@@ -759,23 +237,22 @@
         const countEl = document.getElementById("difficulty-count");
         if (!titleEl || !countEl) return;
 
-        if (currentFilter === difficulty) {
-            currentFilter = null;
+        if (D.state.currentFilter === difficulty) {
+            D.state.currentFilter = null;
             showAllDifficultyRows(rows, titleEl, countEl);
             return;
         }
 
-        currentFilter = difficulty;
+        D.state.currentFilter = difficulty;
         const visibleCount = filterRowsByDifficulty(rows, difficulty);
-        const diffText = DIFFICULTY_LABELS[difficulty] || difficulty;
+        const diffText = D.DIFFICULTY_LABELS[difficulty] || difficulty;
         titleEl.textContent = `שאלות ${diffText} (${visibleCount} שאלות)`;
         countEl.textContent = `מציג ${visibleCount} שאלות ${diffText}`;
         updateDifficultyCardStates(difficulty);
     }
 
     function updateDifficultyCardStates(activeDifficulty) {
-        const cards = document.querySelectorAll(".difficulty-card[data-difficulty]");
-        cards.forEach((card) => {
+        document.querySelectorAll(".difficulty-card[data-difficulty]").forEach((card) => {
             const isActive = activeDifficulty !== null && card.dataset.difficulty === activeDifficulty;
             const isDimmed = activeDifficulty !== null && !isActive;
             card.classList.toggle("is-active", isActive);
@@ -818,57 +295,20 @@
             btn.addEventListener("click", () => switchTab(btn.dataset.dashboardTab));
         });
 
-        document.querySelectorAll("#report-status-filters [data-report-filter]").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                document.querySelectorAll("#report-status-filters [data-report-filter]").forEach((b) => b.classList.remove("is-active"));
-                btn.classList.add("is-active");
-                reportFilter = btn.dataset.reportFilter || "open";
-                renderQuestionReports(questionReportsCache);
-            });
-        });
+        D.bindReportUi?.();
+        D.bindUserUi?.();
 
-        document.querySelectorAll("#question-reports-tbody [data-report-action]").forEach((btn) => {
-            btn.addEventListener("click", () => runReportAction(btn.dataset.reportAction, btn.dataset.reportId));
-        });
-
-        const cards = document.querySelectorAll(".difficulty-card[data-difficulty]");
-        cards.forEach((card) => {
+        document.querySelectorAll(".difficulty-card[data-difficulty]").forEach((card) => {
             card.addEventListener("click", () => filterByDifficulty(card.dataset.difficulty));
-        });
-
-        document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((b) => b.classList.remove("is-active"));
-                btn.classList.add("is-active");
-                userFilter = btn.dataset.filter || "all";
-                renderAllUsersTable();
-            });
         });
 
         bindActivityFilters("live-activity-filters", "live");
         bindActivityFilters("recent-activity-filters", "recent");
-
-        const search = document.getElementById("user-search");
-        if (search) {
-            search.addEventListener("input", () => {
-                userSearch = search.value.trim();
-                renderAllUsersTable();
-            });
-        }
-
-        document.querySelectorAll("[data-close-modal]").forEach((el) => {
-            el.addEventListener("click", closeUserModal);
-        });
-
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") closeUserModal();
-        });
-
         bindRecalculateDifficultiesForm();
     });
 
     window.addEventListener("load", () => {
-        fetchDashboardData();
+        D.fetchDashboardData();
         startAutoUpdate();
     });
 
