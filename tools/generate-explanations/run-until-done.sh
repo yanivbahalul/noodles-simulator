@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Full batch with auto-resume after Gemini daily quota reset (midnight PT + 5 min).
+# Launch: nohup bash tools/generate-explanations/run-until-done.sh >> tools/generate-explanations/batch.log 2>&1 </dev/null &
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+export HF_HUB_DISABLE_WARNINGS=1
 
 seconds_until_gemini_reset() {
   python3 - <<'PY'
@@ -17,6 +19,23 @@ else:
 PY
 }
 
+sleep_until_gemini_reset() {
+  echo "Gemini daily quota exhausted — waiting for reset (~00:05 PT)..."
+  while true; do
+    wait="$(seconds_until_gemini_reset)"
+    if (( wait <= 60 )); then
+      echo "Gemini quota — resuming in ${wait}s"
+      sleep "$wait"
+      break
+    fi
+    hrs=$((wait / 3600))
+    mins=$(((wait % 3600) / 60))
+    echo "Gemini quota — resuming in ${hrs}h ${mins}m"
+    sleep 60
+  done
+  echo "Gemini quota reset — resuming batch..."
+}
+
 while true; do
   set +e
   tools/generate-explanations/run-full-batch.sh "$@"
@@ -28,11 +47,7 @@ while true; do
     exit 0
   fi
   if [[ "$code" -eq 3 ]]; then
-    wait="$(seconds_until_gemini_reset)"
-    hrs=$((wait / 3600))
-    mins=$(((wait % 3600) / 60))
-    echo "Gemini daily quota exhausted — sleeping ${hrs}h ${mins}m until reset (~00:05 PT), then resuming..."
-    sleep "$wait"
+    sleep_until_gemini_reset
     continue
   fi
   echo "Batch exited with code $code (not quota). Fix errors and re-run."
