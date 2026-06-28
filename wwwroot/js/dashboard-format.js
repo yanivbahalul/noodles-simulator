@@ -1,8 +1,8 @@
 (function () {
-    const D = window.Dashboard = window.Dashboard || {};
+    const dashboard = window.Dashboard = window.Dashboard || {};
 
-    D.DIFFICULTY_TEXT = { easy: "קל", medium: "בינוני", hard: "קשה" };
-    D.DIFFICULTY_LABELS = { easy: "קלות", medium: "בינוניות", hard: "קשות" };
+    dashboard.DIFFICULTY_TEXT = { easy: "קל", medium: "בינוני", hard: "קשה" };
+    dashboard.DIFFICULTY_LABELS = { easy: "קלות", medium: "בינוניות", hard: "קשות" };
 
     function formatRelativeSeconds(diffSec) {
         if (diffSec < 60) return "לפני פחות מדקה";
@@ -11,7 +11,7 @@
         return null;
     }
 
-    D.formatRelativeTime = function formatRelativeTime(iso) {
+    dashboard.formatRelativeTime = function formatRelativeTime(iso) {
         if (!iso) return "—";
         const then = new Date(iso);
         if (Number.isNaN(then.getTime())) return "—";
@@ -21,14 +21,14 @@
         return then.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     };
 
-    D.formatClock = function formatClock(iso) {
+    dashboard.formatClock = function formatClock(iso) {
         if (!iso) return "—";
         const date = new Date(iso);
         if (Number.isNaN(date.getTime())) return "—";
         return date.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     };
 
-    D.formatQuestionLabel = function formatQuestionLabel(questionId) {
+    dashboard.formatQuestionLabel = function formatQuestionLabel(questionId) {
         if (!questionId) return "—";
         const name = String(questionId).split("/").pop().replace(/\.(png|jpg|jpeg|webp)$/i, "");
         const screenshotMatch = name.match(/^Screenshot at (\w{3}) (\d{1,2}) (\d{2})-(\d{2})-(\d{2})$/i);
@@ -41,20 +41,20 @@
         return name;
     };
 
-    D.formatExamStatus = function formatExamStatus(status) {
+    dashboard.formatExamStatus = function formatExamStatus(status) {
         const map = { active: "פעיל", completed: "הושלם", expired: "פג תוקף" };
         return map[status] || status || "—";
     };
 
-    D.formatAttemptScore = function formatAttemptScore(correct) {
+    dashboard.formatAttemptScore = function formatAttemptScore(correct) {
         return String(correct);
     };
 
-    D.formatAttemptTotal = function formatAttemptTotal(attempts) {
+    dashboard.formatAttemptTotal = function formatAttemptTotal(attempts) {
         return String(attempts);
     };
 
-    D.resultBadge = function resultBadge(wasCorrect) {
+    dashboard.resultBadge = function resultBadge(wasCorrect) {
         return wasCorrect
             ? '<span class="dashboard-result-badge dashboard-result-badge-ok">נכון</span>'
             : '<span class="dashboard-result-badge dashboard-result-badge-bad">שגוי</span>';

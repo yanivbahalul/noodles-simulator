@@ -1,7 +1,7 @@
 (function () {
-    const D = window.Dashboard = window.Dashboard || {};
+    const dashboard = window.Dashboard = window.Dashboard || {};
 
-    D.state = {
+    dashboard.state = {
         updateInterval: null,
         currentFilter: null,
         userFilter: "all",
@@ -21,13 +21,17 @@
         if (el) el.textContent = value ?? "—";
     }
 
-    D.setText = setText;
+    function percentText(value) {
+        return value != null ? `${value}%` : null;
+    }
 
-    D.showDashboardError = async function showDashboardError(message) {
+    dashboard.setText = setText;
+
+    dashboard.showDashboardError = async function showDashboardError(message) {
         await window.notifyAppError?.(message);
     };
 
-    D.confirmDashboardAction = async function confirmDashboardAction(message) {
+    dashboard.confirmDashboardAction = async function confirmDashboardAction(message) {
         return await window.confirmAppAction?.(message) ?? false;
     };
 
@@ -47,18 +51,18 @@
     }
 
     function switchTab(tabId) {
-        D.state.activeTab = tabId || "overview";
+        dashboard.state.activeTab = tabId || "overview";
         document.querySelectorAll(".dashboard-tab").forEach((btn) => {
-            const isActive = btn.dataset.dashboardTab === D.state.activeTab;
+            const isActive = btn.dataset.dashboardTab === dashboard.state.activeTab;
             btn.classList.toggle("is-active", isActive);
             btn.setAttribute("aria-selected", isActive ? "true" : "false");
         });
         document.querySelectorAll(".dashboard-tab-panel").forEach((panel) => {
-            const isActive = panel.dataset.dashboardPanel === D.state.activeTab;
+            const isActive = panel.dataset.dashboardPanel === dashboard.state.activeTab;
             panel.classList.toggle("is-active", isActive);
             panel.hidden = !isActive;
         });
-        try { localStorage.setItem("dashboardTab", D.state.activeTab); } catch { /* ignore */ }
+        try { localStorage.setItem("dashboardTab", dashboard.state.activeTab); } catch { /* ignore */ }
     }
 
     function renderHealthWidget(health) {
@@ -73,7 +77,7 @@
         widget.innerHTML = `
             <div class="dashboard-health-header ${statusClass}">
                 <span>${statusText}</span>
-                <span class="dashboard-health-time">${D.formatRelativeTime(health.checkedAtIso)}</span>
+                <span class="dashboard-health-time">${dashboard.formatRelativeTime(health.checkedAtIso)}</span>
             </div>
             <ul class="dashboard-health-list">
                 ${health.checks.map((c) => `
@@ -99,34 +103,28 @@
     }
 
     function applyDashboardPeriodStats(data) {
-        const activeToday = document.getElementById("active-today-count");
-        const answersToday = document.getElementById("answers-today-count");
-        const dailySuccessRate = document.getElementById("daily-success-rate");
-        const activeWeek = document.getElementById("active-week-count");
-        const answersWeek = document.getElementById("answers-week-count");
-        const weeklySuccessRate = document.getElementById("weekly-success-rate");
-        if (activeToday) activeToday.textContent = data.activeToday ?? "—";
-        if (answersToday) answersToday.textContent = data.answersToday ?? "—";
-        if (dailySuccessRate) dailySuccessRate.textContent = data.dailySuccessRate != null ? `${data.dailySuccessRate}%` : "—";
-        if (activeWeek) activeWeek.textContent = data.activeThisWeek ?? "—";
-        if (answersWeek) answersWeek.textContent = data.answersThisWeek ?? "—";
-        if (weeklySuccessRate) weeklySuccessRate.textContent = data.weeklySuccessRate != null ? `${data.weeklySuccessRate}%` : "—";
+        setText("active-today-count", data.activeToday);
+        setText("answers-today-count", data.answersToday);
+        setText("daily-success-rate", percentText(data.dailySuccessRate));
+        setText("active-week-count", data.activeThisWeek);
+        setText("answers-week-count", data.answersThisWeek);
+        setText("weekly-success-rate", percentText(data.weeklySuccessRate));
     }
 
     function applyDashboardLists(data) {
         renderHealthWidget(data.health);
-        D.renderProblematicQuestions?.(data.problematicQuestions);
-        D.renderQuestionReports?.(data.questionReports);
-        D.state.allUsersCache = data.allUsersList || [];
-        D.renderAllUsersTable?.();
-        D.renderActiveExams?.(data.activeExams || []);
-        D.state.liveActivityCache = data.liveActivity || [];
-        D.state.recentActivityCache = data.recentActivity || [];
-        renderActivityFeed("live-activity-feed", D.state.liveActivityCache, true, D.state.liveActivityFilter);
-        renderActivityFeed("recent-activity-feed", D.state.recentActivityCache, false, D.state.recentActivityFilter);
+        dashboard.renderProblematicQuestions?.(data.problematicQuestions);
+        dashboard.renderQuestionReports?.(data.questionReports);
+        dashboard.state.allUsersCache = data.allUsersList || [];
+        dashboard.renderAllUsersTable?.();
+        dashboard.renderActiveExams?.(data.activeExams || []);
+        dashboard.state.liveActivityCache = data.liveActivity || [];
+        dashboard.state.recentActivityCache = data.recentActivity || [];
+        renderActivityFeed("live-activity-feed", dashboard.state.liveActivityCache, true, dashboard.state.liveActivityFilter);
+        renderActivityFeed("recent-activity-feed", dashboard.state.recentActivityCache, false, dashboard.state.recentActivityFilter);
     }
 
-    D.fetchDashboardData = async function fetchDashboardData(fresh = false) {
+    dashboard.fetchDashboardData = async function fetchDashboardData(fresh = false) {
         try {
             const freshParam = fresh ? "&fresh=1" : "";
             const response = await fetch(`/api/dashboard-data?_=${Date.now()}${freshParam}`);
@@ -150,11 +148,24 @@
         const kindClass = `dashboard-activity-kind dashboard-activity-kind-${window.escapeHtml(item.kind || "other")}`;
         const kindText = window.escapeHtml(item.kindLabel || item.kind || "");
         return `<div class="dashboard-activity-item">
-            <span class="dashboard-activity-time" title="${window.escapeHtml(item.timestampIso)}">${D.formatRelativeTime(item.timestampIso)}</span>
+            <span class="dashboard-activity-time" title="${window.escapeHtml(item.timestampIso)}">${dashboard.formatRelativeTime(item.timestampIso)}</span>
             <span class="${kindClass}">${kindText}</span>
             <button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(item.username)}">${window.escapeHtml(item.username)}</button>
             <span class="dashboard-activity-message">${window.escapeHtml(item.message)}</span>
         </div>`;
+    }
+
+    function activityFeedEmptyMessage(isLive, items) {
+        if (!items?.length) {
+            return isLive ? "אין עדיין אירועים — יופיעו אחרי פעילות משתמשים" : "אין פעילות אחרונה";
+        }
+        return "אין אירועים בסינון הנוכחי";
+    }
+
+    function bindActivityUserLinks(container) {
+        container.querySelectorAll(".dashboard-user-link").forEach((btn) => {
+            btn.addEventListener("click", () => dashboard.openUserDetail?.(btn.dataset.username));
+        });
     }
 
     function renderActivityFeed(containerId, items, isLive, filter) {
@@ -163,17 +174,12 @@
 
         const filtered = (items || []).filter((item) => passesActivityFilter(item, filter));
         if (!filtered.length) {
-            const emptyMsg = !items?.length
-                ? (isLive ? "אין עדיין אירועים — יופיעו אחרי פעילות משתמשים" : "אין פעילות אחרונה")
-                : "אין אירועים בסינון הנוכחי";
-            container.innerHTML = `<p class="dashboard-empty-hint">${emptyMsg}</p>`;
+            container.innerHTML = `<p class="dashboard-empty-hint">${activityFeedEmptyMessage(isLive, items)}</p>`;
             return;
         }
 
         container.innerHTML = filtered.map(buildActivityItemHtml).join("");
-        container.querySelectorAll(".dashboard-user-link").forEach((btn) => {
-            btn.addEventListener("click", () => D.openUserDetail?.(btn.dataset.username));
-        });
+        bindActivityUserLinks(container);
     }
 
     function bindActivityFilters(containerId, cacheKey) {
@@ -186,18 +192,18 @@
                 btn.classList.add("is-active");
                 const filter = btn.dataset.activityFilter || "all";
                 if (cacheKey === "live") {
-                    D.state.liveActivityFilter = filter;
-                    renderActivityFeed("live-activity-feed", D.state.liveActivityCache, true, D.state.liveActivityFilter);
+                    dashboard.state.liveActivityFilter = filter;
+                    renderActivityFeed("live-activity-feed", dashboard.state.liveActivityCache, true, dashboard.state.liveActivityFilter);
                 } else {
-                    D.state.recentActivityFilter = filter;
-                    renderActivityFeed("recent-activity-feed", D.state.recentActivityCache, false, D.state.recentActivityFilter);
+                    dashboard.state.recentActivityFilter = filter;
+                    renderActivityFeed("recent-activity-feed", dashboard.state.recentActivityCache, false, dashboard.state.recentActivityFilter);
                 }
             });
         });
     }
 
     function startAutoUpdate() {
-        D.state.updateInterval = setInterval(D.fetchDashboardData, 5000);
+        dashboard.state.updateInterval = setInterval(dashboard.fetchDashboardData, 5000);
         if (!window.__dashClockInterval) {
             window.__dashClockInterval = setInterval(() => {
                 const el = document.getElementById("last-update");
@@ -208,9 +214,9 @@
     }
 
     function stopAutoUpdate() {
-        if (D.state.updateInterval) {
-            clearInterval(D.state.updateInterval);
-            D.state.updateInterval = null;
+        if (dashboard.state.updateInterval) {
+            clearInterval(dashboard.state.updateInterval);
+            dashboard.state.updateInterval = null;
         }
     }
 
@@ -237,15 +243,15 @@
         const countEl = document.getElementById("difficulty-count");
         if (!titleEl || !countEl) return;
 
-        if (D.state.currentFilter === difficulty) {
-            D.state.currentFilter = null;
+        if (dashboard.state.currentFilter === difficulty) {
+            dashboard.state.currentFilter = null;
             showAllDifficultyRows(rows, titleEl, countEl);
             return;
         }
 
-        D.state.currentFilter = difficulty;
+        dashboard.state.currentFilter = difficulty;
         const visibleCount = filterRowsByDifficulty(rows, difficulty);
-        const diffText = D.DIFFICULTY_LABELS[difficulty] || difficulty;
+        const diffText = dashboard.DIFFICULTY_LABELS[difficulty] || difficulty;
         titleEl.textContent = `שאלות ${diffText} (${visibleCount} שאלות)`;
         countEl.textContent = `מציג ${visibleCount} שאלות ${diffText}`;
         updateDifficultyCardStates(difficulty);
@@ -261,27 +267,30 @@
         });
     }
 
+    async function submitRecalculateDifficulties(recalcForm, btn) {
+        if (btn) btn.disabled = true;
+        try {
+            const token = recalcForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const res = await fetch("/Dashboard?handler=RecalculateDifficulties", {
+                method: "POST",
+                headers: {
+                    RequestVerificationToken: token || "",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({ __RequestVerificationToken: token || "" })
+            });
+            if (res.ok) location.reload();
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
     function bindRecalculateDifficultiesForm() {
         const recalcForm = document.getElementById("recalculate-difficulties-form");
         if (!recalcForm) return;
-        recalcForm.addEventListener("submit", async (e) => {
+        recalcForm.addEventListener("submit", (e) => {
             e.preventDefault();
-            const btn = document.getElementById("recalculate-difficulties-btn");
-            if (btn) btn.disabled = true;
-            try {
-                const token = recalcForm.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                const res = await fetch("/Dashboard?handler=RecalculateDifficulties", {
-                    method: "POST",
-                    headers: {
-                        RequestVerificationToken: token || "",
-                        "Content-Type": "application/x-www-form-urlencoded"
-                    },
-                    body: new URLSearchParams({ __RequestVerificationToken: token || "" })
-                });
-                if (res.ok) location.reload();
-            } finally {
-                if (btn) btn.disabled = false;
-            }
+            submitRecalculateDifficulties(recalcForm, document.getElementById("recalculate-difficulties-btn"));
         });
     }
 
@@ -295,8 +304,8 @@
             btn.addEventListener("click", () => switchTab(btn.dataset.dashboardTab));
         });
 
-        D.bindReportUi?.();
-        D.bindUserUi?.();
+        dashboard.bindReportUi?.();
+        dashboard.bindUserUi?.();
 
         document.querySelectorAll(".difficulty-card[data-difficulty]").forEach((card) => {
             card.addEventListener("click", () => filterByDifficulty(card.dataset.difficulty));
@@ -308,7 +317,7 @@
     });
 
     window.addEventListener("load", () => {
-        D.fetchDashboardData();
+        dashboard.fetchDashboardData();
         startAutoUpdate();
     });
 

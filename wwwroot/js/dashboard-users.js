@@ -1,6 +1,6 @@
 (function () {
-    const D = window.Dashboard;
-    if (!D) return;
+    const dashboard = window.Dashboard;
+    if (!dashboard) return;
 
     function isInactiveDays(iso, days) {
         if (!iso) return false;
@@ -20,9 +20,9 @@
     };
 
     function passesUserFilter(user) {
-        const search = D.state.userSearch;
+        const search = dashboard.state.userSearch;
         if (search && !user.username.toLowerCase().includes(search.toLowerCase())) return false;
-        const predicate = USER_FILTER_PREDICATES[D.state.userFilter] ?? USER_FILTER_PREDICATES.all;
+        const predicate = USER_FILTER_PREDICATES[dashboard.state.userFilter] ?? USER_FILTER_PREDICATES.all;
         return predicate(user);
     }
 
@@ -34,20 +34,28 @@
         return username && username.toLowerCase() !== "admin";
     }
 
-    function buildUserRowCells(user) {
+    function buildUserFlagsHtml(user) {
         const flags = [];
         if (user.isCheater) flags.push('<span class="dashboard-badge dashboard-badge-warn">cheater</span>');
         if (user.isBanned) flags.push('<span class="dashboard-badge dashboard-badge-danger">חסום</span>');
-        const status = user.isOnline
+        return flags.join(" ") || "—";
+    }
+
+    function buildUserOnlineStatusHtml(user) {
+        return user.isOnline
             ? '<span class="dashboard-status-online"><span class="dashboard-online-dot"></span>מחובר</span>'
             : '<span class="dashboard-status-offline">לא מחובר</span>';
-        const bestExam = user.bestExamScore > 0
-            ? `${user.bestExamCorrect} (${user.bestExamScore})`
-            : "—";
+    }
+
+    function formatBestExamScore(user) {
+        return user.bestExamScore > 0 ? `${user.bestExamCorrect} (${user.bestExamScore})` : "—";
+    }
+
+    function buildUserRowCells(user) {
         return [
             `<button type="button" class="dashboard-user-link" data-username="${window.escapeHtml(user.username)}">${window.escapeHtml(user.username)}</button>`,
-            status,
-            D.formatRelativeTime(user.lastSeenIso),
+            buildUserOnlineStatusHtml(user),
+            dashboard.formatRelativeTime(user.lastSeenIso),
             user.level,
             user.xp,
             user.dailyCorrect,
@@ -55,8 +63,8 @@
             user.totalAnswered,
             user.correctAnswers,
             `${user.successRate}%`,
-            bestExam,
-            flags.join(" ") || "—"
+            formatBestExamScore(user),
+            buildUserFlagsHtml(user)
         ];
     }
 
@@ -68,17 +76,17 @@
             if (i === 0) cell.className = "dashboard-sticky-col";
             cell.innerHTML = html;
         });
-        row.querySelector(".dashboard-user-link").addEventListener("click", () => D.openUserDetail(user.username));
+        row.querySelector(".dashboard-user-link").addEventListener("click", () => dashboard.openUserDetail(user.username));
     }
 
-    D.renderAllUsersTable = function renderAllUsersTable() {
+    dashboard.renderAllUsersTable = function renderAllUsersTable() {
         const table = document.getElementById("all-users-table");
         if (!table) return;
         const headerRow = table.querySelector("tr");
         table.innerHTML = "";
         if (headerRow) table.appendChild(headerRow);
 
-        const filtered = D.state.allUsersCache.filter(passesUserFilter);
+        const filtered = dashboard.state.allUsersCache.filter(passesUserFilter);
         if (!filtered.length) {
             const row = table.insertRow();
             const cell = row.insertCell();
@@ -90,7 +98,7 @@
         filtered.forEach((user) => insertUserRow(table, user));
     };
 
-    D.openUserDetail = async function openUserDetail(username) {
+    dashboard.openUserDetail = async function openUserDetail(username) {
         const modal = document.getElementById("user-detail-modal");
         const body = document.getElementById("user-detail-body");
         const actions = document.getElementById("user-detail-actions");
@@ -108,7 +116,7 @@
             const res = await fetch(`/api/dashboard-user?username=${encodeURIComponent(username)}`);
             if (!res.ok) throw new Error("failed");
             const detail = await res.json();
-            D.renderUserDetail(detail, body, actions);
+            dashboard.renderUserDetail(detail, body, actions);
             body.scrollTop = 0;
         } catch {
             body.innerHTML = '<p class="dashboard-empty-hint">שגיאה בטעינת פרטי משתמש</p>';
@@ -118,7 +126,7 @@
     function renderQuestionsTable(questions) {
         if (!questions?.length) return '<p class="dashboard-empty-hint">אין נתוני שאלות</p>';
         const rows = questions.map((q) => {
-            const label = D.formatQuestionLabel(q.questionId);
+            const label = dashboard.formatQuestionLabel(q.questionId);
             const full = window.escapeHtml(q.questionId);
             const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>
@@ -128,10 +136,10 @@
                     <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                 </span>
             </td>
-            <td class="dashboard-num-cell">${D.formatAttemptScore(q.correct)}</td>
-            <td class="dashboard-num-cell">${D.formatAttemptTotal(q.attempts)}</td>
-            <td title="האם הניסיון האחרון על השאלה היה נכון">${D.resultBadge(q.lastWasCorrect)}</td>
-            <td class="dashboard-time-cell">${D.formatRelativeTime(q.lastAnsweredIso)}</td>
+            <td class="dashboard-num-cell">${dashboard.formatAttemptScore(q.correct)}</td>
+            <td class="dashboard-num-cell">${dashboard.formatAttemptTotal(q.attempts)}</td>
+            <td title="האם הניסיון האחרון על השאלה היה נכון">${dashboard.resultBadge(q.lastWasCorrect)}</td>
+            <td class="dashboard-time-cell">${dashboard.formatRelativeTime(q.lastAnsweredIso)}</td>
         </tr>`;
         }).join("");
         return `<div class="dashboard-table-shell dashboard-modal-table-shell">
@@ -160,10 +168,10 @@
                 ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-sm" data-expire-exam="${window.escapeHtml(e.token)}">סיים</button>`
                 : "—";
             return `<tr>
-            <td>${window.escapeHtml(D.formatExamStatus(e.status))}</td>
+            <td>${window.escapeHtml(dashboard.formatExamStatus(e.status))}</td>
             <td>${e.score}/${e.maxScore}</td>
-            <td class="dashboard-time-cell">${D.formatClock(e.startedIso)}</td>
-            <td class="dashboard-time-cell">${e.completedIso ? D.formatClock(e.completedIso) : "—"}</td>
+            <td class="dashboard-time-cell">${dashboard.formatClock(e.startedIso)}</td>
+            <td class="dashboard-time-cell">${e.completedIso ? dashboard.formatClock(e.completedIso) : "—"}</td>
             <td>${expireBtn}</td>
         </tr>`;
         }).join("");
@@ -175,13 +183,10 @@
         </div>`;
     }
 
-    D.renderUserDetail = function renderUserDetail(detail, body, actions) {
-        const user = detail.user;
-        const statusBadge = user.isOnline
-            ? '<span class="dashboard-status-online"><span class="dashboard-online-dot"></span>מחובר</span>'
-            : '<span class="dashboard-status-offline">לא מחובר</span>';
-
-        body.innerHTML = `
+    function buildUserStatsHtml(user) {
+        const statusBadge = buildUserOnlineStatusHtml(user);
+        const bestExam = user.bestExamScore > 0 ? `${user.bestExamCorrect} נק׳ (${user.bestExamScore})` : "—";
+        return `
             <div class="dashboard-user-stats">
                 <div class="dashboard-user-stat">
                     <span class="dashboard-user-stat-label">סטטוס</span>
@@ -189,7 +194,7 @@
                 </div>
                 <div class="dashboard-user-stat">
                     <span class="dashboard-user-stat-label">נראה לאחרונה</span>
-                    <span class="dashboard-user-stat-value">${D.formatRelativeTime(user.lastSeenIso)}</span>
+                    <span class="dashboard-user-stat-value">${dashboard.formatRelativeTime(user.lastSeenIso)}</span>
                 </div>
                 <div class="dashboard-user-stat">
                     <span class="dashboard-user-stat-label">רמה / XP</span>
@@ -205,9 +210,35 @@
                 </div>
                 <div class="dashboard-user-stat">
                     <span class="dashboard-user-stat-label">מבחן מיטבי</span>
-                    <span class="dashboard-user-stat-value">${user.bestExamScore > 0 ? `${user.bestExamCorrect} נק׳ (${user.bestExamScore})` : "—"}</span>
+                    <span class="dashboard-user-stat-value">${bestExam}</span>
                 </div>
-            </div>
+            </div>`;
+    }
+
+    function buildUserActionButtons(user) {
+        const safeName = window.escapeHtml(user.username);
+        const resetBtn = canSupportUser(user.username)
+            ? `<button type="button" class="dashboard-action-btn" data-action="reset-progress" data-username="${safeName}">אפס התקדמות</button>`
+            : "";
+        const deleteBtn = canDeleteUser(user.username)
+            ? `<button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${safeName}">מחק משתמש לצמיתות</button>`
+            : "";
+        return `
+            ${resetBtn}
+            <button type="button" class="dashboard-action-btn" data-action="toggle-cheater" data-username="${safeName}" data-value="${!user.isCheater}">
+                ${user.isCheater ? "הסר סימון cheater" : "סמן כ-cheater"}
+            </button>
+            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${safeName}" data-value="${!user.isBanned}">
+                ${user.isBanned ? "בטל חסימה" : "חסום משתמש"}
+            </button>
+            ${deleteBtn}`;
+    }
+
+    dashboard.renderUserDetail = function renderUserDetail(detail, body, actions) {
+        const user = detail.user;
+
+        body.innerHTML = `
+            ${buildUserStatsHtml(user)}
             <section class="dashboard-modal-section">
                 <h4 class="dashboard-detail-subtitle">שאלות אחרונות</h4>
                 ${renderQuestionsTable(detail.recentQuestions)}
@@ -223,34 +254,19 @@
         `;
 
         body.querySelectorAll("[data-expire-exam]").forEach((btn) => {
-            btn.addEventListener("click", () => D.expireExam(btn.dataset.expireExam));
+            btn.addEventListener("click", () => dashboard.expireExam(btn.dataset.expireExam));
         });
 
-        actions.innerHTML = `
-            ${canSupportUser(user.username) ? `
-            <button type="button" class="dashboard-action-btn" data-action="reset-progress" data-username="${window.escapeHtml(user.username)}">
-                אפס התקדמות
-            </button>` : ""}
-            <button type="button" class="dashboard-action-btn" data-action="toggle-cheater" data-username="${window.escapeHtml(user.username)}" data-value="${!user.isCheater}">
-                ${user.isCheater ? "הסר סימון cheater" : "סמן כ-cheater"}
-            </button>
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="toggle-ban" data-username="${window.escapeHtml(user.username)}" data-value="${!user.isBanned}">
-                ${user.isBanned ? "בטל חסימה" : "חסום משתמש"}
-            </button>
-            ${canDeleteUser(user.username) ? `
-            <button type="button" class="dashboard-action-btn dashboard-action-btn-danger" data-action="delete-user" data-username="${window.escapeHtml(user.username)}">
-                מחק משתמש לצמיתות
-            </button>` : ""}
-        `;
+        actions.innerHTML = buildUserActionButtons(user);
 
         actions.querySelectorAll(".dashboard-action-btn").forEach((btn) => {
-            btn.addEventListener("click", () => D.runUserAction(btn.dataset.action, btn.dataset.username, btn.dataset.value === "true"));
+            btn.addEventListener("click", () => dashboard.runUserAction(btn.dataset.action, btn.dataset.username, btn.dataset.value === "true"));
         });
     };
 
     async function resetUserProgress(username) {
         if (!canSupportUser(username)) return;
-        const confirmed = await D.confirmDashboardAction(
+        const confirmed = await dashboard.confirmDashboardAction(
             `לאפס את כל ההתקדמות של "${username}"?\n\nהמשתמש יאבד XP, הישגים, וסטטיסטיקות — פעולה בלתי הפיכה.`
         );
         if (!confirmed) return;
@@ -261,35 +277,39 @@
                 body: JSON.stringify({ username })
             });
             if (!res.ok) throw new Error("failed");
-            await D.openUserDetail(username);
-            await D.fetchDashboardData(true);
+            await dashboard.openUserDetail(username);
+            await dashboard.fetchDashboardData(true);
         } catch {
-            await D.showDashboardError("איפוס ההתקדמות נכשל");
+            await dashboard.showDashboardError("איפוס ההתקדמות נכשל");
+        }
+    }
+
+    async function requestUserDelete(username) {
+        const res = await fetch("/api/dashboard-user-delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username })
+        });
+        if (!res.ok) {
+            const msg = await res.text();
+            throw new Error(msg || "failed");
         }
     }
 
     async function deleteUser(username) {
         if (!canDeleteUser(username)) return;
-        const confirmed = await D.confirmDashboardAction(
+        const confirmed = await dashboard.confirmDashboardAction(
             `האם למחוק את המשתמש "${username}" לצמיתות?\n\nפעולה זו בלתי הפיכה ותמחק את כל הנתונים שלו מהמערכת.`
         );
         if (!confirmed) return;
 
         try {
-            const res = await fetch("/api/dashboard-user-delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username })
-            });
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg || "failed");
-            }
-            D.closeUserModal();
-            await D.fetchDashboardData(true);
+            await requestUserDelete(username);
+            dashboard.closeUserModal();
+            await dashboard.fetchDashboardData(true);
         } catch (err) {
             const suffix = err?.message ? `: ${err.message}` : "";
-            await D.showDashboardError(`מחיקת המשתמש נכשלה${suffix}`);
+            await dashboard.showDashboardError(`מחיקת המשתמש נכשלה${suffix}`);
         }
     }
 
@@ -305,20 +325,20 @@
                 body: JSON.stringify(payload)
             });
             if (!res.ok) throw new Error("failed");
-            await D.openUserDetail(username);
-            await D.fetchDashboardData(true);
+            await dashboard.openUserDetail(username);
+            await dashboard.fetchDashboardData(true);
         } catch {
-            await D.showDashboardError("הפעולה נכשלה");
+            await dashboard.showDashboardError("הפעולה נכשלה");
         }
     }
 
-    D.runUserAction = async function runUserAction(action, username, value) {
+    dashboard.runUserAction = function runUserAction(action, username, value) {
         if (action === "reset-progress") return resetUserProgress(username);
         if (action === "delete-user") return deleteUser(username);
         return toggleUserProperty(username, action, value);
     };
 
-    D.closeUserModal = function closeUserModal() {
+    dashboard.closeUserModal = function closeUserModal() {
         const modal = document.getElementById("user-detail-modal");
         if (!modal) return;
         modal.hidden = true;
@@ -326,30 +346,30 @@
         document.body.classList.remove("dashboard-modal-open");
     };
 
-    D.bindUserUi = function bindUserUi() {
+    dashboard.bindUserUi = function bindUserUi() {
         document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((btn) => {
             btn.addEventListener("click", () => {
                 document.querySelectorAll(".dashboard-filter-btn[data-filter]").forEach((b) => b.classList.remove("is-active"));
                 btn.classList.add("is-active");
-                D.state.userFilter = btn.dataset.filter || "all";
-                D.renderAllUsersTable();
+                dashboard.state.userFilter = btn.dataset.filter || "all";
+                dashboard.renderAllUsersTable();
             });
         });
 
         const search = document.getElementById("user-search");
         if (search) {
             search.addEventListener("input", () => {
-                D.state.userSearch = search.value.trim();
-                D.renderAllUsersTable();
+                dashboard.state.userSearch = search.value.trim();
+                dashboard.renderAllUsersTable();
             });
         }
 
         document.querySelectorAll("[data-close-modal]").forEach((el) => {
-            el.addEventListener("click", D.closeUserModal);
+            el.addEventListener("click", dashboard.closeUserModal);
         });
 
         document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") D.closeUserModal();
+            if (e.key === "Escape") dashboard.closeUserModal();
         });
     };
 })();
