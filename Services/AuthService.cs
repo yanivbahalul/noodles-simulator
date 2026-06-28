@@ -323,6 +323,19 @@ public class AuthService
         return true;
     }
 
+    public async Task<bool> MarkOfflineAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return false;
+
+        _lastPresenceByUser.TryRemove(username, out _);
+        if (!await TouchLastSeenAsync(username, DateTime.UtcNow.AddHours(-1)))
+            return false;
+
+        InvalidateOnlineCountCache();
+        return true;
+    }
+
     public bool HasDismissedNotice(User? user, string noticeId)
     {
         if (user?.DismissedNotices == null || string.IsNullOrWhiteSpace(noticeId))

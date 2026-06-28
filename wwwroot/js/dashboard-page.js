@@ -91,7 +91,8 @@
 
     function applyDashboardCounts(data) {
         document.getElementById("all-users-count").textContent = data.allUsersCount;
-        document.getElementById("online-users-count").textContent = data.onlineUsersCount;
+        const onlineFromList = (data.allUsersList || []).filter((u) => u.isOnline).length;
+        document.getElementById("online-users-count").textContent = onlineFromList;
         document.getElementById("cheaters-count").textContent = data.cheatersCount;
         document.getElementById("banned-users-count").textContent = data.bannedUsersCount;
         document.getElementById("average-success-rate").textContent = `${data.averageSuccessRate}%`;

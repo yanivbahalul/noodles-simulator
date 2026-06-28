@@ -1319,6 +1319,37 @@ api.MapGet("/dashboard-feedback", async context =>
     }
 });
 
+api.MapPost("/offline", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        context.Response.StatusCode = 204;
+        return;
+    }
+
+    try
+    {
+        if (!TryResolveAuthService(context, out var authService))
+        {
+            context.Response.StatusCode = 204;
+            return;
+        }
+
+        var username = context.Session.GetString("Username");
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            await authService.MarkOfflineAsync(username);
+            InvalidateDashboardCaches(context.RequestServices);
+        }
+
+        context.Response.StatusCode = 204;
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Offline API Error", ex);
+    }
+});
+
 api.MapGet("/online-count", async context =>
 {
     try
