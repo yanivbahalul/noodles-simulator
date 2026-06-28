@@ -36,6 +36,11 @@ public sealed class PracticeGitHubStarPromptView
     public int Milestone { get; set; }
 }
 
+public sealed class PracticeWelcomePromptView
+{
+    public bool Show { get; set; }
+}
+
 public sealed class PracticeIndexGetPrepareResult
 {
     public bool RedirectLogin { get; set; }
@@ -46,6 +51,7 @@ public sealed class PracticeIndexGetPrepareResult
     public string ActiveNoticeId { get; set; } = "";
     public PracticeFeedbackPromptView FeedbackPrompt { get; set; } = new();
     public PracticeGitHubStarPromptView GitHubStarPrompt { get; set; } = new();
+    public PracticeWelcomePromptView WelcomePrompt { get; set; } = new();
 }
 
 public sealed class PracticeAuthResult
@@ -124,6 +130,7 @@ public class PracticeIndexPageService
             return new PracticeIndexGetPrepareResult { RedirectBanned = true };
 
         _ = _auth.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
+        result.WelcomePrompt = ResolveWelcomePrompt(http);
         result.ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
 
         var isAdmin = string.Equals(http.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
@@ -235,6 +242,9 @@ public class PracticeIndexPageService
         view.Milestone = GitHubStarPrompt.GetActiveMilestone(user.TotalAnswered);
         return view;
     }
+
+    public PracticeWelcomePromptView ResolveWelcomePrompt(HttpContext http) =>
+        new() { Show = WelcomePrompt.ShouldPrompt(http) };
 
     public async Task<int> GetUnlockedAchievementCountAsync(string username)
     {

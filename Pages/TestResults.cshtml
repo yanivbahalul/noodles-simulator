@@ -114,6 +114,11 @@
         }
     </div>
 
+    <div id="question-explanation-panel" class="question-explanation-panel" hidden>
+        <button type="button" id="question-explanation-btn" class="question-explanation-btn">למה טעיתי? ▶</button>
+        <video id="question-explanation-video" class="question-explanation-video" controls playsinline hidden></video>
+    </div>
+
     @if (Model.NewAchievements.Count > 0)
     {
         <div class="achievement-toast achievement-toast-inline">
@@ -153,6 +158,7 @@
 <script type="application/json" id="test-results-items-json">@Html.Raw(Model.ItemsJson)</script>
 <script src="/js/image-modal.js" asp-append-version="true"></script>
 <script src="/js/quiz-viewport.js" asp-append-version="true"></script>
+<script src="/js/question-explanation.js" asp-append-version="true"></script>
 <script src="/js/test-results-page.js" asp-append-version="true"></script>
 
 <partial name="Shared/_SiteFooter" />

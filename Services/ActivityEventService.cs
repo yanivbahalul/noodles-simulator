@@ -185,6 +185,31 @@ public class ActivityEventService
         }
     }
 
+    public async Task<List<ActivityEvent>> GetByEventTypeAsync(string eventType, int limit = 200)
+    {
+        if (!_enabled || string.IsNullOrWhiteSpace(eventType))
+            return new List<ActivityEvent>();
+
+        try
+        {
+            var type = Uri.EscapeDataString(eventType);
+            var res = await _client.GetAsync(
+                $"{_url}/rest/v1/activity_events?select=id,username,event_type,payload,created_at&event_type=eq.{type}&order=created_at.desc&limit={limit}");
+            if (!res.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[ActivityEventService] GetByEventType failed: {res.StatusCode}");
+                return new List<ActivityEvent>();
+            }
+
+            return await ParseActivityEventsAsync(await res.Content.ReadAsStringAsync());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityEventService] GetByEventType exception: {ex.Message}");
+            return new List<ActivityEvent>();
+        }
+    }
+
     public async Task<List<ActivityEvent>> GetRecentAsync(int limit = 50)
     {
         if (!_enabled) return new List<ActivityEvent>();
@@ -199,47 +224,51 @@ public class ActivityEventService
                 return new List<ActivityEvent>();
             }
 
-            var json = await res.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            var list = new List<ActivityEvent>();
-            foreach (var row in doc.RootElement.EnumerateArray())
-            {
-                var ev = new ActivityEvent
-                {
-                    Id = row.TryGetProperty("id", out var idEl) && idEl.TryGetInt64(out var id) ? id : 0,
-                    Username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() ?? "" : "",
-                    EventType = row.TryGetProperty("event_type", out var typeEl) ? typeEl.GetString() ?? "" : "",
-                    CreatedAt = row.TryGetProperty("created_at", out var atEl) &&
-                                DateTime.TryParse(atEl.GetString(), out var parsed)
-                        ? parsed.ToUniversalTime()
-                        : DateTime.MinValue
-                };
-
-                if (row.TryGetProperty("payload", out var payloadEl) &&
-                    payloadEl.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (var prop in payloadEl.EnumerateObject())
-                    {
-                        ev.Payload[prop.Name] = prop.Value.ValueKind switch
-                        {
-                            JsonValueKind.True => true,
-                            JsonValueKind.False => false,
-                            JsonValueKind.Number when prop.Value.TryGetInt32(out var n) => n,
-                            JsonValueKind.String => prop.Value.GetString(),
-                            _ => prop.Value.GetRawText()
-                        };
-                    }
-                }
-
-                list.Add(ev);
-            }
-
-            return list;
+            return await ParseActivityEventsAsync(await res.Content.ReadAsStringAsync());
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[ActivityEventService] GetRecent exception: {ex.Message}");
             return new List<ActivityEvent>();
         }
+    }
+
+    private static Task<List<ActivityEvent>> ParseActivityEventsAsync(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var list = new List<ActivityEvent>();
+        foreach (var row in doc.RootElement.EnumerateArray())
+        {
+            var ev = new ActivityEvent
+            {
+                Id = row.TryGetProperty("id", out var idEl) && idEl.TryGetInt64(out var id) ? id : 0,
+                Username = row.TryGetProperty("username", out var userEl) ? userEl.GetString() ?? "" : "",
+                EventType = row.TryGetProperty("event_type", out var typeEl) ? typeEl.GetString() ?? "" : "",
+                CreatedAt = row.TryGetProperty("created_at", out var atEl) &&
+                            DateTime.TryParse(atEl.GetString(), out var parsed)
+                    ? parsed.ToUniversalTime()
+                    : DateTime.MinValue
+            };
+
+            if (row.TryGetProperty("payload", out var payloadEl) &&
+                payloadEl.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in payloadEl.EnumerateObject())
+                {
+                    ev.Payload[prop.Name] = prop.Value.ValueKind switch
+                    {
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        JsonValueKind.Number when prop.Value.TryGetInt32(out var n) => n,
+                        JsonValueKind.String => prop.Value.GetString(),
+                        _ => prop.Value.GetRawText()
+                    };
+                }
+            }
+
+            list.Add(ev);
+        }
+
+        return Task.FromResult(list);
     }
 }

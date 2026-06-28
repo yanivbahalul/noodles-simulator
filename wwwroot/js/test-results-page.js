@@ -111,7 +111,21 @@
 
         renderReviewAnswers(grid, item);
         updateQuestionPills();
+        updateExplanationPanel(item);
         scheduleQuizViewportAdjust();
+    }
+
+    function updateExplanationPanel(item) {
+        if (!item || item.isCorrect) {
+            window.QuestionExplanation?.reset?.();
+            return;
+        }
+        const questionId = item.questionFile ?? "";
+        if (item.isAnswered && !item.isCorrect && questionId) {
+            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+        } else {
+            window.QuestionExplanation?.reset?.();
+        }
     }
 
     function bindNavigation() {

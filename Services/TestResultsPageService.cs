@@ -24,6 +24,7 @@ public sealed class TestResultsPageData
 public sealed class TestResultsItem
 {
     public string QuestionUrl { get; init; } = "";
+    public string QuestionFile { get; init; } = "";
     public Dictionary<string, string> AnswerUrls { get; init; } = new();
     public string CorrectKey { get; init; } = "";
     public string SelectedKey { get; init; } = "";
@@ -212,6 +213,7 @@ public class TestResultsPageService
             items.Add(new TestResultsItem
             {
                 QuestionUrl = qUrl,
+                QuestionFile = q.Question ?? "",
                 AnswerUrls = answerUrls,
                 CorrectKey = correctKey,
                 SelectedKey = a?.SelectedKey ?? "",

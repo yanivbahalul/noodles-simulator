@@ -166,7 +166,12 @@
     function bindAnswerFeedback() {
         const feedback = document.getElementById("answer-feedback");
         if (!feedback || feedback.hidden) return;
-        playFeedbackSound(feedback.classList.contains("is-correct"));
+        const isCorrect = feedback.classList.contains("is-correct");
+        playFeedbackSound(isCorrect);
+        if (!isCorrect) {
+            const questionId = document.getElementById("quiz-question-image")?.value ?? "";
+            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+        }
     }
 
     function applyOnlineCount(data) {
@@ -481,7 +486,7 @@
         window.IndexQuiz?.bindQuizAnswerForm?.();
         window.IndexQuiz?.bindNextQuestion?.();
         bindReportForm();
-        window.IndexModals?.bindAppNotice?.();
+        window.IndexModals?.bindWelcomeModal?.();
         window.IndexModals?.bindFeedbackModal?.();
         window.IndexModals?.bindGitHubStarModal?.();
         window.IndexModals?.bindDifficultyChoices?.();

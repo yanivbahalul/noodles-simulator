@@ -176,6 +176,7 @@ public class LoginPageService
         RotateSessionForLogin(http);
         http.Session.SetString("Username", username);
         http.Session.SetString("IsAdmin", "0");
+        http.Session.SetString(WelcomePrompt.SessionKey, "1");
         _rememberMe.Set(http, username, false);
         await http.Session.CommitAsync();
     }

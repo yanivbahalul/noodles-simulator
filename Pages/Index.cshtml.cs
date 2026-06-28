@@ -55,6 +55,7 @@ public class IndexModel : PageModel
     public int FeedbackMilestone { get; set; }
     public bool ShowGitHubStarModal { get; set; }
     public int GitHubStarMilestone { get; set; }
+    public bool ShowWelcomeModal { get; set; }
 
     public int CurrentStreak { get; set; }
     public int UserCorrect { get; set; }
@@ -108,6 +109,7 @@ public class IndexModel : PageModel
                 ActiveNoticeId = prep.ActiveNoticeId;
                 ApplyFeedbackPrompt(prep.FeedbackPrompt);
                 ApplyGitHubStarPrompt(prep.GitHubStarPrompt);
+                ShowWelcomeModal = prep.WelcomePrompt.Show;
 
                 _indexPage.ApplyPracticeQueryParams(
                     HttpContext,

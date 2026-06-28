@@ -145,6 +145,11 @@
         <p class="quiz-answer-feedback" id="answer-feedback" hidden></p>
     }
 
+    <div id="question-explanation-panel" class="question-explanation-panel" hidden>
+        <button type="button" id="question-explanation-btn" class="question-explanation-btn">למה טעיתי? ▶</button>
+        <video id="question-explanation-video" class="question-explanation-video" controls playsinline hidden></video>
+    </div>
+
     <p class="quiz-keyboard-hint" id="quiz-keyboard-hint">קיצורים: 1–4 לבחירה · Enter לשאלה הבאה</p>
 
     <div class="button-row">
@@ -178,6 +183,35 @@
         </form>
     </div>
 </div>
+
+@if (Model.ShowWelcomeModal)
+{
+    <div id="welcome-prompt" data-course-url="@WelcomePrompt.CourseUrl" hidden></div>
+    <div id="welcome-modal" class="difficulty-modal welcome-modal">
+        <div class="difficulty-modal-content welcome-modal-content">
+            <div class="welcome-modal-scroll">
+                <span class="welcome-modal-badge">מומלץ</span>
+                <h2 class="difficulty-modal-title welcome-modal-title">@WelcomePrompt.Title</h2>
+                <p class="difficulty-modal-message welcome-modal-subtitle">@WelcomePrompt.Subtitle</p>
+                <ul class="app-notice-list welcome-modal-features">
+                    @foreach (var feature in WelcomePrompt.PlatformFeatures)
+                    {
+                        <li>@feature</li>
+                    }
+                </ul>
+                <div class="welcome-modal-recommend">
+                    <p class="welcome-modal-recommend-title">@WelcomePrompt.RecommendTitle</p>
+                    <p class="welcome-modal-recommend-body">@WelcomePrompt.RecommendBody</p>
+                    <blockquote class="welcome-modal-testimonial">@WelcomePrompt.PersonalTestimonial</blockquote>
+                </div>
+            </div>
+            <div class="difficulty-buttons welcome-modal-buttons">
+                <button type="button" class="difficulty-btn difficulty-easy welcome-modal-cta" id="welcome-cs24-btn">@WelcomePrompt.AcceptButton</button>
+                <button type="button" class="difficulty-btn difficulty-medium" id="welcome-skip-btn">@WelcomePrompt.SkipButton</button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(Model.ActiveNoticeId))
 {
@@ -227,6 +261,7 @@
      data-campaign-id="@(Model.ShowFeedbackModal ? Model.FeedbackCampaignId : "")"
      data-milestone="@(Model.ShowFeedbackModal ? Model.FeedbackMilestone : 0)"
      data-has-notice="@(!string.IsNullOrEmpty(Model.ActiveNoticeId) ? "1" : "0")"
+     data-has-welcome="@(Model.ShowWelcomeModal ? "1" : "0")"
      hidden></div>
 <div id="feedback-modal" class="difficulty-modal feedback-modal">
     <div class="difficulty-modal-content feedback-modal-content">
@@ -263,6 +298,7 @@
          data-milestone="@Model.GitHubStarMilestone"
          data-repo-url="@GitHubStarPrompt.RepoUrl"
          data-has-notice="@(!string.IsNullOrEmpty(Model.ActiveNoticeId) ? "1" : "0")"
+         data-has-welcome="@(Model.ShowWelcomeModal ? "1" : "0")"
          data-has-feedback="@(Model.ShowFeedbackModal ? "1" : "0")"
          hidden></div>
 }
@@ -413,6 +449,7 @@
 <script src="/js/index-modals.js" asp-append-version="true"></script>
 <script src="/js/index-quiz-prefetch.js" asp-append-version="true"></script>
 <script src="/js/index-quiz-feedback.js" asp-append-version="true"></script>
+<script src="/js/question-explanation.js" asp-append-version="true"></script>
 <script src="/js/index-quiz.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -35,6 +35,9 @@ public static class ActivityEventCatalog
     public const string GitHubStarLater = "github_star_later";
     public const string AppNoticePrompt = "app_notice_prompt";
     public const string AppNoticeDismiss = "app_notice_dismiss";
+    public const string WelcomeCs24Prompt = "welcome_cs24_prompt";
+    public const string WelcomeCs24Click = "welcome_cs24_click";
+    public const string WelcomeCs24Dismiss = "welcome_cs24_dismiss";
 
     public static string GetCategory(string eventType) => eventType switch
     {
@@ -44,7 +47,8 @@ public static class ActivityEventCatalog
         Register or LevelUp or DailyComplete or PracticeStart or ProgressReset => CategoryProgress,
         FeedbackPrompt or FeedbackSubmit or FeedbackLater
             or GitHubStarPrompt or GitHubStarAccept or GitHubStarLater
-            or AppNoticePrompt or AppNoticeDismiss => CategoryPrompts,
+            or AppNoticePrompt or AppNoticeDismiss
+            or WelcomeCs24Prompt or WelcomeCs24Click or WelcomeCs24Dismiss => CategoryPrompts,
         QuestionReport => CategoryReport,
         AdminAction => CategoryAdmin,
         Login => CategoryLogin,
@@ -64,6 +68,7 @@ public static class ActivityEventCatalog
         FeedbackPrompt or FeedbackSubmit or FeedbackLater => "משוב",
         GitHubStarPrompt or GitHubStarAccept or GitHubStarLater => "כוכב",
         AppNoticePrompt or AppNoticeDismiss => "הודעה",
+        WelcomeCs24Prompt or WelcomeCs24Click or WelcomeCs24Dismiss => "CS24",
         Answer => "תשובה",
         ExamStart or ExamComplete => "מבחן",
         Achievement => "הישג",
@@ -93,6 +98,9 @@ public static class ActivityEventCatalog
             GitHubStarLater => FormatGitHubLater(payload),
             AppNoticePrompt => $"קיבל הודעה ניהולית: {NoticeTitle(payload)}",
             AppNoticeDismiss => $"סגר הודעה ניהולית: {NoticeTitle(payload)}",
+            WelcomeCs24Prompt => "קיבל הודעת ברוך הבא CS24",
+            WelcomeCs24Click => "לחץ על קישור CS24 — דוד עזרן",
+            WelcomeCs24Dismiss => "דילג על המלצת CS24",
             Answer => FormatAnswer(payload),
             ExamStart => "התחיל מבחן",
             ExamComplete => FormatExamComplete(payload),

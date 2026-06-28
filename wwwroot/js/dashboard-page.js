@@ -63,6 +63,9 @@
             panel.hidden = !isActive;
         });
         try { localStorage.setItem("dashboardTab", dashboard.state.activeTab); } catch { /* ignore */ }
+        if (dashboard.state.activeTab === "questions") {
+            dashboard.loadExplanationVideos?.();
+        }
     }
 
     function renderHealthWidget(health) {

@@ -17,19 +17,22 @@ public class DashboardModel : PageModel
     private readonly UserFeedbackService _feedbackService;
     private readonly QuestionReportService _questionReports;
     private readonly DashboardDataService _dashboardData;
+    private readonly ActivityEventService _activityEvents;
 
     public DashboardModel(
         AuthService authService,
         QuestionDifficultyService difficultyService = null,
         UserFeedbackService feedbackService = null,
         QuestionReportService questionReports = null,
-        DashboardDataService dashboardData = null)
+        DashboardDataService dashboardData = null,
+        ActivityEventService activityEvents = null)
     {
         _authService = authService;
         _difficultyService = difficultyService;
         _feedbackService = feedbackService;
         _questionReports = questionReports;
         _dashboardData = dashboardData;
+        _activityEvents = activityEvents;
     }
 
     public List<User> AllUsers { get; set; } = new();
@@ -48,6 +51,11 @@ public class DashboardModel : PageModel
     public List<QuestionReportService.QuestionReportEntry> QuestionReports { get; set; } = new();
     public List<DashboardDataService.ProblematicQuestionRow> ProblematicQuestions { get; set; } = new();
     public int OpenQuestionReportsCount { get; set; }
+
+    public List<ActivityEventService.ActivityEvent> Cs24ReferralEvents { get; set; } = new();
+    public int Cs24ClickCount { get; set; }
+    public int Cs24PromptCount { get; set; }
+    public int Cs24DismissCount { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -140,6 +148,34 @@ public class DashboardModel : PageModel
             ProblematicQuestions = _dashboardData != null
                 ? await _dashboardData.GetProblematicQuestionsAsync()
                 : new List<DashboardDataService.ProblematicQuestionRow>();
+
+            if (_activityEvents != null && _activityEvents.IsEnabled)
+            {
+                var clicks = await _activityEvents.GetByEventTypeAsync(ActivityEventCatalog.WelcomeCs24Click);
+                var prompts = await _activityEvents.GetByEventTypeAsync(ActivityEventCatalog.WelcomeCs24Prompt);
+                var dismisses = await _activityEvents.GetByEventTypeAsync(ActivityEventCatalog.WelcomeCs24Dismiss);
+                Cs24ClickCount = clicks.Count;
+                Cs24PromptCount = prompts.Count;
+                Cs24DismissCount = dismisses.Count;
+                Cs24ReferralEvents = clicks
+                    .Select(e => new ActivityEventService.ActivityEvent
+                    {
+                        Id = e.Id,
+                        Username = e.Username,
+                        EventType = ActivityEventCatalog.WelcomeCs24Click,
+                        CreatedAt = e.CreatedAt
+                    })
+                    .Concat(dismisses.Select(e => new ActivityEventService.ActivityEvent
+                    {
+                        Id = e.Id,
+                        Username = e.Username,
+                        EventType = ActivityEventCatalog.WelcomeCs24Dismiss,
+                        CreatedAt = e.CreatedAt
+                    }))
+                    .OrderByDescending(e => e.CreatedAt)
+                    .Take(200)
+                    .ToList();
+            }
         }
         catch (Exception ex)
         {

@@ -10,6 +10,7 @@ public static class PonytailSelfCheck
     {
         CheckExamScoring();
         CheckQuizGamification();
+        CheckQuestionExplanationPaths();
         Console.WriteLine("[ponytail] all self-checks passed");
     }
 
@@ -40,5 +41,15 @@ public static class PonytailSelfCheck
         Assert(QuizGamification.XpForCorrectAnswer("normal", "hard", 1) == 25, "xp hard no streak");
         Assert(QuizGamification.XpForCorrectAnswer("daily", "easy", 1) == 12, "daily challenge xp");
         Assert(QuizGamification.DailyChallengeCompletionXp(10) == 70, "daily completion xp");
+    }
+
+    private static void CheckQuestionExplanationPaths()
+    {
+        Assert(
+            QuestionExplanationService.VideoObjectPath("foo/bar.png") == "explanations/foo_bar.png.mp4",
+            "explanation video path sanitizes slashes");
+        Assert(
+            QuestionExplanationService.VideoObjectPath("  q1.PNG  ").Contains("q1.PNG"),
+            "explanation video path keeps basename");
     }
 }

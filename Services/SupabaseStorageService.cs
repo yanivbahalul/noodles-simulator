@@ -106,9 +106,27 @@ public class SupabaseStorageService
             throw new ArgumentException("objectPath is required.", nameof(objectPath));
 
         var bytes = System.Text.Encoding.UTF8.GetBytes(content ?? "");
+        await UploadBytesAsync(objectPath, bytes, contentType, overwrite);
+    }
+
+    public async Task<byte[]> DownloadBytesAsync(string objectPath)
+    {
+        if (string.IsNullOrWhiteSpace(objectPath))
+            throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
         await EnsureInitAsync();
         var from = _client.Storage.From(_bucket);
-        await from.Upload(bytes, objectPath, new Supabase.Storage.FileOptions
+        return await from.Download(objectPath, (Supabase.Storage.TransformOptions?)null);
+    }
+
+    public async Task UploadBytesAsync(string objectPath, byte[] bytes, string contentType = "application/octet-stream", bool overwrite = true)
+    {
+        if (string.IsNullOrWhiteSpace(objectPath))
+            throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
+        await EnsureInitAsync();
+        var from = _client.Storage.From(_bucket);
+        await from.Upload(bytes ?? Array.Empty<byte>(), objectPath, new Supabase.Storage.FileOptions
         {
             Upsert = overwrite,
             ContentType = contentType

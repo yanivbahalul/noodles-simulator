@@ -82,6 +82,12 @@
         window.IndexPage?.applyAnswerSideEffects?.(data);
 
         syncReportFormFromAnswerResult(data);
+        if (!data.isCorrect) {
+            const questionId = document.getElementById("quiz-question-image")?.value ?? "";
+            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+        } else {
+            window.QuestionExplanation?.reset?.();
+        }
         scheduleQuizViewportAdjust();
         prefetch?.schedulePrefetchNextQuestion?.();
     }
@@ -141,6 +147,7 @@
         setHiddenQuestionImage(data.questionImage);
         renderQuestionAnswersGrid(data);
         clearAnswerFeedback(document.getElementById("answer-feedback"));
+        window.QuestionExplanation?.reset?.();
         syncReportFormForQuestion(data);
         if (data.practiceMode === "daily") updatePracticeModeBadge(data);
     }

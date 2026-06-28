@@ -302,9 +302,31 @@
                 </div>
             }
         </div>
-    </section>
 
-    <!-- דיווחים -->
+        <h2 class="dashboard-section-title">🎬 הסברי וידאו לשאלות</h2>
+        <p class="dashboard-section-hint">סטטוס יצירת וידאו הסבר (offline pipeline). ליצירה: <code>python tools/generate-explanations/generate.py --only-missing</code></p>
+        <ul class="dashboard-stat-row" id="explanation-stats-list" aria-label="סטטוס הסברי וידאו">
+            <li>מוכנים: <strong id="explanation-ready-count">—</strong></li>
+            <li>חסרים: <strong id="explanation-missing-count">—</strong></li>
+            <li>נכשלו: <strong id="explanation-failed-count">—</strong></li>
+            <li>לבדיקה: <strong id="explanation-review-count">—</strong></li>
+        </ul>
+        <div class="dashboard-table-shell">
+            <table class="dashboard-table" id="explanation-videos-table">
+                <thead>
+                    <tr>
+                        <th>שאלה</th>
+                        <th>סטטוס</th>
+                        <th>נוצר</th>
+                        <th>שגיאה</th>
+                    </tr>
+                </thead>
+                <tbody id="explanation-videos-tbody">
+                    <tr><td colspan="4">טוען...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
     <section class="dashboard-tab-panel" data-dashboard-panel="reports" hidden>
         <h2 class="dashboard-section-title">📩 תור דיווחי שאלות</h2>
         <div class="dashboard-toolbar">
@@ -395,6 +417,47 @@
         {
             <p class="dashboard-empty-hint" id="feedback-empty">עדיין אין תגובות</p>
         }
+
+        <h2 class="dashboard-section-title">🎓 המלצות CS24 — דוד עזרן</h2>
+        <p class="dashboard-feedback-summary">
+            <span id="cs24-click-count">@Model.Cs24ClickCount</span> לחיצות על הקישור
+            · <span id="cs24-prompt-count">@Model.Cs24PromptCount</span> הצגות
+            · <span id="cs24-dismiss-count">@Model.Cs24DismissCount</span> דילוגים
+        </p>
+        @if (Model.Cs24ReferralEvents.Count > 0)
+        {
+            <div class="dashboard-table-shell">
+                <table class="dashboard-table" id="cs24-referral-table">
+                    <thead>
+                        <tr>
+                            <th>תאריך</th>
+                            <th>משתמש</th>
+                            <th>פעולה</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cs24-referral-tbody">
+                        @foreach (var entry in Model.Cs24ReferralEvents)
+                        {
+                            var actionLabel = entry.EventType == ActivityEventCatalog.WelcomeCs24Click
+                                ? "לחיצה על קישור"
+                                : "דילוג";
+                            var actionClass = entry.EventType == ActivityEventCatalog.WelcomeCs24Click
+                                ? "dashboard-badge-ok"
+                                : "dashboard-badge-warn";
+                            <tr>
+                                <td>@entry.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@entry.Username</td>
+                                <td><span class="dashboard-badge @actionClass">@actionLabel</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="dashboard-empty-hint" id="cs24-referral-empty">עדיין אין פעילות — יופיע כאן אחרי הרשמות חדשות</p>
+        }
     </section>
 
     </main>
@@ -418,6 +481,7 @@
 <script src="/js/dashboard-format.js" asp-append-version="true"></script>
 <script src="/js/dashboard-page.js" asp-append-version="true"></script>
 <script src="/js/dashboard-reports.js" asp-append-version="true"></script>
+<script src="/js/dashboard-explanations.js" asp-append-version="true"></script>
 <script src="/js/dashboard-users-table.js" asp-append-version="true"></script>
 <script src="/js/dashboard-user-detail.js" asp-append-version="true"></script>
 <partial name="Shared/_SiteFooter" />

@@ -1,4 +1,84 @@
 (function () {
+    function hasWelcomePending() {
+        return Boolean(document.getElementById("welcome-prompt"));
+    }
+
+    function continueAfterWelcome() {
+        window.IndexModals?.bindAppNotice?.();
+        openFeedbackModalIfPending();
+        openGitHubStarModalIfPending();
+    }
+
+    function closeWelcomeModal() {
+        const modal = document.getElementById("welcome-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
+    function dismissWelcomeNotice(noticeId) {
+        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noticeId })
+        }).then((res) => res.ok).catch(() => {
+            window.ignoreBackgroundError?.();
+            return false;
+        });
+    }
+
+    function bindWelcomeModal() {
+        const prompt = document.getElementById("welcome-prompt");
+        const modal = document.getElementById("welcome-modal");
+        const acceptBtn = document.getElementById("welcome-cs24-btn");
+        const skipBtn = document.getElementById("welcome-skip-btn");
+        if (!prompt || !modal || !acceptBtn || !skipBtn) {
+            continueAfterWelcome();
+            return;
+        }
+
+        modal.classList.add("difficulty-modal-open");
+        logPromptShown("welcome_cs24");
+
+        const finishWelcome = () => {
+            closeWelcomeModal();
+            prompt.remove();
+            continueAfterWelcome();
+        };
+
+        acceptBtn.addEventListener("click", async () => {
+            const url = prompt.dataset.courseUrl || "https://cs24.co.il/courses/16?utm_source=noodles&utm_medium=welcome";
+            acceptBtn.disabled = true;
+            skipBtn.disabled = true;
+            window.open(url, "_blank", "noopener,noreferrer");
+            try {
+                const res = await fetch("/api/welcome/cs24-click", { method: "POST" });
+                if (res.ok) {
+                    finishWelcome();
+                    return;
+                }
+            } catch {
+                // keep modal for retry
+            }
+            acceptBtn.disabled = false;
+            skipBtn.disabled = false;
+        });
+
+        skipBtn.addEventListener("click", async () => {
+            acceptBtn.disabled = true;
+            skipBtn.disabled = true;
+            const ok = await dismissWelcomeNotice("welcome-cs24");
+            if (ok) {
+                finishWelcome();
+                return;
+            }
+            acceptBtn.disabled = false;
+            skipBtn.disabled = false;
+        });
+
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) skipBtn.click();
+        });
+    }
+
     function dismissAppNotice() {
         const modal = document.getElementById("app-notice-modal");
         const prompt = document.getElementById("app-notice-prompt");
@@ -57,12 +137,14 @@
     }
 
     function openFeedbackModalIfPending() {
+        if (hasWelcomePending()) return;
         const prompt = document.getElementById("feedback-prompt");
         const modal = document.getElementById("feedback-modal");
         if (!prompt || !modal || !prompt.dataset.campaignId) {
             openGitHubStarModalIfPending();
             return;
         }
+        if (prompt.dataset.hasNotice === "1" || prompt.dataset.hasWelcome === "1") return;
         modal.classList.add("difficulty-modal-open");
     }
 
@@ -97,9 +179,10 @@
     }
 
     function openGitHubStarModalIfPending(skipFeedbackCheck = false) {
+        if (hasWelcomePending()) return;
         const prompt = document.getElementById("github-star-prompt");
         if (!prompt) return;
-        if (prompt.dataset.hasNotice === "1") return;
+        if (prompt.dataset.hasNotice === "1" || prompt.dataset.hasWelcome === "1") return;
         if (!skipFeedbackCheck && prompt.dataset.hasFeedback === "1") return;
         openGitHubStarModal(
             parseInt(prompt.dataset.milestone, 10),
@@ -247,7 +330,7 @@
 
     function openFeedbackOnLoad() {
         const prompt = document.getElementById("feedback-prompt");
-        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1") {
+        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1" && prompt.dataset.hasWelcome !== "1") {
             openFeedbackModalIfPending();
         } else {
             openGitHubStarModalIfPending();
@@ -351,6 +434,7 @@
         closeDifficultyModal,
         openPracticeOptionsModal,
         closePracticeOptionsModal,
+        bindWelcomeModal,
         bindAppNotice,
         bindFeedbackModal,
         bindGitHubStarModal,

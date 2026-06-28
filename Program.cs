@@ -52,6 +52,10 @@ builder.Services.AddSingleton<UserQuestionStatsStore>();
 builder.Services.AddSingleton<AuthService>(sp =>
     new AuthService(sp.GetRequiredService<IConfiguration>(), sp.GetService<UserStatsService>()));
 builder.Services.AddSingleton<QuestionDifficultyService>();
+builder.Services.AddSingleton<QuestionExplanationService>(sp =>
+    new QuestionExplanationService(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetService<SupabaseStorageService>()));
 
 builder.Services.AddSingleton<EmailService>(provider =>
 {
@@ -995,7 +999,7 @@ api.MapPost("/notices/dismiss", async context =>
         }
 
         var noticeId = noticeIdEl.GetString();
-        if (!AppNotices.IsValid(noticeId) && !GitHubStarPrompt.IsGitHubStarNotice(noticeId))
+        if (!AppNotices.IsValid(noticeId) && !GitHubStarPrompt.IsGitHubStarNotice(noticeId) && !WelcomePrompt.IsValidNoticeId(noticeId))
         {
             await WritePlainError(context, 400, "Invalid noticeId");
             return;
@@ -1034,12 +1038,53 @@ api.MapPost("/notices/dismiss", async context =>
                     ["milestone"] = milestone
                 });
         }
+        else if (WelcomePrompt.IsValidNoticeId(noticeId))
+        {
+            activity?.Log(username, ActivityEventCatalog.WelcomeCs24Dismiss);
+            WelcomePrompt.ClearPending(context);
+        }
 
         await WriteJson(context, new { ok = true });
     }
     catch (Exception ex)
     {
         await WriteServerError(context, "Dismiss Notice API Error", ex);
+    }
+});
+
+api.MapPost("/welcome/cs24-click", async context =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    try
+    {
+        if (!TryResolveAuthService(context, out var authService))
+        {
+            await WritePlainError(context, 503, "AuthService not available");
+            return;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var ok = await authService.DismissNoticeAsync(username, WelcomePrompt.NoticeId);
+        if (!ok)
+        {
+            await WritePlainError(context, 500, "Failed to save");
+            return;
+        }
+
+        var activity = context.RequestServices.GetService<ActivityEventService>();
+        activity?.Log(username, ActivityEventCatalog.WelcomeCs24Click);
+        WelcomePrompt.ClearPending(context);
+
+        await WriteJson(context, new { ok = true });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Welcome CS24 Click API Error", ex);
     }
 });
 
@@ -1268,6 +1313,9 @@ api.MapPost("/activity/prompt-shown", async context =>
                 });
                 break;
             }
+            case "welcome_cs24":
+                activity.Log(username, ActivityEventCatalog.WelcomeCs24Prompt);
+                break;
             default:
                 await WritePlainError(context, 400, "Invalid prompt");
                 return;
@@ -1463,6 +1511,91 @@ api.MapGet("/question-difficulty", async (HttpContext context) =>
     catch (Exception ex)
     {
         return Results.Problem(ex.Message, statusCode: 500);
+    }
+});
+
+api.MapGet("/question-explanation", async (HttpContext context) =>
+{
+    if (!IsAuthenticated(context))
+    {
+        await WritePlainError(context, 401, "Unauthorized");
+        return;
+    }
+
+    var questionId = context.Request.Query["questionId"].ToString();
+    if (string.IsNullOrWhiteSpace(questionId))
+    {
+        await WritePlainError(context, 400, "questionId required");
+        return;
+    }
+
+    try
+    {
+        var svc = context.RequestServices.GetService<QuestionExplanationService>();
+        if (svc == null || !svc.IsEnabled)
+        {
+            await WriteJson(context, new { hasExplanation = false, videoUrl = (string?)null });
+            return;
+        }
+
+        var (hasExplanation, videoUrl) = await svc.GetVideoUrlAsync(questionId.Trim());
+        await WriteJson(context, new { hasExplanation, videoUrl });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Question Explanation API Error", ex);
+    }
+});
+
+api.MapGet("/question-explanations-status", async (HttpContext context) =>
+{
+    if (!IsAuthenticated(context) || !IsAdminSession(context))
+    {
+        await WritePlainError(context, 403, "Forbidden");
+        return;
+    }
+
+    try
+    {
+        var svc = context.RequestServices.GetService<QuestionExplanationService>();
+        var groups = context.RequestServices.GetService<QuestionGroupLoader>();
+        if (svc == null || !svc.IsEnabled)
+        {
+            await WriteJson(context, new { enabled = false, summary = new { }, items = Array.Empty<object>() });
+            return;
+        }
+
+        var statusFilter = context.Request.Query["status"].ToString();
+        var summary = await svc.GetStatusSummaryAsync();
+        var items = await svc.ListAsync(string.IsNullOrWhiteSpace(statusFilter) ? null : statusFilter, 500);
+        var totalQuestions = groups != null ? (await groups.ListAllGroupsAsync()).Count : 0;
+
+        await WriteJson(context, new
+        {
+            enabled = true,
+            totalQuestions,
+            summary = new
+            {
+                ready = summary.Ready,
+                pending = summary.Pending,
+                failed = summary.Failed,
+                needsReview = summary.NeedsReview,
+                recorded = summary.Total,
+                missing = Math.Max(0, totalQuestions - summary.Total)
+            },
+            items = items.Select(i => new
+            {
+                questionFile = i.QuestionFile,
+                status = i.Status,
+                videoPath = i.VideoPath,
+                errorMessage = i.ErrorMessage,
+                generatedAt = i.GeneratedAt?.ToUniversalTime().ToString("o")
+            })
+        });
+    }
+    catch (Exception ex)
+    {
+        await WriteServerError(context, "Question Explanations Status API Error", ex);
     }
 });
 
