@@ -20,6 +20,9 @@ public sealed class QuestionExplanationService
     private readonly SupabaseStorageService? _storage;
     private readonly ConcurrentDictionary<string, (string url, DateTime cachedAt)> _urlCache = new();
     private static readonly TimeSpan UrlCacheTtl = TimeSpan.FromMinutes(4);
+    private HashSet<string>? _readyQuestionFiles;
+    private DateTime _readyListCachedAt = DateTime.MinValue;
+    private static readonly TimeSpan ReadyListTtl = TimeSpan.FromMinutes(2);
 
     public bool IsEnabled => _client != null;
 
@@ -59,17 +62,15 @@ public sealed class QuestionExplanationService
 
     public async Task<(bool hasExplanation, string? videoUrl)> GetVideoUrlAsync(string questionFile)
     {
-        var row = await GetAsync(questionFile);
-        if (row == null
-            || !string.Equals(row.Status, QuestionExplanationStatus.Ready, StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(row.VideoPath)
-            || _storage == null)
-        {
+        if (!await HasReadyExplanationAsync(questionFile))
             return (false, null);
-        }
 
         if (_urlCache.TryGetValue(questionFile, out var cached) && DateTime.UtcNow - cached.cachedAt < UrlCacheTtl)
             return (true, cached.url);
+
+        var row = await GetAsync(questionFile);
+        if (row == null || _storage == null)
+            return (false, null);
 
         try
         {
@@ -81,6 +82,49 @@ public sealed class QuestionExplanationService
         {
             Console.WriteLine($"[QuestionExplanationService] GetVideoUrlAsync: {ex.Message}");
             return (false, null);
+        }
+    }
+
+    public async Task<bool> HasReadyExplanationAsync(string questionFile)
+    {
+        if (!IsEnabled || string.IsNullOrWhiteSpace(questionFile))
+            return false;
+
+        await EnsureReadyFilesAsync();
+        return _readyQuestionFiles?.Contains(questionFile.Trim()) == true;
+    }
+
+    public bool TryHasReadyExplanation(string questionFile)
+    {
+        if (string.IsNullOrWhiteSpace(questionFile) || _readyQuestionFiles == null)
+            return false;
+        return _readyQuestionFiles.Contains(questionFile.Trim());
+    }
+
+    public Task WarmReadyFilesAsync() => EnsureReadyFilesAsync();
+
+    private async Task EnsureReadyFilesAsync()
+    {
+        if (_readyQuestionFiles != null && DateTime.UtcNow - _readyListCachedAt < ReadyListTtl)
+            return;
+
+        try
+        {
+            var res = await _client!.GetAsync(
+                $"{_url}/rest/v1/question_explanations?Status=eq.ready&select=QuestionFile");
+            if (!res.IsSuccessStatusCode)
+                return;
+
+            var json = await res.Content.ReadAsStringAsync();
+            var items = JsonSerializer.Deserialize<List<QuestionExplanation>>(json, AppJson.Options) ?? new();
+            _readyQuestionFiles = new HashSet<string>(
+                items.Select(i => i.QuestionFile).Where(f => !string.IsNullOrWhiteSpace(f)),
+                StringComparer.OrdinalIgnoreCase);
+            _readyListCachedAt = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QuestionExplanationService] EnsureReadyFilesAsync: {ex.Message}");
         }
     }
 

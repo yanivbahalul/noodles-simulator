@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -13,12 +14,14 @@ namespace NoodlesSimulator.Services;
 public class UserProgressService
 {
     private static readonly AsyncLocal<Dictionary<string, UserProgressData>> RequestCache = new();
+    private static readonly TimeSpan MemCacheTtl = TimeSpan.FromMinutes(3);
 
     private readonly string _progressDir;
     private readonly AuthService _auth;
     private readonly UserProgressStore _store;
     private readonly UserStatsService _stats;
     private readonly UserQuestionStatsStore _questionStats;
+    private readonly IMemoryCache _memCache;
     private readonly object _lock = new();
 
     public class UserQuestionStat
@@ -81,13 +84,15 @@ public class UserProgressService
         AuthService auth = null,
         UserProgressStore store = null,
         UserStatsService stats = null,
-        UserQuestionStatsStore questionStats = null)
+        UserQuestionStatsStore questionStats = null,
+        IMemoryCache memCache = null)
     {
         _progressDir = progressDir;
         _auth = auth;
         _store = store;
         _stats = stats;
         _questionStats = questionStats;
+        _memCache = memCache;
         Directory.CreateDirectory(_progressDir);
     }
 
@@ -99,6 +104,7 @@ public class UserProgressService
 
         var cache = RequestCache.Value;
         cache?.Remove(username);
+        _memCache?.Remove(MemKey(username));
 
         try
         {
@@ -127,45 +133,139 @@ public class UserProgressService
     private static string Sanitize(string username) =>
         string.Join("_", username.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
 
+    public bool TryGetCached(string username, out UserProgressData data)
+    {
+        data = null;
+        if (string.IsNullOrWhiteSpace(username))
+            return false;
+
+        if (GetRequestCache().TryGetValue(username, out var cached))
+        {
+            EnsureWeek(cached);
+            EnsureDay(cached);
+            data = cached;
+            return true;
+        }
+
+        if (TryLoadMemCache(username, out var mem))
+        {
+            GetRequestCache()[username] = mem;
+            data = mem;
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryGetProgressTotals(string username, out int correct, out int total, out int xp)
+    {
+        correct = total = xp = 0;
+        if (!TryGetCached(username, out var data) || data == null)
+            return false;
+
+        (total, correct) = SumQuestionStats(data);
+        xp = data.Xp;
+        return true;
+    }
+
+    private static string MemKey(string username) => "progress:" + username;
+
+    private void StoreMemCache(string username, UserProgressData data)
+    {
+        if (_memCache == null || string.IsNullOrWhiteSpace(username) || data == null) return;
+        try
+        {
+            var json = JsonSerializer.Serialize(data, AppJson.Options);
+            _memCache.Set(MemKey(username), json, MemCacheTtl);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressService] MemCache store failed for {username}: {ex.Message}");
+        }
+    }
+
+    private bool TryLoadMemCache(string username, out UserProgressData data)
+    {
+        data = null;
+        if (_memCache == null || string.IsNullOrWhiteSpace(username))
+            return false;
+
+        if (!_memCache.TryGetValue(MemKey(username), out string json) || string.IsNullOrEmpty(json))
+            return false;
+
+        try
+        {
+            data = JsonSerializer.Deserialize<UserProgressData>(json, AppJson.Options);
+            if (data == null) return false;
+            EnsureWeek(data);
+            EnsureDay(data);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<UserProgressData> LoadAsync(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
             return new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
 
-        var cache = GetRequestCache();
-        if (cache.TryGetValue(username, out var cached))
-        {
-            EnsureWeek(cached);
-            EnsureDay(cached);
+        if (TryGetCached(username, out var cached))
             return cached;
-        }
 
         var data = await LoadFromStorageAsync(username);
         EnsureWeek(data);
         EnsureDay(data);
-        cache[username] = data;
+        GetRequestCache()[username] = data;
+        StoreMemCache(username, data);
         return data;
     }
 
     private async Task<UserProgressData> LoadFromStorageAsync(string username)
     {
-        ProgressDataDocument doc = null;
         var storeEnabled = _store?.IsEnabled == true;
         string? localJson = null;
+        ProgressDataDocument doc = null;
+        UserProgressData data;
 
         if (storeEnabled)
         {
-            var (fromDb, _) = _store.TryLoadDocumentWithMeta(username);
+            var docTask = Task.Run(() => _store.TryLoadDocumentWithMeta(username));
+            var statsTask = _stats?.IsEnabled == true
+                ? _stats.GetAsync(username)
+                : Task.FromResult<UserStatsRow?>(null);
+            var qStatsTask = _questionStats?.IsEnabled == true
+                ? _questionStats.LoadForUserAsync(username)
+                : Task.FromResult(new Dictionary<string, UserQuestionStat>());
+            var achievementsTask = Task.Run(() => _store.TryLoadAchievementKeys(username) ?? new List<string>());
+
+            await Task.WhenAll(docTask, statsTask, qStatsTask, achievementsTask);
+
+            var (fromDb, _) = await docTask;
             doc = fromDb;
-        }
-        else
-        {
-            localJson = TryReadLocalProgressJson(username);
-            if (localJson != null)
-                doc = TryDeserializeDocument(localJson);
+            data = doc != null
+                ? FromDocument(doc)
+                : new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
+
+            var statsRow = await statsTask;
+            if (statsRow != null)
+                UserStatsService.ApplyToProgress(statsRow, data);
+
+            var qStats = await qStatsTask;
+            if (qStats.Count > 0)
+                data.QuestionStats = qStats;
+
+            data.Achievements = await achievementsTask;
+            return data;
         }
 
-        var data = doc != null
+        localJson = TryReadLocalProgressJson(username);
+        if (localJson != null)
+            doc = TryDeserializeDocument(localJson);
+
+        data = doc != null
             ? FromDocument(doc)
             : new UserProgressData { WeekKey = GetWeekKey(), DayKey = TodayKey() };
 
@@ -182,17 +282,15 @@ public class UserProgressService
             if (qStats.Count > 0)
                 data.QuestionStats = qStats;
         }
-        else if (!storeEnabled && doc == null && localJson != null)
+        else if (doc == null && localJson != null)
         {
             TryMergeLegacyQuestionStats(localJson, data);
         }
 
-        if (storeEnabled)
-            data.Achievements = _store.TryLoadAchievementKeys(username) ?? new List<string>();
-        else if (localJson != null)
+        if (localJson != null)
             TryMergeLegacyAchievements(localJson, data);
 
-        if (!storeEnabled && doc == null && localJson == null)
+        if (doc == null && localJson == null)
             WriteFile(username, data);
 
         return data;
@@ -323,6 +421,7 @@ public class UserProgressService
     private void Save(string username, UserProgressData data)
     {
         GetRequestCache()[username] = data;
+        StoreMemCache(username, data);
 
         if (_store?.IsEnabled != true)
         {
@@ -374,7 +473,7 @@ public class UserProgressService
         return data;
     }
 
-    public async Task RecordAnswerAsync(string username, string questionId, bool isCorrect, int xpGained)
+    public async Task RecordAnswerAsync(string username, string questionId, bool isCorrect, int xpGained, int currentStreak = 0)
     {
         if (string.IsNullOrWhiteSpace(username)) return;
         var data = await LoadForMutationAsync(username);
@@ -405,6 +504,9 @@ public class UserProgressService
             data.Xp += Math.Max(0, xpGained);
         }
 
+        if (currentStreak > data.BestStreak)
+            data.BestStreak = currentStreak;
+
         Save(username, data);
     }
 
@@ -419,6 +521,7 @@ public class UserProgressService
         };
 
         GetRequestCache()[username] = fresh;
+        StoreMemCache(username, fresh);
 
         if (_store?.IsEnabled != true)
         {
@@ -714,7 +817,7 @@ public class UserProgressService
         };
     }
 
-    private static (int TotalAnswered, int CorrectAnswers) SumQuestionStats(UserProgressData data)
+    public static (int TotalAnswered, int CorrectAnswers) SumQuestionStats(UserProgressData data)
     {
         if (data?.QuestionStats == null || data.QuestionStats.Count == 0)
             return (0, 0);

@@ -168,9 +168,12 @@
         if (!feedback || feedback.hidden) return;
         const isCorrect = feedback.classList.contains("is-correct");
         playFeedbackSound(isCorrect);
-        if (!isCorrect) {
-            const questionId = document.getElementById("quiz-question-image")?.value ?? "";
-            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+        const pageData = document.getElementById("quiz-page-data");
+        const hasExplanation = pageData?.dataset?.hasExplanation === "1"
+            || pageData?.dataset?.demoExplanation === "1";
+        const questionId = document.getElementById("quiz-question-image")?.value ?? "";
+        if (questionId && hasExplanation) {
+            window.QuestionExplanation?.showIfAvailable?.(questionId, isCorrect, true);
         }
     }
 
@@ -443,16 +446,6 @@
         });
     }
 
-    function applyAnswerPrompts(data) {
-        if (data.showFeedbackPrompt && data.feedbackCampaignId) {
-            window.IndexModals?.openFeedbackModal?.(data.feedbackCampaignId, data.feedbackMilestone);
-            return;
-        }
-        if (data.showGitHubStarPrompt) {
-            window.IndexModals?.openGitHubStarModal?.(data.githubStarMilestone, data.githubStarUrl);
-        }
-    }
-
     function applyAnswerSideEffects(data) {
         applyAnswerStats(data);
         updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
@@ -461,7 +454,6 @@
         if (data.feedback?.dailyComplete) {
             showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
         }
-        applyAnswerPrompts(data);
     }
 
     window.IndexPage = { applyAnswerSideEffects, playFeedbackSound, updateStreakBadge, closeImageModal, closeAppDialog };

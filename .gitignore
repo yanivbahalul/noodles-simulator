@@ -21,5 +21,13 @@ supabase/
 # macOS admin widget — local Xcode project, not deployed
 widget/
 
-# Hebrew nikud model (~294MB) — download via tools/generate-explanations/download-phonikud-model.sh
-tools/generate-explanations/models/
+# Explanation video generation — local only (never push to GitHub)
+tools/generate-explanations/
+
+# Local explanation demos, TTS experiments, review batches
+wwwroot/demo/explanations/
+wwwroot/demo/polish-debug-*/
+wwwroot/demo/tts-compare/
+wwwroot/demo/explanation-demo-*
+wwwroot/demo/explanation-frame-*
+wwwroot/demo/explanation-demo*.mp4

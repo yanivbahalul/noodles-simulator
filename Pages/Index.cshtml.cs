@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using NoodlesSimulator.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text;
@@ -21,6 +23,7 @@ public class IndexModel : PageModel
     private readonly PracticeAnswerService _practiceAnswer;
     private readonly PracticeIndexPageService _indexPage;
     private readonly AdminUserService _adminUsers;
+    private readonly QuestionExplanationService _explanations;
 
     public IndexModel(
         EmailService emailService = null,
@@ -29,7 +32,8 @@ public class IndexModel : PageModel
         PracticeQuizService practiceQuiz = null,
         PracticeAnswerService practiceAnswer = null,
         PracticeIndexPageService indexPage = null,
-        AdminUserService adminUsers = null)
+        AdminUserService adminUsers = null,
+        QuestionExplanationService explanations = null)
     {
         _emailService = emailService;
         _activityEvents = activityEvents;
@@ -38,6 +42,7 @@ public class IndexModel : PageModel
         _practiceAnswer = practiceAnswer;
         _indexPage = indexPage;
         _adminUsers = adminUsers;
+        _explanations = explanations;
     }
 
     public bool AnswerChecked { get; set; }
@@ -76,6 +81,13 @@ public class IndexModel : PageModel
     public string QuestionImageOriginalName { get; set; }
     public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
+    // ponytail: temp demo entry point — delete when explanation batch is live everywhere
+    private const string DemoExplanationQuestion = "Screenshot at Apr 15 20-14-53.png";
+    private const string DemoSessionKey = PracticeQuizService.DemoExplanationSessionKey;
+    public bool DemoExplanationMode { get; set; }
+    public string DemoExplanationQuestionFile { get; set; } = "";
+    public bool HasExplanation { get; set; }
+
     private int _lastXpGain;
     private int _levelUpTo;
     private int _brokenStreakAt;
@@ -86,6 +98,12 @@ public class IndexModel : PageModel
     {
         try
         {
+            if (Request.Query.ContainsKey("exitDemo"))
+                return Redirect("/Index/live");
+
+            if (Request.Query.ContainsKey("demoExplanation"))
+                return Redirect("/Index/demo");
+
             if (_indexPage == null)
             {
                 Username = HttpContext.Session.GetString("Username");
@@ -120,6 +138,8 @@ public class IndexModel : PageModel
 
                 ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(prep.User, HttpContext.Session, DailyTotal));
                 NewlyUnlockedAchievements = _indexPage.LoadPendingAchievements(HttpContext.Session);
+                if (await TryLoadDemoExplanationQuestionAsync())
+                    return Page();
                 if (!await TryRestoreAnswerFlashAsync())
                 {
                     try { await LoadRandomQuestionAsync(); }
@@ -129,6 +149,8 @@ public class IndexModel : PageModel
                 return Page();
             }
 
+            if (await TryLoadDemoExplanationQuestionAsync())
+                return Page();
             if (!await TryRestoreAnswerFlashAsync())
             {
                 try { await LoadRandomQuestionAsync(); }
@@ -219,7 +241,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            var auth = await RequireUserAsync();
+            var auth = RequireQuizUser();
             if (auth.Redirect != null)
                 return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
 
@@ -245,8 +267,10 @@ public class IndexModel : PageModel
                 && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(PracticeQuizService.FlashQuestionKey)))
             {
                 await TryRestoreAnswerFlashAsync();
-                ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
+                ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
                 NewlyUnlockedAchievements = new List<string>();
+                HasExplanation = DemoExplanationMode
+                    || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
                 return new JsonResult(BuildSubmitAnswerResponse());
             }
 
@@ -256,7 +280,8 @@ public class IndexModel : PageModel
 
             await ProcessSubmittedAnswerCoreAsync(auth.User);
 
-            var cheaterAction = await DetectCheaterAsync(auth.User);
+            var cheaterAction = _practiceAnswer?.DetectCheater(HttpContext.Session, auth.User)
+                ?? CheaterDetectionAction.None;
             if (cheaterAction == CheaterDetectionAction.RedirectLogin)
                 return new JsonResult(new { redirect = "/Login" });
             if (cheaterAction == CheaterDetectionAction.RedirectCheater)
@@ -264,9 +289,9 @@ public class IndexModel : PageModel
 
             SaveAnswerFlash();
             _practiceQuiz?.ClearPrefetch(HttpContext.Session);
-            ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
-            ApplyGitHubStarPrompt(_indexPage?.ResolveGitHubStarPrompt(auth.User));
-            await ApplyUrlsFromServiceAsync();
+            ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
+            HasExplanation = DemoExplanationMode
+                || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
             return new JsonResult(BuildSubmitAnswerResponse());
         }
         catch (Exception ex)
@@ -287,8 +312,11 @@ public class IndexModel : PageModel
             _practiceQuiz?.ClearAnswerFlash(HttpContext.Session);
             if (_practiceQuiz != null)
             {
-                var display = await _practiceQuiz.AdvanceToNextQuestionDisplayAsync(HttpContext.Session);
-                ApplyQuestionDisplay(display);
+                if (!await TryReloadDemoExplanationQuestionAsync(clearFlash: false))
+                {
+                    var display = await _practiceQuiz.AdvanceToNextQuestionDisplayAsync(HttpContext.Session);
+                    ApplyQuestionDisplay(display);
+                }
             }
 
             ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
@@ -327,6 +355,18 @@ public class IndexModel : PageModel
         }
     }
 
+    private (User User, IActionResult Redirect) RequireQuizUser()
+    {
+        var result = _indexPage?.TryRequireQuizUser(HttpContext)
+            ?? new PracticeAuthResult { RedirectLogin = string.IsNullOrEmpty(HttpContext.Session.GetString("Username")) };
+
+        if (result.RedirectLogin)
+            return (null, RedirectToPage("/Login"));
+
+        Username = result.Username ?? "";
+        return (result.User, null);
+    }
+
     private async Task<(User User, IActionResult Redirect)> RequireUserAsync()
     {
         var result = _indexPage != null
@@ -358,6 +398,7 @@ public class IndexModel : PageModel
         PracticeDifficulty = view.PracticeDifficulty;
         DailyProgress = view.DailyProgress;
         IsDailyComplete = view.IsDailyComplete;
+        PracticeIndexPageService.SaveQuizStatsSession(HttpContext.Session, view);
     }
 
     private void ApplyFeedbackPrompt(PracticeFeedbackPromptView view)
@@ -436,6 +477,8 @@ public class IndexModel : PageModel
         var display = await _practiceQuiz.BuildDisplayAsync(QuestionImage, ShuffledAnswers, CorrectAnswerKey);
         ApplyQuestionDisplay(display);
         SavePracticeQuestionState();
+        HasExplanation = DemoExplanationMode
+            || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
         return true;
     }
 
@@ -457,6 +500,8 @@ public class IndexModel : PageModel
         if (_practiceAnswer == null) return;
 
         ResetAnswerFeedbackState();
+        PracticeIndexPageService.HydrateUserFromQuizSession(HttpContext.Session, user);
+        await _practiceAnswer.HydrateUserFromProgressAsync(user);
         _practiceAnswer.ApplyAnswerToUserStats(user, QuestionImage, IsCorrect);
 
         var feedback = await _practiceAnswer.ProcessAnswerAsync(
@@ -531,6 +576,55 @@ public class IndexModel : PageModel
         }
     }
 
+    private async Task<bool> TryLoadDemoExplanationQuestionAsync()
+    {
+        var env = HttpContext.RequestServices.GetService<IWebHostEnvironment>();
+        if (env?.IsProduction() == true)
+        {
+            ClearDemoExplanationSession();
+            return false;
+        }
+
+        var questionFile = HttpContext.Session.GetString(DemoSessionKey);
+        if (string.IsNullOrWhiteSpace(questionFile))
+            return false;
+
+        return await TryReloadDemoExplanationQuestionAsync(clearFlash: true, questionFile);
+    }
+
+    private void ClearDemoExplanationSession() =>
+        HttpContext.Session.Remove(DemoSessionKey);
+
+    private async Task<bool> TryReloadDemoExplanationQuestionAsync(bool clearFlash, string? questionFile = null)
+    {
+        if (_practiceQuiz == null)
+            return false;
+
+        questionFile ??= HttpContext.Session.GetString(DemoSessionKey);
+        if (string.IsNullOrWhiteSpace(questionFile))
+            return false;
+
+        var picker = HttpContext.RequestServices.GetService<PracticeQuestionPickerService>();
+        if (picker == null)
+            return false;
+
+        var groups = await picker.ListAllGroupsAsync();
+        var group = groups.FirstOrDefault(g =>
+            g.Count >= 2 && string.Equals(g[0], questionFile, StringComparison.OrdinalIgnoreCase));
+        if (group == null)
+            return false;
+
+        if (clearFlash)
+            _practiceQuiz.ClearAnswerFlash(HttpContext.Session);
+
+        var shuffled = AnswerOptionShuffle.Create(group[1], group.Skip(2).Take(3).ToList());
+        _practiceQuiz.SavePracticeQuestionState(HttpContext.Session, group[0], shuffled.Options, shuffled.CorrectKey);
+        ApplyQuestionDisplay(await _practiceQuiz.BuildDisplayAsync(group[0], shuffled.Options, shuffled.CorrectKey));
+        DemoExplanationMode = true;
+        DemoExplanationQuestionFile = group[0];
+        return true;
+    }
+
     private async Task ApplyUrlsFromServiceAsync()
     {
         if (_practiceQuiz == null)
@@ -581,11 +675,7 @@ public class IndexModel : PageModel
             DailyFinalScore = _dailyFinalScore,
             DailyTotal = DailyTotal,
             NewlyUnlockedAchievements = NewlyUnlockedAchievements,
-            ShowFeedbackModal = ShowFeedbackModal,
-            FeedbackCampaignId = FeedbackCampaignId,
-            FeedbackMilestone = FeedbackMilestone,
-            ShowGitHubStarModal = ShowGitHubStarModal,
-            GitHubStarMilestone = GitHubStarMilestone
+            HasExplanation = HasExplanation
         });
 
     private object BuildNextQuestionResponse() =>

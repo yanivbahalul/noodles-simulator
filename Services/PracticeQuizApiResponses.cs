@@ -41,11 +41,7 @@ public sealed class PracticeSubmitAnswerSnapshot
     public int DailyFinalScore { get; init; }
     public int DailyTotal { get; init; }
     public List<string> NewlyUnlockedAchievements { get; init; } = new();
-    public bool ShowFeedbackModal { get; init; }
-    public string FeedbackCampaignId { get; init; } = "";
-    public int FeedbackMilestone { get; init; }
-    public bool ShowGitHubStarModal { get; init; }
-    public int GitHubStarMilestone { get; init; }
+    public bool HasExplanation { get; init; }
 }
 
 public static class PracticeQuizApiResponses
@@ -125,12 +121,7 @@ public static class PracticeQuizApiResponses
             },
             achievements,
             redirect = (string)null,
-            showFeedbackPrompt = s.ShowFeedbackModal,
-            feedbackCampaignId = s.FeedbackCampaignId,
-            feedbackMilestone = s.FeedbackMilestone,
-            showGitHubStarPrompt = s.ShowGitHubStarModal,
-            githubStarMilestone = s.GitHubStarMilestone,
-            githubStarUrl = GitHubStarPrompt.RepoUrl
+            hasExplanation = s.HasExplanation
         };
     }
 }

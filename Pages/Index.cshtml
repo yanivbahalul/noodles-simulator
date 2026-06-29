@@ -102,9 +102,20 @@
     </div>
 }
 
-<div id="quiz-page-data" data-answer-checked="@(Model.AnswerChecked ? "1" : "0")" hidden></div>
+<div id="quiz-page-data"
+     data-answer-checked="@(Model.AnswerChecked ? "1" : "0")"
+     data-has-explanation="@(Model.HasExplanation ? "1" : "0")"
+     data-demo-explanation="@(Model.DemoExplanationMode ? "1" : "0")"
+     hidden></div>
 
 <div class="quiz-container">
+    @if (Model.DemoExplanationMode)
+    {
+        <p class="demo-explanation-banner">
+            🎬 בדיקת הסבר וידאו — ענה על השאלה ואז לחץ על כפתור ההסבר
+            · <a href="/Index/live">חזרה לחידון רגיל</a>
+        </p>
+    }
     <img src="@Model.QuestionImageUrl" alt="שאלה" loading="eager" fetchpriority="high" id="main-question-image" class="quiz-main-image" />
 
     <form method="post" id="quiz-answer-form">
@@ -145,9 +156,13 @@
         <p class="quiz-answer-feedback" id="answer-feedback" hidden></p>
     }
 
-    <div id="question-explanation-panel" class="question-explanation-panel" hidden>
-        <button type="button" id="question-explanation-btn" class="question-explanation-btn">למה טעיתי? ▶</button>
-        <video id="question-explanation-video" class="question-explanation-video" controls playsinline hidden></video>
+    <div id="question-explanation-panel" class="question-explanation-panel" hidden aria-live="polite">
+        <button type="button" id="question-explanation-btn" class="secondary-btn question-explanation-btn">
+            <span id="question-explanation-btn-text">למה טעיתי? ▶</span>
+        </button>
+        <div id="question-explanation-video-wrap" class="question-explanation-video-wrap" hidden>
+            <video id="question-explanation-video" class="question-explanation-video" controls playsinline preload="metadata"></video>
+        </div>
     </div>
 
     <p class="quiz-keyboard-hint" id="quiz-keyboard-hint">קיצורים: 1–4 לבחירה · Enter לשאלה הבאה</p>

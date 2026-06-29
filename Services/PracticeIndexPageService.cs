@@ -163,6 +163,105 @@ public class PracticeIndexPageService
         return new PracticeAuthResult { User = user, Username = username };
     }
 
+    // ponytail: quiz AJAX submit skips Supabase user fetch; session + in-request progress updates are enough.
+    public PracticeAuthResult TryRequireQuizUser(HttpContext http)
+    {
+        var username = http.Session.GetString("Username");
+        if (string.IsNullOrEmpty(username))
+            return new PracticeAuthResult { RedirectLogin = true };
+
+        return new PracticeAuthResult
+        {
+            User = new User { Username = username },
+            Username = username
+        };
+    }
+
+    public PracticeUserStatsView BuildUserStatsView(User user, ISession session, int dailyTotal = 10)
+    {
+        var view = new PracticeUserStatsView
+        {
+            CurrentStreak = session.GetInt32("CurrentStreak") ?? 0,
+            PracticeMode = session.GetString("PracticeMode") ?? "normal",
+            PracticeDifficulty = session.GetString("PracticeDifficulty") ?? ""
+        };
+
+        if (user == null)
+            return view;
+
+        view.UserCorrect = user.CorrectAnswers;
+        view.UserTotal = user.TotalAnswered;
+        view.UserXp = user.Xp;
+        view.UserLevel = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(user.Xp);
+        view.XpProgressPercent = QuizGamification.XpProgressPercent(view.UserXp);
+        view.UserSuccessRate = view.UserTotal > 0
+            ? (int)((double)view.UserCorrect / view.UserTotal * 100)
+            : 0;
+
+        if (view.PracticeMode == "daily")
+        {
+            view.DailyProgress = session.GetInt32("DailyQuestionIndex") ?? 0;
+            var dailyDate = session.GetString("DailyDate") ?? "";
+            view.IsDailyComplete = dailyDate == UserProgressService.TodayKey() && view.DailyProgress >= dailyTotal;
+        }
+
+        return view;
+    }
+
+    public async Task<PracticeUserStatsView> BuildUserStatsViewFromProgressAsync(
+        User user,
+        ISession session,
+        int dailyTotal = 10)
+    {
+        var view = BuildUserStatsView(user, session, dailyTotal);
+        if (user == null || _userProgress == null)
+            return view;
+
+        var data = _userProgress.TryGetCached(user.Username, out var cached)
+            ? cached
+            : await _userProgress.LoadAsync(user.Username);
+
+        var (total, correct) = UserProgressService.SumQuestionStats(data);
+        view.UserCorrect = Math.Max(user.CorrectAnswers, correct);
+        view.UserTotal = Math.Max(user.TotalAnswered, total);
+        view.UserXp = Math.Max(user.Xp, data.Xp);
+        user.Xp = view.UserXp;
+        view.UserLevel = QuizGamification.LevelFromXp(view.UserXp);
+        user.Level = view.UserLevel;
+        view.XpProgressPercent = QuizGamification.XpProgressPercent(view.UserXp);
+        view.UserSuccessRate = view.UserTotal > 0
+            ? (int)((double)view.UserCorrect / view.UserTotal * 100)
+            : 0;
+        return view;
+    }
+
+    public static void SaveQuizStatsSession(ISession session, PracticeUserStatsView view)
+    {
+        if (session == null || view == null) return;
+        session.SetInt32(PracticeQuizService.QuizStatsTotalKey, view.UserTotal);
+        session.SetInt32(PracticeQuizService.QuizStatsCorrectKey, view.UserCorrect);
+        session.SetInt32(PracticeQuizService.QuizStatsXpKey, view.UserXp);
+    }
+
+    public static void HydrateUserFromQuizSession(ISession session, User user)
+    {
+        if (session == null || user == null) return;
+
+        var total = session.GetInt32(PracticeQuizService.QuizStatsTotalKey);
+        var correct = session.GetInt32(PracticeQuizService.QuizStatsCorrectKey);
+        var xp = session.GetInt32(PracticeQuizService.QuizStatsXpKey);
+
+        if (total.HasValue)
+            user.TotalAnswered = Math.Max(user.TotalAnswered, total.Value);
+        if (correct.HasValue)
+            user.CorrectAnswers = Math.Max(user.CorrectAnswers, correct.Value);
+        if (xp.HasValue)
+        {
+            user.Xp = Math.Max(user.Xp, xp.Value);
+            user.Level = QuizGamification.LevelFromXp(user.Xp);
+        }
+    }
+
     public async Task<PracticeUserStatsView> BuildUserStatsViewAsync(User user, ISession session, int dailyTotal = 10)
     {
         var view = new PracticeUserStatsView

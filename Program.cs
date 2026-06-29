@@ -46,6 +46,7 @@ if (args.Contains("--ponytail-check", StringComparer.OrdinalIgnoreCase))
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<UserStatsService>();
 builder.Services.AddSingleton<UserQuestionStatsStore>();
@@ -161,7 +162,8 @@ builder.Services.AddSingleton<UserProgressService>(sp =>
         sp.GetRequiredService<AuthService>(),
         sp.GetService<UserProgressStore>(),
         sp.GetService<UserStatsService>(),
-        sp.GetService<UserQuestionStatsStore>()));
+        sp.GetService<UserQuestionStatsStore>(),
+        sp.GetService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()));
 builder.Services.AddSingleton<AchievementService>();
 builder.Services.AddSingleton<LeaderboardDataService>();
 builder.Services.AddSingleton<ActivityEventService>();
@@ -273,6 +275,9 @@ else
 
 var app = builder.Build();
 
+if (!QuizStatsHydrateCheck.Run())
+    throw new InvalidOperationException("QuizStatsHydrateCheck failed");
+
 if (app.Environment.IsProduction())
 {
     app.UseHsts();
@@ -376,7 +381,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
     context.Response.Headers["Content-Security-Policy"] =
-        "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+        "default-src 'self'; img-src 'self' data: https:; media-src 'self' https:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
     await next();
 });
 app.Use(async (context, next) =>
@@ -411,6 +416,7 @@ if (!disableRateLimit)
     app.UseRateLimiter();
 }
 app.UseAuthorization();
+
 app.MapRazorPages();
 
 app.MapPost("/clear-session", async context =>
@@ -1635,10 +1641,13 @@ _ = Task.Run(async () =>
     {
         using var scope = app.Services.CreateScope();
         var storage = scope.ServiceProvider.GetService<SupabaseStorageService>();
-        if (storage == null) return;
+        var explanations = scope.ServiceProvider.GetService<QuestionExplanationService>();
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        await storage.ListFilesAsync("");
-        Console.WriteLine($"[Startup] Storage file list warmed ({sw.ElapsedMilliseconds}ms)");
+        if (storage != null)
+            await storage.ListFilesAsync("");
+        if (explanations != null)
+            await explanations.WarmReadyFilesAsync();
+        Console.WriteLine($"[Startup] Storage + explanation list warmed ({sw.ElapsedMilliseconds}ms)");
     }
     catch (Exception ex)
     {

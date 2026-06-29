@@ -265,14 +265,14 @@ public class UserProgressStore
     public void SyncAchievements(string username, IEnumerable<string> keys)
     {
         if (!_enabled || string.IsNullOrWhiteSpace(username)) return;
-        try
+        _ = Task.Run(async () =>
         {
-            SyncAchievementsAsync(username, keys).GetAwaiter().GetResult();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[UserProgressStore] SyncAchievements failed for {username}: {ex.Message}");
-        }
+            try { await SyncAchievementsAsync(username, keys); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UserProgressStore] SyncAchievements failed for {username}: {ex.Message}");
+            }
+        });
     }
 
     public void ClearAchievements(string username)

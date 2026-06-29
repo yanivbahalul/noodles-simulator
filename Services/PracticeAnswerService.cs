@@ -181,6 +181,33 @@ public class PracticeAnswerService
         catch (Exception ex) { Console.WriteLine($"[PracticeAnswerService RecordStats Error] {ex.Message}"); }
     }
 
+    public void HydrateUserFromProgress(User user)
+    {
+        if (user == null || _userProgress == null) return;
+        if (!_userProgress.TryGetProgressTotals(user.Username, out var correct, out var total, out var xp))
+            return;
+
+        user.CorrectAnswers = Math.Max(user.CorrectAnswers, correct);
+        user.TotalAnswered = Math.Max(user.TotalAnswered, total);
+        user.Xp = Math.Max(user.Xp, xp);
+        user.Level = QuizGamification.LevelFromXp(user.Xp);
+    }
+
+    public async Task HydrateUserFromProgressAsync(User user)
+    {
+        if (user == null || _userProgress == null) return;
+
+        var data = _userProgress.TryGetCached(user.Username, out var cached)
+            ? cached
+            : await _userProgress.LoadAsync(user.Username);
+
+        var (total, correct) = UserProgressService.SumQuestionStats(data);
+        user.CorrectAnswers = Math.Max(user.CorrectAnswers, correct);
+        user.TotalAnswered = Math.Max(user.TotalAnswered, total);
+        user.Xp = Math.Max(user.Xp, data.Xp);
+        user.Level = QuizGamification.LevelFromXp(user.Xp);
+    }
+
     public async Task<PracticeAnswerFeedback> ProcessAnswerAsync(
         ISession session,
         User user,
@@ -197,23 +224,45 @@ public class PracticeAnswerService
         var xpGain = isCorrect ? XpGainForCorrectAnswer(practiceMode, practiceDifficulty, streak) : 0;
         feedback.XpGain = xpGain;
 
-        await RecordPracticeProgressAsync(session, user, questionImage, isCorrect, streak, practiceMode, practiceDifficulty, xpGain, dailyTotal, feedback);
+        await RecordPracticeProgressAsync(
+            session,
+            practiceMode,
+            practiceDifficulty,
+            user,
+            questionImage,
+            isCorrect,
+            streak,
+            xpGain,
+            dailyTotal,
+            feedback);
         await SyncUserLevelFromProgressAsync(user, feedback);
 
-        if (_achievements != null)
+        if (_achievements != null && _userProgress != null)
+        {
+            var progress = await _userProgress.LoadAsync(user.Username);
+            var (progressTotal, _) = UserProgressService.SumQuestionStats(progress);
+            var totalForAchievements = Math.Max(user.TotalAnswered, progressTotal);
+            var xpForAchievements = Math.Max(user.Xp, progress.Xp);
+            feedback.NewAchievements.AddRange(
+                await _achievements.CheckPracticeAchievementsAsync(
+                    user.Username, streak, totalForAchievements, xpForAchievements));
+        }
+        else if (_achievements != null)
+        {
             feedback.NewAchievements.AddRange(
                 await _achievements.CheckPracticeAchievementsAsync(user.Username, streak, user.TotalAnswered, user.Xp));
+        }
 
         if (feedback.NewAchievements.Count > 0)
             session.SetString("PendingAchievements", JsonSerializer.Serialize(feedback.NewAchievements, AppJson.Options));
 
-        await SyncUserToAuthAsync(user);
+        _ = SyncUserToAuthAsync(user);
         UpdateRapidAnswerCounters(session, isCorrect);
 
         return feedback;
     }
 
-    public async Task<CheaterDetectionAction> DetectCheaterAsync(ISession session, User user)
+    public CheaterDetectionAction DetectCheater(ISession session, User user)
     {
         if (IsCheaterDetectionExempt(user.Username))
             return CheaterDetectionAction.None;
@@ -225,8 +274,7 @@ public class PracticeAnswerService
 
         Console.WriteLine($"[CHEATER DETECTED] User: {user.Username} | RapidTotal: {rapidTotal} | RapidCorrect: {rapidCorrect}");
         user.IsCheater = true;
-        try { await _authService.UpdateUserAsync(user); }
-        catch (Exception ex) { Console.WriteLine($"[PracticeAnswerService CheaterMark Error] {ex.Message}"); }
+        _ = SyncUserToAuthAsync(user);
 
         var cheaterCount = (session.GetInt32("CheaterCount") ?? 0) + 1;
         session.SetInt32("CheaterCount", cheaterCount);
@@ -234,8 +282,7 @@ public class PracticeAnswerService
         if (cheaterCount >= 3)
         {
             user.IsBanned = true;
-            try { await _authService.UpdateUserAsync(user); }
-            catch (Exception ex) { Console.WriteLine($"[PracticeAnswerService Ban Error] {ex.Message}"); }
+            _ = SyncUserToAuthAsync(user);
             return CheaterDetectionAction.RedirectLogin;
         }
 
@@ -243,6 +290,9 @@ public class PracticeAnswerService
         session.SetInt32("RapidCorrect", 0);
         return CheaterDetectionAction.RedirectCheater;
     }
+
+    public Task<CheaterDetectionAction> DetectCheaterAsync(ISession session, User user) =>
+        Task.FromResult(DetectCheater(session, user));
 
     private static bool IsCheaterDetectionExempt(string username) =>
         !string.IsNullOrWhiteSpace(username) &&
@@ -270,25 +320,24 @@ public class PracticeAnswerService
 
     private async Task RecordPracticeProgressAsync(
         ISession session,
+        string practiceMode,
+        string practiceDifficulty,
         User user,
         string questionImage,
         bool isCorrect,
         int streak,
-        string practiceMode,
-        string practiceDifficulty,
         int xpGain,
         int dailyTotal,
         PracticeAnswerFeedback feedback)
     {
         if (_userProgress == null) return;
 
-        await _userProgress.RecordAnswerAsync(user.Username, questionImage, isCorrect, xpGain);
-        await _userProgress.UpdateBestStreakAsync(user.Username, streak);
+        await _userProgress.RecordAnswerAsync(user.Username, questionImage, isCorrect, xpGain, streak);
 
         if (isCorrect)
             await RecordCorrectAnswerProgressAsync(user, questionImage, practiceMode, practiceDifficulty, feedback);
 
-        if (practiceMode == "daily")
+        if (practiceMode == "daily" && session != null)
             await RecordDailyChallengeProgressAsync(session, user, isCorrect, dailyTotal, feedback);
 
         if (practiceMode != "daily")
@@ -362,7 +411,9 @@ public class PracticeAnswerService
     {
         if (_userProgress == null) return;
 
-        var progress = await _userProgress.LoadAsync(user.Username);
+        var progress = _userProgress.TryGetCached(user.Username, out var cached)
+            ? cached
+            : await _userProgress.LoadAsync(user.Username);
         var oldLevel = user.Level > 0 ? user.Level : QuizGamification.LevelFromXp(user.Xp);
         user.Xp = progress.Xp;
         user.Level = QuizGamification.LevelFromXp(user.Xp);

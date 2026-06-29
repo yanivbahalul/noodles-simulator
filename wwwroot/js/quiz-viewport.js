@@ -61,9 +61,11 @@
 
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
         const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
+        const explanationPanel = document.getElementById("question-explanation-panel");
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
             getVisibleHeight(feedback) +
+            getVisibleHeight(explanationPanel) +
             hintHeight +
             32;
     }

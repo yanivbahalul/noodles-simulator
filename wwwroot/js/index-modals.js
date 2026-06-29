@@ -1,4 +1,25 @@
 (function () {
+    function dismissNoticeImmediate(noticeId) {
+        return fetch("/api/notices/dismiss", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ noticeId })
+        }).then((res) => res.ok).catch(() => {
+            window.ignoreBackgroundError?.();
+            return false;
+        });
+    }
+
+    function markPromptHandled(key) {
+        if (!key) return;
+        try { sessionStorage.setItem(`promptHandled:${key}`, "1"); } catch { /* unsupported */ }
+    }
+
+    function isPromptHandled(key) {
+        if (!key) return false;
+        try { return sessionStorage.getItem(`promptHandled:${key}`) === "1"; } catch { return false; }
+    }
+
     function hasWelcomePending() {
         return Boolean(document.getElementById("welcome-prompt"));
     }
@@ -15,14 +36,7 @@
     }
 
     function dismissWelcomeNotice(noticeId) {
-        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noticeId })
-        }).then((res) => res.ok).catch(() => {
-            window.ignoreBackgroundError?.();
-            return false;
-        });
+        return dismissNoticeImmediate(noticeId);
     }
 
     function bindWelcomeModal() {
@@ -35,10 +49,17 @@
             return;
         }
 
+        if (isPromptHandled("welcome-cs24")) {
+            prompt.remove();
+            continueAfterWelcome();
+            return;
+        }
+
         modal.classList.add("difficulty-modal-open");
         logPromptShown("welcome_cs24");
 
         const finishWelcome = () => {
+            markPromptHandled("welcome-cs24");
             closeWelcomeModal();
             prompt.remove();
             continueAfterWelcome();
@@ -79,18 +100,22 @@
         });
     }
 
-    function dismissAppNotice() {
+    async function dismissAppNotice() {
         const modal = document.getElementById("app-notice-modal");
         const prompt = document.getElementById("app-notice-prompt");
         if (!modal) return;
         modal.classList.remove("difficulty-modal-open");
         const noticeId = prompt?.dataset.noticeId;
         if (!noticeId) return;
-        window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noticeId })
-        }).catch(ignoreDismissError);
+        if (isPromptHandled(`notice:${noticeId}`)) {
+            prompt?.remove();
+            return;
+        }
+        const ok = await dismissNoticeImmediate(noticeId);
+        if (ok) {
+            markPromptHandled(`notice:${noticeId}`);
+            prompt?.remove();
+        }
     }
 
     function logPromptShown(prompt, details = {}) {
@@ -99,10 +124,6 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt, ...details })
         }).catch(window.ignoreBackgroundError);
-    }
-
-    function ignoreDismissError() {
-        window.ignoreBackgroundError?.();
     }
 
     function ensureFeedbackPrompt(campaignId, milestone) {
@@ -118,7 +139,12 @@
         return prompt;
     }
 
+    function isFeedbackHandled(campaignId) {
+        return isPromptHandled(`feedback:${campaignId}`);
+    }
+
     function openFeedbackModal(campaignId, milestone) {
+        if (isFeedbackHandled(campaignId)) return;
         const modal = document.getElementById("feedback-modal");
         if (!modal || !campaignId) {
             openGitHubStarModalIfPending();
@@ -144,6 +170,11 @@
             openGitHubStarModalIfPending();
             return;
         }
+        if (isFeedbackHandled(prompt.dataset.campaignId)) {
+            prompt.remove();
+            openGitHubStarModalIfPending();
+            return;
+        }
         if (prompt.dataset.hasNotice === "1" || prompt.dataset.hasWelcome === "1") return;
         modal.classList.add("difficulty-modal-open");
     }
@@ -154,17 +185,20 @@
     }
 
     function dismissGitHubStarNotice(noticeId) {
-        return window.RequestChannels.backgroundFetch("/api/notices/dismiss", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ noticeId })
-        }).then((res) => res.ok).catch(() => {
-            window.ignoreBackgroundError?.();
-            return false;
-        });
+        return dismissNoticeImmediate(noticeId);
+    }
+
+    function markGitHubStarHandled() {
+        markPromptHandled("github-star");
+    }
+
+    function isGitHubStarHandled() {
+        if (isPromptHandled("github-star")) return true;
+        try { return sessionStorage.getItem("githubStarHandled") === "1"; } catch { return false; }
     }
 
     function openGitHubStarModal(milestone, url) {
+        if (isGitHubStarHandled()) return;
         const modal = document.getElementById("github-star-modal");
         if (!modal) return;
         modal.dataset.milestone = String(milestone ?? "");
@@ -179,6 +213,7 @@
     }
 
     function openGitHubStarModalIfPending(skipFeedbackCheck = false) {
+        if (isGitHubStarHandled()) return;
         if (hasWelcomePending()) return;
         const prompt = document.getElementById("github-star-prompt");
         if (!prompt) return;
@@ -229,11 +264,18 @@
         const modal = document.getElementById("app-notice-modal");
         if (!modal || !noticeId) return;
 
+        if (isPromptHandled(`notice:${noticeId}`)) {
+            prompt.remove();
+            openFeedbackModalIfPending();
+            openGitHubStarModalIfPending();
+            return;
+        }
+
         modal.classList.add("difficulty-modal-open");
         logPromptShown("app_notice", { noticeId });
 
-        const dismiss = () => {
-            dismissAppNotice();
+        const dismiss = async () => {
+            await dismissAppNotice();
             openFeedbackModalIfPending();
             openGitHubStarModalIfPending();
         };
@@ -278,6 +320,7 @@
                 body: JSON.stringify({ campaignId: prompt.dataset.campaignId })
             });
             if (res.ok) {
+                markPromptHandled(`feedback:${prompt.dataset.campaignId}`);
                 closeFeedbackModal();
                 prompt.remove();
                 openGitHubStarModalIfPending(true);
@@ -304,6 +347,7 @@
                 })
             });
             if (res.ok) {
+                markPromptHandled(`feedback:${prompt.dataset.campaignId}`);
                 closeFeedbackModal();
                 prompt.remove();
                 await showAppAlertIfAvailable("תודה! המשוב נשמר.");
@@ -386,6 +430,7 @@
             laterBtn.disabled = true;
             const ok = await dismissGitHubStarNotice("github-star-opted-in");
             if (ok) {
+                markGitHubStarHandled();
                 closeGitHubStarModal();
                 document.getElementById("github-star-prompt")?.remove();
                 return;
@@ -401,6 +446,7 @@
             laterBtn.disabled = true;
             const ok = await dismissGitHubStarNotice(`github-star-${milestone}`);
             if (ok) {
+                markGitHubStarHandled();
                 closeGitHubStarModal();
                 document.getElementById("github-star-prompt")?.remove();
                 return;
@@ -430,6 +476,7 @@
     window.IndexModals = {
         openFeedbackModal,
         openGitHubStarModal,
+        isGitHubStarHandled,
         openDifficultyModal,
         closeDifficultyModal,
         openPracticeOptionsModal,

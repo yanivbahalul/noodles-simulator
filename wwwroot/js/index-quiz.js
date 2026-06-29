@@ -15,10 +15,10 @@
         if (container) container.classList.toggle("quiz-loading", on);
     }
 
-    function setQuizBusy(on) {
+    function setQuizBusy(on, options = {}) {
         quizBusy = on;
         window.RequestChannels?.notifyQuizBusy(on);
-        setQuizLoading(on);
+        if (!options.silent) setQuizLoading(on);
         const nextBtn = document.getElementById("next-question-btn");
         if (nextBtn) nextBtn.disabled = on;
         document.querySelectorAll("#answers-grid .answer-btn").forEach((btn) => {
@@ -82,9 +82,9 @@
         window.IndexPage?.applyAnswerSideEffects?.(data);
 
         syncReportFormFromAnswerResult(data);
-        if (!data.isCorrect) {
-            const questionId = document.getElementById("quiz-question-image")?.value ?? "";
-            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+        const questionId = document.getElementById("quiz-question-image")?.value ?? "";
+        if (questionId && data.hasExplanation) {
+            window.QuestionExplanation?.showIfAvailable?.(questionId, !!data.isCorrect, true);
         } else {
             window.QuestionExplanation?.reset?.();
         }
@@ -234,7 +234,7 @@
     }
 
     async function submitQuizAnswerWithBusyState(payload, form) {
-        setQuizBusy(true);
+        setQuizBusy(true, { silent: true });
         try {
             await runQuizAnswerRequest(payload, form);
         } finally {
@@ -254,6 +254,7 @@
             return;
         }
 
+        feedback?.markAnswerPending?.(payload.submitter);
         await submitQuizAnswerWithBusyState(payload, form);
     }
 

@@ -116,13 +116,13 @@
     }
 
     function updateExplanationPanel(item) {
-        if (!item || item.isCorrect) {
+        if (!item) {
             window.QuestionExplanation?.reset?.();
             return;
         }
         const questionId = item.questionFile ?? "";
         if (item.isAnswered && !item.isCorrect && questionId) {
-            window.QuestionExplanation?.showForWrongAnswer?.(questionId);
+            window.QuestionExplanation?.showAfterAnswer?.(questionId, false);
         } else {
             window.QuestionExplanation?.reset?.();
         }

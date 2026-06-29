@@ -114,9 +114,13 @@
         }
     </div>
 
-    <div id="question-explanation-panel" class="question-explanation-panel" hidden>
-        <button type="button" id="question-explanation-btn" class="question-explanation-btn">למה טעיתי? ▶</button>
-        <video id="question-explanation-video" class="question-explanation-video" controls playsinline hidden></video>
+    <div id="question-explanation-panel" class="question-explanation-panel" hidden aria-live="polite">
+        <button type="button" id="question-explanation-btn" class="secondary-btn question-explanation-btn">
+            <span id="question-explanation-btn-text">למה טעיתי? ▶</span>
+        </button>
+        <div id="question-explanation-video-wrap" class="question-explanation-video-wrap" hidden>
+            <video id="question-explanation-video" class="question-explanation-video" controls playsinline preload="metadata"></video>
+        </div>
     </div>
 
     @if (Model.NewAchievements.Count > 0)

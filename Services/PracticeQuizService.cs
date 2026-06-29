@@ -39,6 +39,10 @@ public class PracticeQuizService
     public const string PrefetchCorrectKey = "Practice_Prefetch_CorrectKey";
     public const string PrefetchAnchorKey = "Practice_Prefetch_Anchor";
     public const string LastSubmittedQuestionKey = "LastSubmittedQuestion";
+    public const string QuizStatsTotalKey = "QuizStatsTotal";
+    public const string QuizStatsCorrectKey = "QuizStatsCorrect";
+    public const string QuizStatsXpKey = "QuizStatsXp";
+    public const string DemoExplanationSessionKey = "DemoExplanationQuestion";
 
     private readonly PracticeQuestionPickerService _picker;
     private readonly SupabaseStorageService? _storage;
@@ -470,6 +474,9 @@ public class PracticeQuizService
         session.Remove("DailyScore");
         session.Remove("DailyQuestions");
         session.Remove("PendingAchievements");
+        session.Remove(QuizStatsTotalKey);
+        session.Remove(QuizStatsCorrectKey);
+        session.Remove(QuizStatsXpKey);
         session.Remove("CheaterCount");
         session.SetInt32("RapidTotal", 0);
         session.SetInt32("RapidCorrect", 0);

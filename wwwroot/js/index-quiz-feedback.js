@@ -43,11 +43,21 @@
         return matchers.some((match) => match());
     }
 
+    function markAnswerPending(submitter) {
+        const grid = document.getElementById("answers-grid");
+        if (!grid || !submitter) return;
+        grid.querySelectorAll(".answer-btn").forEach((btn) => {
+            btn.disabled = true;
+            btn.classList.remove("is-selected");
+        });
+        submitter.classList.add("is-selected");
+    }
+
     function styleAnswerButtons(grid, data) {
         if (!grid) return;
         grid.querySelectorAll(".answer-btn").forEach((btn) => {
             btn.disabled = true;
-            btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct");
+            btn.classList.remove("correct", "incorrect", "answer-pulse", "answer-shake", "answer-reveal-correct", "is-selected");
 
             if (isAnswerButtonCorrect(btn, data)) {
                 btn.classList.add("correct", data.isCorrect ? "answer-pulse" : "answer-reveal-correct");
@@ -73,6 +83,7 @@
     }
 
     window.IndexQuizFeedback = {
+        markAnswerPending,
         styleAnswerButtons,
         showAnswerFeedback,
         triggerHaptic
