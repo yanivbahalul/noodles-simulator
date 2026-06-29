@@ -121,8 +121,8 @@
             return;
         }
         const questionId = item.questionFile ?? "";
-        if (item.isAnswered && !item.isCorrect && questionId) {
-            window.QuestionExplanation?.showAfterAnswer?.(questionId, false);
+        if (item.isAnswered && questionId) {
+            window.QuestionExplanation?.showAfterAnswer?.(questionId, !!item.isCorrect);
         } else {
             window.QuestionExplanation?.reset?.();
         }
