@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
 using NoodlesSimulator.Models;
 using System;
 using System.Collections.Generic;
@@ -81,12 +80,6 @@ public class IndexModel : PageModel
     public string QuestionImageOriginalName { get; set; }
     public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
-    // ponytail: temp demo entry point — delete when explanation batch is live everywhere
-    private const string DemoSessionKey = PracticeQuizService.DemoExplanationSessionKey;
-    public bool DemoExplanationMode { get; set; }
-    public string DemoExplanationQuestionFile { get; set; } = "";
-    public int DemoQuestionIndex { get; set; }
-    public int DemoQuestionTotal { get; set; }
     public bool HasExplanation { get; set; }
 
     private int _lastXpGain;
@@ -99,12 +92,6 @@ public class IndexModel : PageModel
     {
         try
         {
-            if (Request.Query.ContainsKey("exitDemo"))
-                return Redirect("/Index/live");
-
-            if (Request.Query.ContainsKey("demoExplanation"))
-                return Redirect("/Index/demo");
-
             if (_indexPage == null)
             {
                 Username = HttpContext.Session.GetString("Username");
@@ -139,8 +126,6 @@ public class IndexModel : PageModel
 
                 ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(prep.User, HttpContext.Session, DailyTotal));
                 NewlyUnlockedAchievements = _indexPage.LoadPendingAchievements(HttpContext.Session);
-                if (await TryLoadDemoExplanationQuestionAsync())
-                    return Page();
                 if (!await TryRestoreAnswerFlashAsync())
                 {
                     try { await LoadRandomQuestionAsync(); }
@@ -150,8 +135,6 @@ public class IndexModel : PageModel
                 return Page();
             }
 
-            if (await TryLoadDemoExplanationQuestionAsync())
-                return Page();
             if (!await TryRestoreAnswerFlashAsync())
             {
                 try { await LoadRandomQuestionAsync(); }
@@ -270,8 +253,7 @@ public class IndexModel : PageModel
                 await TryRestoreAnswerFlashAsync();
                 ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
                 NewlyUnlockedAchievements = new List<string>();
-                HasExplanation = DemoExplanationMode
-                    || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
+                HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
                 return new JsonResult(BuildSubmitAnswerResponse());
             }
 
@@ -291,8 +273,7 @@ public class IndexModel : PageModel
             SaveAnswerFlash();
             _practiceQuiz?.ClearPrefetch(HttpContext.Session);
             ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
-            HasExplanation = DemoExplanationMode
-                || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
+            HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
             return new JsonResult(BuildSubmitAnswerResponse());
         }
         catch (Exception ex)
@@ -313,12 +294,8 @@ public class IndexModel : PageModel
             _practiceQuiz?.ClearAnswerFlash(HttpContext.Session);
             if (_practiceQuiz != null)
             {
-                var inDemo = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(DemoSessionKey));
-                if (!inDemo || !await TryAdvanceDemoExplanationQuestionAsync(clearFlash: false))
-                {
-                    var display = await _practiceQuiz.AdvanceToNextQuestionDisplayAsync(HttpContext.Session);
-                    ApplyQuestionDisplay(display);
-                }
+                var display = await _practiceQuiz.AdvanceToNextQuestionDisplayAsync(HttpContext.Session);
+                ApplyQuestionDisplay(display);
             }
 
             ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
