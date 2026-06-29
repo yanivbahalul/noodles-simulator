@@ -105,22 +105,9 @@
 <div id="quiz-page-data"
      data-answer-checked="@(Model.AnswerChecked ? "1" : "0")"
      data-has-explanation="@(Model.HasExplanation ? "1" : "0")"
-     data-demo-explanation="@(Model.DemoExplanationMode ? "1" : "0")"
      hidden></div>
 
 <div class="quiz-container">
-    @if (Model.DemoExplanationMode)
-    {
-        <p class="demo-explanation-banner">
-            🎬 בדיקת הסבר וידאו
-            @if (Model.DemoQuestionTotal > 0)
-            {
-                <text> — שאלה @Model.DemoQuestionIndex/@Model.DemoQuestionTotal (@NoodlesSimulator.Pages.QuizDemoModel.FormatQuestionLabel(Model.DemoExplanationQuestionFile))</text>
-            }
-            · <a href="/Index/demo">כל השאלות (@Model.DemoQuestionTotal)</a>
-            · <a href="/Index/live">חזרה לחידון רגיל</a>
-        </p>
-    }
     <img src="@Model.QuestionImageUrl" alt="שאלה" loading="eager" fetchpriority="high" id="main-question-image" class="quiz-main-image" />
 
     <form method="post" id="quiz-answer-form">

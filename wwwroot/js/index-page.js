@@ -169,8 +169,7 @@
         const isCorrect = feedback.classList.contains("is-correct");
         playFeedbackSound(isCorrect);
         const pageData = document.getElementById("quiz-page-data");
-        const hasExplanation = pageData?.dataset?.hasExplanation === "1"
-            || pageData?.dataset?.demoExplanation === "1";
+        const hasExplanation = pageData?.dataset?.hasExplanation === "1";
         const questionId = document.getElementById("quiz-question-image")?.value ?? "";
         if (questionId && hasExplanation) {
             window.QuestionExplanation?.showIfAvailable?.(questionId, isCorrect, true);

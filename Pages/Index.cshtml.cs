@@ -456,8 +456,7 @@ public class IndexModel : PageModel
         var display = await _practiceQuiz.BuildDisplayAsync(QuestionImage, ShuffledAnswers, CorrectAnswerKey);
         ApplyQuestionDisplay(display);
         SavePracticeQuestionState();
-        HasExplanation = DemoExplanationMode
-            || (_explanations?.TryHasReadyExplanation(QuestionImage) == true);
+        HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
         return true;
     }
 
@@ -553,90 +552,6 @@ public class IndexModel : PageModel
         {
             Console.WriteLine($"[LoadRandomQuestionAsync Error] {ex.Message}");
         }
-    }
-
-    private async Task<bool> TryLoadDemoExplanationQuestionAsync()
-    {
-        var env = HttpContext.RequestServices.GetService<IWebHostEnvironment>();
-        if (env?.IsProduction() == true)
-        {
-            ClearDemoExplanationSession();
-            return false;
-        }
-
-        var questionFile = HttpContext.Session.GetString(DemoSessionKey);
-        if (string.IsNullOrWhiteSpace(questionFile))
-            return false;
-
-        return await TryReloadDemoExplanationQuestionAsync(clearFlash: true, questionFile);
-    }
-
-    private void ClearDemoExplanationSession() =>
-        HttpContext.Session.Remove(DemoSessionKey);
-
-    private async Task<bool> TryReloadDemoExplanationQuestionAsync(bool clearFlash, string? questionFile = null)
-    {
-        if (_practiceQuiz == null)
-            return false;
-
-        questionFile ??= HttpContext.Session.GetString(DemoSessionKey);
-        if (string.IsNullOrWhiteSpace(questionFile))
-            return false;
-
-        var picker = HttpContext.RequestServices.GetService<PracticeQuestionPickerService>();
-        if (picker == null)
-            return false;
-
-        var groups = await picker.ListAllGroupsAsync();
-        var group = groups.FirstOrDefault(g =>
-            g.Count >= 2 && string.Equals(g[0], questionFile, StringComparison.OrdinalIgnoreCase));
-        if (group == null)
-            return false;
-
-        if (clearFlash)
-            _practiceQuiz.ClearAnswerFlash(HttpContext.Session);
-
-        var shuffled = AnswerOptionShuffle.Create(group[1], group.Skip(2).Take(3).ToList());
-        _practiceQuiz.SavePracticeQuestionState(HttpContext.Session, group[0], shuffled.Options, shuffled.CorrectKey);
-        ApplyQuestionDisplay(await _practiceQuiz.BuildDisplayAsync(group[0], shuffled.Options, shuffled.CorrectKey));
-        DemoExplanationMode = true;
-        DemoExplanationQuestionFile = group[0];
-        await SetDemoQuestionMetaAsync(group[0]);
-        return true;
-    }
-
-    private async Task<bool> TryAdvanceDemoExplanationQuestionAsync(bool clearFlash)
-    {
-        var questionFile = HttpContext.Session.GetString(DemoSessionKey);
-        if (string.IsNullOrWhiteSpace(questionFile))
-            return false;
-
-        var env = HttpContext.RequestServices.GetService<IWebHostEnvironment>();
-        if (env?.IsProduction() == true)
-            return false;
-
-        if (_explanations == null)
-            return await TryReloadDemoExplanationQuestionAsync(clearFlash, questionFile);
-
-        var ready = (await _explanations.ListReadyQuestionFilesAsync()).ToList();
-        if (ready.Count == 0)
-            return await TryReloadDemoExplanationQuestionAsync(clearFlash, questionFile);
-
-        var idx = ready.FindIndex(q => string.Equals(q, questionFile, StringComparison.OrdinalIgnoreCase));
-        var next = idx < 0 ? ready[0] : ready[(idx + 1) % ready.Count];
-        HttpContext.Session.SetString(DemoSessionKey, next);
-        return await TryReloadDemoExplanationQuestionAsync(clearFlash, next);
-    }
-
-    private async Task SetDemoQuestionMetaAsync(string questionFile)
-    {
-        if (_explanations == null)
-            return;
-
-        var ready = (await _explanations.ListReadyQuestionFilesAsync()).ToList();
-        DemoQuestionTotal = ready.Count;
-        var idx = ready.FindIndex(q => string.Equals(q, questionFile, StringComparison.OrdinalIgnoreCase));
-        DemoQuestionIndex = idx >= 0 ? idx + 1 : 0;
     }
 
     private async Task ApplyUrlsFromServiceAsync()

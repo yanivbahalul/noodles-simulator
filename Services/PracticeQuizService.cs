@@ -42,7 +42,6 @@ public class PracticeQuizService
     public const string QuizStatsTotalKey = "QuizStatsTotal";
     public const string QuizStatsCorrectKey = "QuizStatsCorrect";
     public const string QuizStatsXpKey = "QuizStatsXp";
-    public const string DemoExplanationSessionKey = "DemoExplanationQuestion";
 
     private readonly PracticeQuestionPickerService _picker;
     private readonly SupabaseStorageService? _storage;
