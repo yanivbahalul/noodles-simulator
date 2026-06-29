@@ -1498,6 +1498,68 @@ button.answer-btn,
     color: #fff;
 }
 
+.demo-explanations-page {
+    max-width: 520px;
+    margin: 0 auto 2rem;
+    padding: 0 16px;
+}
+
+.demo-explanations-empty {
+    text-align: center;
+    color: var(--text-muted, #aaa);
+}
+
+.demo-explanations-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.demo-explanations-item.is-current .demo-explanations-link {
+    border-color: rgba(255, 215, 0, 0.65);
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.demo-explanations-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.25);
+    color: inherit;
+    text-decoration: none;
+}
+
+.demo-explanations-link:hover {
+    border-color: rgba(255, 215, 0, 0.45);
+    background: rgba(255, 215, 0, 0.08);
+}
+
+.demo-explanations-num {
+    flex: 0 0 2rem;
+    font-weight: 700;
+    color: #ffe08a;
+    text-align: center;
+}
+
+.demo-explanations-label {
+    flex: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.demo-explanations-badge {
+    font-size: var(--fs-xs, 0.75rem);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 215, 0, 0.2);
+    color: #ffe08a;
+}
+
 .question-explanation-panel {
     width: 100%;
     margin-top: 10px;

@@ -101,6 +101,14 @@ public sealed class QuestionExplanationService
         return _readyQuestionFiles.Contains(questionFile.Trim());
     }
 
+    public async Task<IReadOnlyList<string>> ListReadyQuestionFilesAsync()
+    {
+        await EnsureReadyFilesAsync();
+        return _readyQuestionFiles == null
+            ? Array.Empty<string>()
+            : _readyQuestionFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     public Task WarmReadyFilesAsync() => EnsureReadyFilesAsync();
 
     private async Task EnsureReadyFilesAsync()

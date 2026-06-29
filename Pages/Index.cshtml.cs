@@ -82,10 +82,11 @@ public class IndexModel : PageModel
     public Dictionary<string, string> AnswerImageOriginalNames { get; set; }
 
     // ponytail: temp demo entry point — delete when explanation batch is live everywhere
-    private const string DemoExplanationQuestion = "Screenshot at Apr 15 20-14-53.png";
     private const string DemoSessionKey = PracticeQuizService.DemoExplanationSessionKey;
     public bool DemoExplanationMode { get; set; }
     public string DemoExplanationQuestionFile { get; set; } = "";
+    public int DemoQuestionIndex { get; set; }
+    public int DemoQuestionTotal { get; set; }
     public bool HasExplanation { get; set; }
 
     private int _lastXpGain;
@@ -312,7 +313,8 @@ public class IndexModel : PageModel
             _practiceQuiz?.ClearAnswerFlash(HttpContext.Session);
             if (_practiceQuiz != null)
             {
-                if (!await TryReloadDemoExplanationQuestionAsync(clearFlash: false))
+                var inDemo = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(DemoSessionKey));
+                if (!inDemo || !await TryAdvanceDemoExplanationQuestionAsync(clearFlash: false))
                 {
                     var display = await _practiceQuiz.AdvanceToNextQuestionDisplayAsync(HttpContext.Session);
                     ApplyQuestionDisplay(display);
@@ -622,7 +624,42 @@ public class IndexModel : PageModel
         ApplyQuestionDisplay(await _practiceQuiz.BuildDisplayAsync(group[0], shuffled.Options, shuffled.CorrectKey));
         DemoExplanationMode = true;
         DemoExplanationQuestionFile = group[0];
+        await SetDemoQuestionMetaAsync(group[0]);
         return true;
+    }
+
+    private async Task<bool> TryAdvanceDemoExplanationQuestionAsync(bool clearFlash)
+    {
+        var questionFile = HttpContext.Session.GetString(DemoSessionKey);
+        if (string.IsNullOrWhiteSpace(questionFile))
+            return false;
+
+        var env = HttpContext.RequestServices.GetService<IWebHostEnvironment>();
+        if (env?.IsProduction() == true)
+            return false;
+
+        if (_explanations == null)
+            return await TryReloadDemoExplanationQuestionAsync(clearFlash, questionFile);
+
+        var ready = (await _explanations.ListReadyQuestionFilesAsync()).ToList();
+        if (ready.Count == 0)
+            return await TryReloadDemoExplanationQuestionAsync(clearFlash, questionFile);
+
+        var idx = ready.FindIndex(q => string.Equals(q, questionFile, StringComparison.OrdinalIgnoreCase));
+        var next = idx < 0 ? ready[0] : ready[(idx + 1) % ready.Count];
+        HttpContext.Session.SetString(DemoSessionKey, next);
+        return await TryReloadDemoExplanationQuestionAsync(clearFlash, next);
+    }
+
+    private async Task SetDemoQuestionMetaAsync(string questionFile)
+    {
+        if (_explanations == null)
+            return;
+
+        var ready = (await _explanations.ListReadyQuestionFilesAsync()).ToList();
+        DemoQuestionTotal = ready.Count;
+        var idx = ready.FindIndex(q => string.Equals(q, questionFile, StringComparison.OrdinalIgnoreCase));
+        DemoQuestionIndex = idx >= 0 ? idx + 1 : 0;
     }
 
     private async Task ApplyUrlsFromServiceAsync()

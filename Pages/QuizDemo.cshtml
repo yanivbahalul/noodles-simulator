@@ -1,2 +1,57 @@
 @page "/Index/demo"
 @model NoodlesSimulator.Pages.QuizDemoModel
+@{
+    Layout = null;
+    ViewData["ShowAdminLink"] = HttpContext.Session.GetString("IsAdmin") == "1";
+}
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>Noodles Simulator — דמו הסברי וידאו</title>
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <partial name="Shared/_SiteIcons" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <partial name="Shared/_TopBar" />
+    <partial name="Shared/_LogoHeader" />
+    <img src="/assets/background.gif" class="background-gif" alt="" aria-hidden="true" />
+
+    <main class="dashboard-page demo-explanations-page">
+        <h1 class="dashboard-title">🎬 דמו הסברי וידאו</h1>
+        <p class="dashboard-section-hint">
+            @Model.ReadyQuestions.Count שאלות עם הסבר מוכן · בחר שאלה לבדיקה בחידון
+            · <a href="/Index/live">חזרה לחידון רגיל</a>
+        </p>
+
+        @if (Model.ReadyQuestions.Count == 0)
+        {
+            <p class="demo-explanations-empty">אין הסברים מוכנים ב-Supabase (Status=ready).</p>
+        }
+        else
+        {
+            <ol class="demo-explanations-list">
+                @for (var i = 0; i < Model.ReadyQuestions.Count; i++)
+                {
+                    var question = Model.ReadyQuestions[i];
+                    var label = NoodlesSimulator.Pages.QuizDemoModel.FormatQuestionLabel(question);
+                    var isCurrent = string.Equals(question, Model.CurrentQuestion, StringComparison.OrdinalIgnoreCase);
+                    <li class="demo-explanations-item@(isCurrent ? " is-current" : "")">
+                        <a class="demo-explanations-link" href="/Index/demo?q=@Uri.EscapeDataString(question)">
+                            <span class="demo-explanations-num">@(i + 1)</span>
+                            <span class="demo-explanations-label">@label</span>
+                            @if (isCurrent)
+                            {
+                                <span class="demo-explanations-badge">נוכחית</span>
+                            }
+                        </a>
+                    </li>
+                }
+            </ol>
+        }
+    </main>
+
+    <partial name="Shared/_SiteFooter" />
+</body>
+</html>

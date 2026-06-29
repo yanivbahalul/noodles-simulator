@@ -112,7 +112,12 @@
     @if (Model.DemoExplanationMode)
     {
         <p class="demo-explanation-banner">
-            🎬 בדיקת הסבר וידאו — ענה על השאלה ואז לחץ על כפתור ההסבר
+            🎬 בדיקת הסבר וידאו
+            @if (Model.DemoQuestionTotal > 0)
+            {
+                <text> — שאלה @Model.DemoQuestionIndex/@Model.DemoQuestionTotal (@NoodlesSimulator.Pages.QuizDemoModel.FormatQuestionLabel(Model.DemoExplanationQuestionFile))</text>
+            }
+            · <a href="/Index/demo">כל השאלות (@Model.DemoQuestionTotal)</a>
             · <a href="/Index/live">חזרה לחידון רגיל</a>
         </p>
     }
