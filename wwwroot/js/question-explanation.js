@@ -5,8 +5,7 @@
     const videoWrap = () => document.getElementById("question-explanation-video-wrap");
     const video = () => document.getElementById("question-explanation-video");
 
-    const BTN_WRONG = "למה טעיתי? ▶";
-    const BTN_CORRECT = "צפה בהסבר ▶";
+    const BTN_LABEL = "הסבר";
 
     let loadToken = 0;
     let clickHandler = null;
@@ -38,7 +37,7 @@
                 clickHandler = null;
             }
         }
-        setBtnText(BTN_WRONG);
+        setBtnText(BTN_LABEL);
         if (wrap) wrap.hidden = true;
         if (v) {
             v.pause();
@@ -161,7 +160,7 @@
             v.removeAttribute("src");
             v.load();
         }
-        setBtnText(isCorrect ? BTN_CORRECT : BTN_WRONG);
+        setBtnText(BTN_LABEL);
 
         if (clickHandler) b.removeEventListener("click", clickHandler);
         clickHandler = (e) => {
