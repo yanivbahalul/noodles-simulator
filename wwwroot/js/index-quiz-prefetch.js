@@ -67,7 +67,7 @@
             const data = await fetchNextQuestionData();
             if (!data) return null;
 
-            await preloadQuestionImages(data);
+            await preloadQuestionImages(data, true);
             if (getCurrentQuestionAnchor() !== anchor) return null;
 
             storePrefetchedQuestion(anchor, data);
