@@ -186,10 +186,10 @@ public class PracticeQuizService
         return picked;
     }
 
-    public async Task<bool> TryPromotePrefetchAsync(ISession session)
+    public Task<bool> TryPromotePrefetchAsync(ISession session)
     {
         if (!HasValidPrefetch(session))
-            return false;
+            return Task.FromResult(false);
 
         var (questionImage, correctKey, options) = ReadPrefetch(session);
         SavePracticeQuestionState(session, questionImage, options, correctKey);
@@ -198,7 +198,7 @@ public class PracticeQuizService
         AddRecentQuestion(session, questionImage);
         session.Remove(LastSubmittedQuestionKey);
         ClearPrefetch(session);
-        return true;
+        return Task.FromResult(true);
     }
 
     public async Task BuildPrefetchIfNeededAsync(ISession session)

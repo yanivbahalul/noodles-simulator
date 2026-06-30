@@ -12,7 +12,6 @@
 
     window.replayCssAnimation = function replayCssAnimation(el) {
         if (!el) return;
-        // ponytail: offsetWidth read forces reflow so CSS animation restarts
         el.offsetWidth;
     };
 
@@ -32,6 +31,5 @@
     };
 
     window.ignoreBackgroundError = function ignoreBackgroundError() {
-        // ponytail: best-effort background telemetry — failures are non-fatal
     };
 })();
