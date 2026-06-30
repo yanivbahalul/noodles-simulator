@@ -223,7 +223,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            var auth = RequireQuizUser();
+            var auth = await RequireUserAsync();
             if (auth.Redirect != null)
                 return new JsonResult(new { error = "Unauthorized", redirect = "/Login" }) { StatusCode = 401 };
 
@@ -330,18 +330,6 @@ public class IndexModel : PageModel
             Console.WriteLine($"[OnGetPrefetchNextQuestionAsync Error] {ex}");
             return new JsonResult(new { error = "Server error" }) { StatusCode = 500 };
         }
-    }
-
-    private (User User, IActionResult Redirect) RequireQuizUser()
-    {
-        var result = _indexPage?.TryRequireQuizUser(HttpContext)
-            ?? new PracticeAuthResult { RedirectLogin = string.IsNullOrEmpty(HttpContext.Session.GetString("Username")) };
-
-        if (result.RedirectLogin)
-            return (null, RedirectToPage("/Login"));
-
-        Username = result.Username ?? "";
-        return (result.User, null);
     }
 
     private async Task<(User User, IActionResult Redirect)> RequireUserAsync()

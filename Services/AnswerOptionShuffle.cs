@@ -26,7 +26,7 @@ public static class AnswerOptionShuffle
         foreach (var wrong in wrongImages.Where(x => !string.IsNullOrWhiteSpace(x)))
             options.Add((GenerateKey(), wrong));
 
-        ListShuffle.FisherYates(options);
+        FisherYates(options);
 
         return new Result
         {
@@ -55,4 +55,13 @@ public static class AnswerOptionShuffle
 
     private static string GenerateKey() =>
         Convert.ToHexString(RandomNumberGenerator.GetBytes(8)).ToLowerInvariant();
+
+    internal static void FisherYates<T>(IList<T> list)
+    {
+        for (var i = list.Count - 1; i > 0; i--)
+        {
+            var j = RandomNumberGenerator.GetInt32(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
 }

@@ -76,4 +76,12 @@
         if (document.hidden) stopPresence();
         else startPresence();
     });
+
+    window.addEventListener("pagehide", () => {
+        try {
+            navigator.sendBeacon("/api/offline");
+        } catch {
+            // best-effort
+        }
+    });
 })();

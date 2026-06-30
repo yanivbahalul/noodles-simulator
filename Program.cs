@@ -153,6 +153,7 @@ var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 builder.Services.AddSingleton<RememberMeService>();
+builder.Services.AddSingleton<LoginThrottleService>();
 builder.Services.AddSingleton<LoginPageService>();
 builder.Services.AddSingleton<TestResultsPageService>();
 builder.Services.AddSingleton<UserProgressStore>(sp =>
@@ -331,6 +332,7 @@ if (!disableRateLimit)
     app.UseRateLimiter();
 }
 app.UseAuthorization();
+app.UseMiddleware<ApiExceptionMiddleware>();
 
 app.MapRazorPages();
 ApiEndpoints.Map(app);

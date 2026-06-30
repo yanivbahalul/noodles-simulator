@@ -9,11 +9,13 @@ namespace NoodlesSimulator.Pages;
 public class LoginModel : PageModel
 {
     private readonly LoginPageService _loginPage;
+    private readonly LoginThrottleService _throttle;
     private readonly ILogger<LoginModel> _logger;
 
-    public LoginModel(LoginPageService loginPage, ILogger<LoginModel> logger)
+    public LoginModel(LoginPageService loginPage, LoginThrottleService throttle, ILogger<LoginModel> logger)
     {
         _loginPage = loginPage;
+        _throttle = throttle;
         _logger = logger;
     }
 
@@ -43,7 +45,7 @@ public class LoginModel : PageModel
             var action = Request.Form["action"];
             var attemptKey = _loginPage.BuildAttemptKey(HttpContext, Username);
 
-            if (LoginThrottle.IsBlocked(attemptKey))
+            if (_throttle.IsBlocked(attemptKey))
             {
                 ErrorMessage = "יותר מדי ניסיונות. נסה שוב מאוחר יותר.";
                 return Page();

@@ -301,7 +301,7 @@ public class PracticeQuestionPickerService
             if (needRebuild)
             {
                 var order = Enumerable.Range(0, eligible.Count).ToList();
-                ListShuffle.FisherYates(order);
+                AnswerOptionShuffle.FisherYates(order);
                 BagOrder = order;
                 BagIndex = 0;
                 BagSourceCount = eligible.Count;

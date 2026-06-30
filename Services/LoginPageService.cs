@@ -8,15 +8,18 @@ public class LoginPageService
 {
     private readonly AuthService _authService;
     private readonly RememberMeService _rememberMe;
+    private readonly LoginThrottleService _throttle;
     private readonly ActivityEventService? _activityEvents;
 
     public LoginPageService(
         AuthService authService,
         RememberMeService rememberMe,
+        LoginThrottleService throttle,
         ActivityEventService? activityEvents = null)
     {
         _authService = authService;
         _rememberMe = rememberMe;
+        _throttle = throttle;
         _activityEvents = activityEvents;
     }
 
@@ -62,13 +65,13 @@ public class LoginPageService
         catch (Exception ex)
         {
             logger.LogError(ex, "Authentication error for {Username}", username);
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("שגיאה בהתחברות. נסה שוב מאוחר יותר.");
         }
 
         if (user == null)
         {
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("שם המשתמש או הסיסמה שגויים.");
         }
 
@@ -80,7 +83,7 @@ public class LoginPageService
 
         try
         {
-            LoginThrottle.RecordSuccess(attemptKey);
+            _throttle.RecordSuccess(attemptKey);
             await CompleteLoginAsync(http, user);
             return LoginFlowResult.Index();
         }
@@ -110,13 +113,13 @@ public class LoginPageService
         catch (Exception ex)
         {
             logger.LogError(ex, "GetUserAsync error during registration for {Username}", username);
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("שגיאה בבדיקת המשתמש. נסה שוב מאוחר יותר.");
         }
 
         if (existingUser != null)
         {
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("שם המשתמש כבר קיים במערכת.");
         }
 
@@ -128,19 +131,19 @@ public class LoginPageService
         catch (Exception ex)
         {
             logger.LogError(ex, "Registration error for {Username}", username);
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("שגיאה בהרשמה. נסה שוב מאוחר יותר.");
         }
 
         if (!success)
         {
-            LoginThrottle.RecordFailure(attemptKey);
+            _throttle.RecordFailure(attemptKey);
             return LoginFlowResult.Error("לא ניתן להשלים הרשמה כרגע. נסה שוב מאוחר יותר.");
         }
 
         try
         {
-            LoginThrottle.RecordSuccess(attemptKey);
+            _throttle.RecordSuccess(attemptKey);
             await CompleteRegistrationAsync(http, username);
             return LoginFlowResult.Index();
         }

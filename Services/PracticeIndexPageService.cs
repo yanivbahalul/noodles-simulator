@@ -163,20 +163,6 @@ public class PracticeIndexPageService
         return new PracticeAuthResult { User = user, Username = username };
     }
 
-    // ponytail: quiz AJAX submit skips Supabase user fetch; session + in-request progress updates are enough.
-    public PracticeAuthResult TryRequireQuizUser(HttpContext http)
-    {
-        var username = http.Session.GetString("Username");
-        if (string.IsNullOrEmpty(username))
-            return new PracticeAuthResult { RedirectLogin = true };
-
-        return new PracticeAuthResult
-        {
-            User = new User { Username = username },
-            Username = username
-        };
-    }
-
     public PracticeUserStatsView BuildUserStatsView(User user, ISession session, int dailyTotal = 10)
     {
         var view = new PracticeUserStatsView

@@ -364,7 +364,7 @@ public class TestExamService
             return state;
 
         var all = await _questionGroups.ListGroupsForDifficultyAsync(difficulty, _difficultyService);
-        ListShuffle.FisherYates(all);
+        AnswerOptionShuffle.FisherYates(all);
         foreach (var g in all.Take(DefaultQuestionCount))
         {
             var correct = g[1];
