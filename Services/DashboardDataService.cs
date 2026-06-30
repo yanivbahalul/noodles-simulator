@@ -8,7 +8,7 @@ namespace NoodlesSimulator.Services;
 
 public partial class DashboardDataService
 {
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(25);
 
     private readonly AuthService _auth;
     private readonly UserProgressStore _progressStore;

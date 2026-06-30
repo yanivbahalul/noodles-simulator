@@ -154,7 +154,7 @@
 
     async function renderQuestion(data, seq, options = {}) {
         if (!options.imagesPreloaded) {
-            await prefetch?.preloadQuestionImages?.(data);
+            await prefetch?.preloadQuestionImages?.(data, true);
         }
         if (seq !== questionRenderSeq) return;
 

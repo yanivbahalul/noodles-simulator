@@ -29,11 +29,11 @@
         });
     }
 
-    async function preloadQuestionImages(data) {
-        const urls = [
-            data.questionImageUrl,
-            ...(data.answers?.map((a) => a.imageUrl) ?? [])
-        ].filter(Boolean);
+    async function preloadQuestionImages(data, includeAnswers = false) {
+        const urls = [data.questionImageUrl].filter(Boolean);
+        if (includeAnswers) {
+            urls.push(...(data.answers?.map((a) => a.imageUrl) ?? []).filter(Boolean));
+        }
         await Promise.all(urls.map((url) => preloadImage(url)));
     }
 
