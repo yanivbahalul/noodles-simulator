@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 
 namespace NoodlesSimulator.Models;
 
-// ponytail: keep in sync with wwwroot/js/html-utils.js and tools/check_question_label_sync.py
 internal static class QuestionLabel
 {
     private static readonly Regex ScreenshotName = new(

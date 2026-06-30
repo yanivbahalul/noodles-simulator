@@ -856,37 +856,6 @@ internal static class ApiEndpoints
             }
         });
 
-        api.MapPost("/offline", async context =>
-        {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                context.Response.StatusCode = 204;
-                return;
-            }
-
-            try
-            {
-                if (!ApiHelpers.TryResolveAuthService(context, out var authService))
-                {
-                    context.Response.StatusCode = 204;
-                    return;
-                }
-
-                var username = context.Session.GetString("Username");
-                if (!string.IsNullOrWhiteSpace(username))
-                {
-                    await authService.MarkOfflineAsync(username);
-                    ApiHelpers.InvalidateDashboardCaches(context.RequestServices);
-                }
-
-                context.Response.StatusCode = 204;
-            }
-            catch (Exception ex)
-            {
-                await ApiHelpers.WriteServerError(context, "Offline API Error", ex);
-            }
-        });
-
         api.MapGet("/online-count", async context =>
         {
             try
@@ -1063,6 +1032,7 @@ internal static class ApiEndpoints
                     items = items.Select(i => new
                     {
                         questionFile = i.QuestionFile,
+                        questionLabel = QuestionLabel.Format(i.QuestionFile),
                         status = i.Status,
                         videoPath = i.VideoPath,
                         errorMessage = i.ErrorMessage,

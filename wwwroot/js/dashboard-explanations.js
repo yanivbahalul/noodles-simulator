@@ -49,7 +49,7 @@
                 <tr>
                     <td class="difficulty-question-cell">
                         <span class="difficulty-question-text" title="${window.escapeHtml?.(item.questionFile) ?? item.questionFile}">
-                            ${window.escapeHtml?.(window.formatQuestionLabel?.(item.questionFile) ?? item.questionFile) ?? item.questionFile}
+                            ${window.escapeHtml?.(item.questionLabel || item.questionFile) ?? (item.questionLabel || item.questionFile)}
                         </span>
                     </td>
                     <td>${window.escapeHtml?.(statusLabel(item.status)) ?? statusLabel(item.status)}</td>

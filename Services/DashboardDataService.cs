@@ -740,6 +740,7 @@ public class DashboardDataService
                 id = r.Id,
                 username = r.Username,
                 questionId = r.QuestionId,
+                questionLabel = QuestionLabel.Format(r.QuestionId),
                 explanation = r.Explanation,
                 status = r.Status,
                 createdAtIso = r.CreatedAtIso,
@@ -748,6 +749,7 @@ public class DashboardDataService
             problematicQuestions = snapshot.ProblematicQuestions.Select(q => new
             {
                 questionId = q.QuestionId,
+                questionLabel = QuestionLabel.Format(q.QuestionId),
                 difficulty = q.Difficulty,
                 successRate = q.SuccessRate,
                 totalAttempts = q.TotalAttempts,
@@ -763,6 +765,7 @@ public class DashboardDataService
         recentQuestions = detail.RecentQuestions.Select(q => new
         {
             questionId = q.QuestionId,
+            questionLabel = QuestionLabel.Format(q.QuestionId),
             attempts = q.Attempts,
             correct = q.Correct,
             lastAnsweredIso = q.LastAnsweredIso,
