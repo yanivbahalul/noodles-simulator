@@ -1,8 +1,5 @@
 (function () {
-    function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
-    }
+    const setText = (id, value) => window.setText?.(id, value);
 
     function setStatsPanelOpen(panel, toggle, willOpen) {
         panel.classList.toggle("is-open", willOpen);

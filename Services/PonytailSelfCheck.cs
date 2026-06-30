@@ -3,7 +3,7 @@ using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
 
-/// <summary>Runnable assert checks for core gamification math — run with <c>dotnet run -- --ponytail-check</c>.</summary>
+/// <summary>Runnable assert checks — run with <c>dotnet run -- --ponytail-check</c>.</summary>
 public static class PonytailSelfCheck
 {
     public static void Run()
@@ -11,13 +11,40 @@ public static class PonytailSelfCheck
         CheckExamScoring();
         CheckQuizGamification();
         CheckQuestionExplanationPaths();
+        CheckQuizStatsHydrate();
         Console.WriteLine("[ponytail] all self-checks passed");
+    }
+
+    public static void RunStartup()
+    {
+        if (!CheckQuizStatsHydrate())
+            throw new InvalidOperationException("QuizStatsHydrateCheck failed");
     }
 
     private static void Assert(bool ok, string message)
     {
         if (!ok)
             throw new InvalidOperationException($"ponytail self-check failed: {message}");
+    }
+
+    private static bool CheckQuizStatsHydrate()
+    {
+        var data = new UserProgressService.UserProgressData();
+        data.QuestionStats["q1"] = new UserProgressService.UserQuestionStat { Attempts = 10, Correct = 8 };
+        data.Xp = 250;
+
+        var (total, correct) = UserProgressService.SumQuestionStats(data);
+        if (total != 10 || correct != 8)
+            return false;
+
+        var user = new User { TotalAnswered = 5, CorrectAnswers = 4, Xp = 100 };
+        user.TotalAnswered = Math.Max(user.TotalAnswered, total);
+        user.CorrectAnswers = Math.Max(user.CorrectAnswers, correct);
+        user.Xp = Math.Max(user.Xp, data.Xp);
+
+        return user.TotalAnswered == 10
+            && user.CorrectAnswers == 8
+            && user.Xp == 250;
     }
 
     private static void CheckExamScoring()

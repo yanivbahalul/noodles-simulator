@@ -5,6 +5,11 @@
         return div.innerHTML;
     };
 
+    window.setText = function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value ?? "";
+    };
+
     window.replayCssAnimation = function replayCssAnimation(el) {
         if (!el) return;
         // ponytail: offsetWidth read forces reflow so CSS animation restarts

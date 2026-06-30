@@ -568,9 +568,6 @@ public class TestSessionService
 
     private static List<TestSession> DeserializeList(string json)
     {
-        return JsonSerializer.Deserialize<List<TestSession>>(json, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        }) ?? new List<TestSession>();
+        return JsonSerializer.Deserialize<List<TestSession>>(json, AppJson.Options) ?? new List<TestSession>();
     }
 }

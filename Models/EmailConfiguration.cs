@@ -10,67 +10,55 @@ namespace NoodlesSimulator.Models;
 internal static class EmailConfiguration
 {
     public static string SmtpUser(IConfiguration configuration)
-        => FirstNonEmpty(
-            Env("Email__SmtpUser"),
-            Config(configuration, "Email:SmtpUser"));
+        => ConfigEnv.First(
+            ConfigEnv.Env("Email__SmtpUser"),
+            configuration["Email:SmtpUser"]);
 
     public static string SmtpPass(IConfiguration configuration)
-        => FirstNonEmpty(
-            Env("Email__SmtpPass"),
-            Config(configuration, "Email:SmtpPass"))
+        => ConfigEnv.First(
+            ConfigEnv.Env("Email__SmtpPass"),
+            configuration["Email:SmtpPass"])
            ?.Replace(" ", "") ?? string.Empty;
 
     public static string EmailTo(IConfiguration configuration)
-        => FirstNonEmpty(Env("EMAIL_TO"), Config(configuration, "Email:To"));
+        => ConfigEnv.First(ConfigEnv.Env("EMAIL_TO"), configuration["Email:To"]);
 
     public static string EmailFrom(IConfiguration configuration)
     {
-        var from = FirstNonEmpty(Env("EMAIL_FROM"), Config(configuration, "Email:From"));
+        var from = ConfigEnv.First(ConfigEnv.Env("EMAIL_FROM"), configuration["Email:From"]);
         return string.IsNullOrWhiteSpace(from) ? SmtpUser(configuration) : from;
     }
 
     public static string EmailFromName(IConfiguration configuration)
-        => FirstNonEmpty(Env("EMAIL_FROM_NAME"), Config(configuration, "Email:FromName"));
+        => ConfigEnv.First(ConfigEnv.Env("EMAIL_FROM_NAME"), configuration["Email:FromName"]);
 
     public static string SmtpHost(IConfiguration configuration)
     {
-        var host = FirstNonEmpty(
-            Env("Email__SmtpHost"),
-            Env("EmailSmtpHost"),
-            Config(configuration, "Email:SmtpHost"),
-            Config(configuration, "Email:SmtpServer"));
+        var host = ConfigEnv.First(
+            ConfigEnv.Env("Email__SmtpHost"),
+            ConfigEnv.Env("EmailSmtpHost"),
+            configuration["Email:SmtpHost"],
+            configuration["Email:SmtpServer"]);
         return string.IsNullOrWhiteSpace(host) ? "smtp.gmail.com" : host;
     }
 
     public static int SmtpPort(IConfiguration configuration)
     {
-        var portStr = FirstNonEmpty(
-            Env("Email__SmtpPort"),
-            Env("EmailSmtpPort"),
-            Config(configuration, "Email:SmtpPort"));
+        var portStr = ConfigEnv.First(
+            ConfigEnv.Env("Email__SmtpPort"),
+            ConfigEnv.Env("EmailSmtpPort"),
+            configuration["Email:SmtpPort"]);
         return int.TryParse(portStr, out var p) ? p : 587;
     }
 
     public static bool UseSsl(IConfiguration configuration)
     {
-        var v = FirstNonEmpty(Env("Email__UseSsl"), Env("EmailUseSsl"), Config(configuration, "Email:UseSsl"));
+        var v = ConfigEnv.First(
+            ConfigEnv.Env("Email__UseSsl"),
+            ConfigEnv.Env("EmailUseSsl"),
+            configuration["Email:UseSsl"]);
         return string.IsNullOrWhiteSpace(v) || v.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
-    public static string BrevoApiKey() => Env("BREVO_API_KEY");
-
-    private static string? Env(string name) => Environment.GetEnvironmentVariable(name);
-
-    private static string? Config(IConfiguration configuration, string key)
-        => configuration[key];
-
-    private static string? FirstNonEmpty(params string?[] values)
-    {
-        foreach (var v in values)
-        {
-            if (!string.IsNullOrWhiteSpace(v))
-                return v;
-        }
-        return null;
-    }
+    public static string BrevoApiKey() => ConfigEnv.Env("BREVO_API_KEY");
 }

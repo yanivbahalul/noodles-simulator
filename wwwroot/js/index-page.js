@@ -28,8 +28,7 @@
 
 
     function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value;
+        window.setText?.(id, value);
     }
 
     function applyLevelFields(level) {

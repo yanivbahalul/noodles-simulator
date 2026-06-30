@@ -26,14 +26,12 @@ public static class AnswerOptionShuffle
         foreach (var wrong in wrongImages.Where(x => !string.IsNullOrWhiteSpace(x)))
             options.Add((GenerateKey(), wrong));
 
-        var shuffled = options
-            .OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue))
-            .ToList();
+        ListShuffle.FisherYates(options);
 
         return new Result
         {
             CorrectKey = correctKey,
-            Options = shuffled.ToDictionary(x => x.Key, x => x.Image)
+            Options = options.ToDictionary(x => x.Key, x => x.Image)
         };
     }
 

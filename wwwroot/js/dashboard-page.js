@@ -16,10 +16,10 @@
         activeTab: "overview"
     };
 
-    function setText(id, value) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = value ?? "—";
-    }
+    dashboard.setText = function (id, value) {
+        window.setText?.(id, value ?? "—");
+    };
+    const setText = dashboard.setText;
 
     function percentText(value) {
         return value != null ? `${value}%` : null;
