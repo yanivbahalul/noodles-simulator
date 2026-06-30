@@ -88,5 +88,14 @@ public static class PonytailSelfCheck
         Assert(
             QuestionExplanationService.VideoObjectPath("  q1.PNG  ").Contains("q1.PNG"),
             "explanation video path keeps basename");
+        Assert(
+            MediaUrl.ForStoragePath("foo.png") == "/media/foo.png",
+            "media url");
+        Assert(
+            MediaUrl.ForStoragePath("explanations/q1.mp4") == "/media/explanations/q1.mp4",
+            "media url nested");
+        Assert(
+            !MediaUrl.TryNormalizePath("../secret", out _),
+            "media path blocks traversal");
     }
 }

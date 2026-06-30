@@ -47,7 +47,7 @@ if (args.Contains("--ponytail-check", StringComparer.OrdinalIgnoreCase))
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
-builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache(options => options.SizeLimit = 150 * 1024 * 1024);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<UserStatsService>();
 builder.Services.AddSingleton<UserQuestionStatsStore>();
@@ -255,7 +255,7 @@ else
 
 if (string.IsNullOrWhiteSpace(sbUrl) || string.IsNullOrWhiteSpace(sbService))
 {
-    Console.WriteLine("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Signed URLs won't work.");
+    Console.WriteLine("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SERVICE_ROLE_SECRET). Media proxy (/media) won't work.");
 }
 
 var emailTo = NoodlesSimulator.Models.EmailConfiguration.EmailTo(builder.Configuration);

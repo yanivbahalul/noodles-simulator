@@ -6,8 +6,8 @@ namespace NoodlesSimulator.Services;
 
 public static class ImageUrlResolver
 {
-    public static async Task<(string QuestionUrl, Dictionary<string, string> AnswerUrls)> ResolveQuestionAndAnswersAsync(
-        SupabaseStorageService storage,
+    public static Task<(string QuestionUrl, Dictionary<string, string> AnswerUrls)> ResolveQuestionAndAnswersAsync(
+        SupabaseStorageService? storage,
         string questionImage,
         Dictionary<string, string> answers)
     {
@@ -15,31 +15,20 @@ public static class ImageUrlResolver
 
         if (storage != null)
         {
-            var paths = new List<string>();
-            if (!string.IsNullOrWhiteSpace(questionImage))
-            {
-                paths.Add(questionImage);
-            }
-
-            paths.AddRange(safeAnswers.Values.Where(v => !string.IsNullOrWhiteSpace(v)));
-            var signed = await storage.GetSignedUrlsAsync(paths);
-
-            var questionUrl = (!string.IsNullOrWhiteSpace(questionImage) && signed.TryGetValue(questionImage, out var qu))
-                ? qu
-                : string.Empty;
+            var questionUrl = string.IsNullOrWhiteSpace(questionImage)
+                ? string.Empty
+                : MediaUrl.ForStoragePath(questionImage);
 
             var answerUrls = new Dictionary<string, string>();
             foreach (var kv in safeAnswers)
             {
                 if (string.IsNullOrWhiteSpace(kv.Value))
-                {
                     continue;
-                }
 
-                answerUrls[kv.Key] = signed.TryGetValue(kv.Value, out var au) ? au : string.Empty;
+                answerUrls[kv.Key] = MediaUrl.ForStoragePath(kv.Value);
             }
 
-            return (questionUrl, answerUrls);
+            return Task.FromResult((questionUrl, answerUrls));
         }
 
         var localQuestionUrl = string.IsNullOrWhiteSpace(questionImage) ? string.Empty : $"/images/{questionImage}";
@@ -52,6 +41,6 @@ public static class ImageUrlResolver
             }
         }
 
-        return (localQuestionUrl, localAnswerUrls);
+        return Task.FromResult((localQuestionUrl, localAnswerUrls));
     }
 }

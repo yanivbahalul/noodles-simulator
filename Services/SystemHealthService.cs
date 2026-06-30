@@ -36,7 +36,7 @@ public class SystemHealthService
         new SystemVerificationPlanItem { Id = "config", Name = "הגדרות Supabase", Category = "מערכת פנימית" },
         new SystemVerificationPlanItem { Id = "users", Name = "משתמשים (Supabase)", Category = "מערכת פנימית" },
         new SystemVerificationPlanItem { Id = "storage", Name = "אחסון תמונות", Category = "מערכת פנימית" },
-        new SystemVerificationPlanItem { Id = "signed-urls", Name = "קישורים חתומים", Category = "מערכת פנימית" },
+        new SystemVerificationPlanItem { Id = "media", Name = "פרוקסי מדיה (/media)", Category = "מערכת פנימית" },
         new SystemVerificationPlanItem { Id = "test-sessions", Name = "מבחנים", Category = "מערכת פנימית" },
         new SystemVerificationPlanItem { Id = "difficulties", Name = "רמות קושי", Category = "מערכת פנימית" },
         new SystemVerificationPlanItem { Id = "activity", Name = "אירועי פעילות", Category = "מערכת פנימית" },
@@ -97,7 +97,7 @@ public class SystemHealthService
         yield return CheckConfig();
         yield return await CheckUsersAsync();
         yield return await CheckStorageAsync();
-        yield return await CheckSignedUrlsAsync();
+        yield return await CheckMediaProxyAsync();
         yield return await CheckTestSessionsAsync();
         yield return await CheckDifficultiesAsync();
         yield return await CheckActivityEventsAsync();
@@ -171,21 +171,29 @@ public class SystemHealthService
         });
     }
 
-    private async Task<SystemHealthCheck> CheckSignedUrlsAsync()
+    private async Task<SystemHealthCheck> CheckMediaProxyAsync()
     {
         if (_storage == null)
-            return new SystemHealthCheck { Id = "signed-urls", Name = "קישורים חתומים", Ok = false, Detail = "שירות אחסון לא זמין" };
+            return new SystemHealthCheck { Id = "media", Name = "פרוקסי מדיה (/media)", Ok = false, Detail = "שירות אחסון לא זמין" };
 
-        return await TimedAsync("signed-urls", "קישורים חתומים", async () =>
+        return await TimedAsync("media", "פרוקסי מדיה (/media)", async () =>
         {
             var files = await _storage.ListFilesAsync("");
             var sample = files.FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
             if (string.IsNullOrWhiteSpace(sample))
                 return (false, "לא נמצאה תמונה לבדיקה");
 
-            var url = await _storage.GetSignedUrlAsync(sample);
-            var ok = !string.IsNullOrWhiteSpace(url) && url.StartsWith("http", StringComparison.OrdinalIgnoreCase);
-            return (ok, ok ? $"נוצר URL ל-{sample}" : "יצירת URL נכשלה");
+            try
+            {
+                var bytes = await _storage.DownloadBytesAsync(sample);
+                var url = MediaUrl.ForStoragePath(sample);
+                var ok = bytes != null && bytes.Length > 0 && url.StartsWith("/media/", StringComparison.Ordinal);
+                return (ok, ok ? $"{url} ({bytes.Length} bytes)" : "הורדה נכשלה");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
         });
     }
 

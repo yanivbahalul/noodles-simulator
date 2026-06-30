@@ -70,10 +70,9 @@ public class QuestionViewModel : PageModel
 
         if (_storage != null)
         {
-            var signed = await _storage.GetSignedUrlsAsync(group);
-            QuestionImageUrl = signed.TryGetValue(group[0], out var questionUrl) ? questionUrl : string.Empty;
+            QuestionImageUrl = MediaUrl.ForStoragePath(group[0]);
             PopulateAnswerUrls(group, (key, file) =>
-                !string.IsNullOrWhiteSpace(file) && signed.TryGetValue(file, out var url) ? url : null);
+                string.IsNullOrWhiteSpace(file) ? null : MediaUrl.ForStoragePath(file));
         }
         else
         {

@@ -17,7 +17,6 @@ public sealed class QuestionExplanationService
 {
     private readonly HttpClient? _client;
     private readonly string _url;
-    private readonly SupabaseStorageService? _storage;
     private readonly ConcurrentDictionary<string, (string url, DateTime cachedAt)> _urlCache = new();
     private static readonly TimeSpan UrlCacheTtl = TimeSpan.FromMinutes(4);
     private HashSet<string>? _readyQuestionFiles;
@@ -31,7 +30,7 @@ public sealed class QuestionExplanationService
         var rest = SupabaseRestClient.Create(config);
         _url = rest.Url;
         _client = rest.Client;
-        _storage = storage;
+        _ = storage;
     }
 
     public static string VideoObjectPath(string questionFile) =>
@@ -69,20 +68,12 @@ public sealed class QuestionExplanationService
             return (true, cached.url);
 
         var row = await GetAsync(questionFile);
-        if (row == null || _storage == null)
+        if (row == null || string.IsNullOrWhiteSpace(row.VideoPath))
             return (false, null);
 
-        try
-        {
-            var url = await _storage.GetSignedUrlAsync(row.VideoPath);
-            _urlCache[questionFile] = (url, DateTime.UtcNow);
-            return (true, url);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[QuestionExplanationService] GetVideoUrlAsync: {ex.Message}");
-            return (false, null);
-        }
+        var url = MediaUrl.ForStoragePath(row.VideoPath);
+        _urlCache[questionFile] = (url, DateTime.UtcNow);
+        return (true, url);
     }
 
     public async Task<bool> HasReadyExplanationAsync(string questionFile)
