@@ -19,7 +19,7 @@
     function renderQuestionsTable(questions) {
         if (!questions?.length) return '<p class="dashboard-empty-hint">אין נתוני שאלות</p>';
         const rows = questions.map((q) => {
-            const label = dashboard.formatQuestionLabel(q.questionId);
+            const label = window.formatQuestionLabel(q.questionId);
             const full = window.escapeHtml(q.questionId);
             const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>

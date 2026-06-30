@@ -12,6 +12,7 @@ public static class PonytailSelfCheck
         CheckQuizGamification();
         CheckQuestionExplanationPaths();
         CheckQuizStatsHydrate();
+        CheckQuestionLabelFormat();
         Console.WriteLine("[ponytail] all self-checks passed");
     }
 
@@ -68,6 +69,15 @@ public static class PonytailSelfCheck
         Assert(QuizGamification.XpForCorrectAnswer("normal", "hard", 1) == 25, "xp hard no streak");
         Assert(QuizGamification.XpForCorrectAnswer("daily", "easy", 1) == 12, "daily challenge xp");
         Assert(QuizGamification.DailyChallengeCompletionXp(10) == 70, "daily completion xp");
+    }
+
+    private static void CheckQuestionLabelFormat()
+    {
+        Assert(QuestionLabel.Format("") == "—", "empty question label");
+        Assert(QuestionLabel.Format("foo/bar.png") == "bar", "strip extension");
+        Assert(
+            QuestionLabel.Format("Screenshot at Jan 5 12-30-45.png") == "05/01 12:30",
+            "screenshot label");
     }
 
     private static void CheckQuestionExplanationPaths()

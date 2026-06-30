@@ -1,6 +1,4 @@
 (function () {
-    const setText = (id, value) => window.setText?.(id, value);
-
     function setStatsPanelOpen(panel, toggle, willOpen) {
         panel.classList.toggle("is-open", willOpen);
         panel.setAttribute("aria-hidden", willOpen ? "false" : "true");
@@ -16,12 +14,12 @@
             if (!res.ok) return;
             const data = await res.json();
             if (data?.correct === undefined) return;
-            setText("stat-correct-panel", data.correct);
-            setText("stat-total-panel", data.total);
-            setText("stat-success-panel", `${data.successRate}%`);
-            if (data.streak !== undefined) setText("stat-streak", data.streak);
-            if (data.level !== undefined) setText("stat-level-value", data.level);
-            if (data.xp !== undefined) setText("stat-xp-value", data.xp);
+            window.setText("stat-correct-panel", data.correct);
+            window.setText("stat-total-panel", data.total);
+            window.setText("stat-success-panel", `${data.successRate}%`);
+            if (data.streak !== undefined) window.setText("stat-streak", data.streak);
+            if (data.level !== undefined) window.setText("stat-level-value", data.level);
+            if (data.xp !== undefined) window.setText("stat-xp-value", data.xp);
             if (typeof window.applyLevelProgressLive === "function") {
                 window.applyLevelProgressLive(data);
             }

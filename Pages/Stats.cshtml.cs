@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +54,7 @@ public class StatsModel : PageModel
     public class RecentQuestionRow
     {
         public string QuestionId { get; set; } = "";
-        public string QuestionLabel => FormatQuestionLabel(QuestionId);
+        public string QuestionLabel => Models.QuestionLabel.Format(QuestionId);
         public int Attempts { get; set; }
         public int Correct { get; set; }
         public int SuccessPercent { get; set; }
@@ -158,38 +156,5 @@ public class StatsModel : PageModel
             Console.WriteLine($"[Stats OnGetAsync Error] {ex}");
             return RedirectToPage("/Index");
         }
-    }
-
-    private static readonly Regex ScreenshotName = new(
-        @"^Screenshot at (\w{3}) (\d{1,2}) (\d{2})-(\d{2})-(\d{2})$",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    private static readonly Dictionary<string, string> MonthMap =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Jan"] = "01", ["Feb"] = "02", ["Mar"] = "03", ["Apr"] = "04",
-            ["May"] = "05", ["Jun"] = "06", ["Jul"] = "07", ["Aug"] = "08",
-            ["Sep"] = "09", ["Oct"] = "10", ["Nov"] = "11", ["Dec"] = "12"
-        };
-
-    private static string FormatQuestionLabel(string questionId)
-    {
-        if (string.IsNullOrWhiteSpace(questionId)) return "—";
-
-        var name = Path.GetFileName(questionId);
-        name = Regex.Replace(name, @"\.(png|jpg|jpeg|webp)$", "", RegexOptions.IgnoreCase);
-
-        var match = ScreenshotName.Match(name);
-        if (match.Success)
-        {
-            var mon = MonthMap.TryGetValue(match.Groups[1].Value, out var m) ? m : match.Groups[1].Value;
-            var day = match.Groups[2].Value.PadLeft(2, '0');
-            return $"{day}/{mon} {match.Groups[3].Value}:{match.Groups[4].Value}";
-        }
-
-        if (name.Length > 28)
-            return name[..25] + "…";
-
-        return name;
     }
 }

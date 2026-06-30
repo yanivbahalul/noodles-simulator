@@ -26,7 +26,7 @@
             <td>${window.escapeHtml(report.username)}</td>
             <td class="difficulty-question-cell">
                 <span class="difficulty-question-content">
-                    <span class="difficulty-question-text" title="${window.escapeHtml(report.questionId)}">${window.escapeHtml(dashboard.formatQuestionLabel(report.questionId))}</span>
+                    <span class="difficulty-question-text" title="${window.escapeHtml(report.questionId)}">${window.escapeHtml(window.formatQuestionLabel(report.questionId))}</span>
                     <a href="${viewUrl}" target="_blank" rel="noopener" class="difficulty-question-link" title="הצג שאלה">🔍</a>
                 </span>
             </td>
@@ -92,7 +92,7 @@
             const diff = dashboard.DIFFICULTY_TEXT[q.difficulty] || q.difficulty || "—";
             const viewUrl = `/QuestionView?id=${encodeURIComponent(q.questionId)}&from=dashboard`;
             return `<tr>
-                <td class="difficulty-question-cell"><span class="difficulty-question-text" title="${window.escapeHtml(q.questionId)}">${window.escapeHtml(dashboard.formatQuestionLabel(q.questionId))}</span></td>
+                <td class="difficulty-question-cell"><span class="difficulty-question-text" title="${window.escapeHtml(q.questionId)}">${window.escapeHtml(window.formatQuestionLabel(q.questionId))}</span></td>
                 <td>${window.escapeHtml(q.reason)}</td>
                 <td>${window.escapeHtml(diff)}</td>
                 <td>${q.successRate}%</td>

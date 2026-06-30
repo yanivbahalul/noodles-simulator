@@ -27,14 +27,10 @@
     }
 
 
-    function setText(id, value) {
-        window.setText?.(id, value);
-    }
-
     function applyLevelFields(level) {
-        setText("live-level", level);
-        setText("stat-level-value", level);
-        setText("stat-level-label", level);
+        window.setText("live-level", level);
+        window.setText("stat-level-value", level);
+        window.setText("stat-level-label", level);
     }
 
     function applyXpProgressFields(data, options) {
@@ -51,7 +47,7 @@
             const meta = document.getElementById("live-xp-meta");
             if (meta) meta.textContent = `נותר ${data.xpToNextLevel} XP לרמה ההבאה`;
         }
-        if (data?.xp !== undefined) setText("stat-xp-value", data.xp);
+        if (data?.xp !== undefined) window.setText("stat-xp-value", data.xp);
         if (options.pulse && data?.xpGain > 0) pulseLevelBar();
     }
 
@@ -86,12 +82,12 @@
     function applyStatsData(data, options = {}) {
         if (!data) return;
         if (data.correct !== undefined) {
-            setText("stat-correct-panel", data.correct);
-            setText("stat-total-panel", data.total);
-            setText("stat-success-panel", `${data.successRate}%`);
+            window.setText("stat-correct-panel", data.correct);
+            window.setText("stat-total-panel", data.total);
+            window.setText("stat-success-panel", `${data.successRate}%`);
         }
         if (data.streak !== undefined) {
-            setText("stat-streak", data.streak);
+            window.setText("stat-streak", data.streak);
             if (!options.skipStreakUpdate) {
                 updateStreakBadge(data.streak, { pulse: options.streakPulse });
             }
@@ -177,7 +173,7 @@
 
     function applyOnlineCount(data) {
         if (data?.online === undefined || data.online === null) return;
-        setText("online-count", data.online);
+        window.setText("online-count", data.online);
     }
 
     async function fetchStats() {

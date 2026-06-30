@@ -59,6 +59,13 @@ internal static class ApiHelpers
         return false;
     }
 
+    internal static async Task<bool> RequireAuthAdminAsync(HttpContext context)
+    {
+        if (IsAuthenticated(context) && IsAdminSession(context)) return true;
+        await WritePlainError(context, 403, "Forbidden");
+        return false;
+    }
+
     internal static Task WritePlainError(HttpContext context, int statusCode, string message)
     {
         context.Response.StatusCode = statusCode;
@@ -105,5 +112,64 @@ internal static class ApiHelpers
             user.Xp = data.Xp;
         if (user.Xp > 0)
             user.Level = QuizGamification.LevelFromXp(user.Xp);
+    }
+
+    /// <summary>Validates campaignId for the logged-in user. Writes 400 and returns null on failure.</summary>
+    internal static async Task<(string Username, string CampaignId)?> TryResolveActiveFeedbackCampaignAsync(
+        HttpContext context,
+        string? campaignId)
+    {
+        if (string.IsNullOrWhiteSpace(campaignId))
+        {
+            await WritePlainError(context, 400, "Invalid or inactive campaign");
+            return null;
+        }
+
+        var username = context.Session.GetString("Username")!;
+        var progress = context.RequestServices.GetService<UserProgressService>();
+        var achievementCount = progress != null
+            ? (await progress.LoadAsync(username))?.Achievements?.Count ?? 0
+            : 0;
+        var expected = FeedbackCampaigns.GetActiveCampaignIdForUser(
+            DateTime.UtcNow, IsAdminSession(context), achievementCount);
+        if (string.IsNullOrWhiteSpace(expected) ||
+            !string.Equals(campaignId, expected, StringComparison.Ordinal))
+        {
+            await WritePlainError(context, 400, "Invalid or inactive campaign");
+            return null;
+        }
+
+        return (username, campaignId);
+    }
+
+    internal static async Task<UserFeedbackService?> RequireFeedbackServiceAsync(HttpContext context)
+    {
+        var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
+        if (feedbackService != null && feedbackService.IsEnabled)
+            return feedbackService;
+
+        await WritePlainError(context, 503, "Feedback service not available");
+        return null;
+    }
+
+    internal static async Task<bool> HandleFeedbackWriteResultAsync(
+        HttpContext context,
+        bool success,
+        bool alreadyResponded,
+        string failureMessage)
+    {
+        if (alreadyResponded)
+        {
+            await WritePlainError(context, 409, "Already responded");
+            return false;
+        }
+
+        if (!success)
+        {
+            await WritePlainError(context, 500, failureMessage);
+            return false;
+        }
+
+        return true;
     }
 }

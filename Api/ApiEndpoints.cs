@@ -22,11 +22,7 @@ internal static class ApiEndpoints
         {
             try
             {
-                if (!ApiHelpers.IsAuthenticated(context))
-                {
-                    await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                    return;
-                }
+                if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
                 context.Session.Clear();
                 RememberMeService.Clear(context.Response);
@@ -78,12 +74,7 @@ internal static class ApiEndpoints
         {
             app.MapGet("/signed", async (HttpContext ctx) =>
             {
-                if (!ApiHelpers.IsAuthenticated(ctx))
-                {
-                    ctx.Response.StatusCode = 401;
-                    await ctx.Response.WriteAsync("Unauthorized");
-                    return;
-                }
+                if (!await ApiHelpers.RequireAuthAsync(ctx)) return;
 
                 var storage = ctx.RequestServices.GetService<SupabaseStorageService>();
                 if (storage == null)
@@ -114,11 +105,7 @@ internal static class ApiEndpoints
 
             app.MapGet("/debug-random", async context =>
             {
-                if (!ApiHelpers.IsAdminSession(context))
-                {
-                    await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                    return;
-                }
+                if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
                 try
                 {
@@ -153,11 +140,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/dashboard-data", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -208,11 +191,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/dashboard-activity", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -248,11 +227,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/dashboard-user", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -287,11 +262,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/dashboard-user-action", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -374,11 +345,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/dashboard-user-delete", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -417,11 +384,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/dashboard-report-status", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -466,11 +429,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/dashboard-user-reset", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -508,11 +467,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/dashboard-exam-expire", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
@@ -593,11 +548,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/notices/dismiss", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -664,11 +615,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/welcome/cs24-click", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -700,11 +647,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/feedback/submit", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -717,20 +660,9 @@ internal static class ApiEndpoints
                 }
 
                 var campaignId = campaignIdEl.GetString();
-                var isAdmin = ApiHelpers.IsAdminSession(context);
-                var progress = context.RequestServices.GetService<UserProgressService>();
-                var username = context.Session.GetString("Username")!;
-                var achievementCount = progress != null
-                    ? (await progress.LoadAsync(username))?.Achievements?.Count ?? 0
-                    : 0;
-                var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
-                if (string.IsNullOrWhiteSpace(campaignId) ||
-                    string.IsNullOrWhiteSpace(expectedCampaignId) ||
-                    !string.Equals(campaignId, expectedCampaignId, StringComparison.Ordinal))
-                {
-                    await ApiHelpers.WritePlainError(context, 400, "Invalid or inactive campaign");
-                    return;
-                }
+                var resolved = await ApiHelpers.TryResolveActiveFeedbackCampaignAsync(context, campaignId);
+                if (resolved == null) return;
+                var (username, activeCampaignId) = resolved.Value;
 
                 if (!ratingEl.TryGetInt32(out var rating) || rating < 1 || rating > 5)
                 {
@@ -742,31 +674,18 @@ internal static class ApiEndpoints
                     ? messageEl.GetString() ?? ""
                     : "";
 
-                var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
-                if (feedbackService == null || !feedbackService.IsEnabled)
-                {
-                    await ApiHelpers.WritePlainError(context, 503, "Feedback service not available");
-                    return;
-                }
+                var feedbackService = await ApiHelpers.RequireFeedbackServiceAsync(context);
+                if (feedbackService == null) return;
 
-                var (success, alreadyResponded) = await feedbackService.SubmitAsync(username, campaignId, rating, message);
-                if (alreadyResponded)
-                {
-                    await ApiHelpers.WritePlainError(context, 409, "Already responded");
+                var (success, alreadyResponded) = await feedbackService.SubmitAsync(username, activeCampaignId, rating, message);
+                if (!await ApiHelpers.HandleFeedbackWriteResultAsync(context, success, alreadyResponded, "Failed to save feedback"))
                     return;
-                }
-
-                if (!success)
-                {
-                    await ApiHelpers.WritePlainError(context, 500, "Failed to save feedback");
-                    return;
-                }
 
                 var activity = context.RequestServices.GetService<ActivityEventService>();
                 activity?.Log(username, ActivityEventCatalog.FeedbackSubmit, new Dictionary<string, object>
                 {
                     ["rating"] = rating,
-                    ["campaignId"] = campaignId!
+                    ["campaignId"] = activeCampaignId
                 });
 
                 await ApiHelpers.WriteJson(context, new { ok = true });
@@ -779,11 +698,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/feedback/later", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -795,46 +710,22 @@ internal static class ApiEndpoints
                 }
 
                 var campaignId = campaignIdEl.GetString();
-                var isAdmin = ApiHelpers.IsAdminSession(context);
-                var progress = context.RequestServices.GetService<UserProgressService>();
-                var username = context.Session.GetString("Username")!;
-                var achievementCount = progress != null
-                    ? (await progress.LoadAsync(username))?.Achievements?.Count ?? 0
-                    : 0;
-                var expectedCampaignId = FeedbackCampaigns.GetActiveCampaignIdForUser(DateTime.UtcNow, isAdmin, achievementCount);
-                if (string.IsNullOrWhiteSpace(campaignId) ||
-                    string.IsNullOrWhiteSpace(expectedCampaignId) ||
-                    !string.Equals(campaignId, expectedCampaignId, StringComparison.Ordinal))
-                {
-                    await ApiHelpers.WritePlainError(context, 400, "Invalid or inactive campaign");
-                    return;
-                }
+                var resolved = await ApiHelpers.TryResolveActiveFeedbackCampaignAsync(context, campaignId);
+                if (resolved == null) return;
+                var (username, activeCampaignId) = resolved.Value;
 
-                var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
-                if (feedbackService == null || !feedbackService.IsEnabled)
-                {
-                    await ApiHelpers.WritePlainError(context, 503, "Feedback service not available");
-                    return;
-                }
+                var feedbackService = await ApiHelpers.RequireFeedbackServiceAsync(context);
+                if (feedbackService == null) return;
 
-                var (success, alreadyResponded) = await feedbackService.RecordLaterAsync(username, campaignId);
-                if (alreadyResponded)
-                {
-                    await ApiHelpers.WritePlainError(context, 409, "Already responded");
+                var (success, alreadyResponded) = await feedbackService.RecordLaterAsync(username, activeCampaignId);
+                if (!await ApiHelpers.HandleFeedbackWriteResultAsync(context, success, alreadyResponded, "Failed to save response"))
                     return;
-                }
-
-                if (!success)
-                {
-                    await ApiHelpers.WritePlainError(context, 500, "Failed to save response");
-                    return;
-                }
 
                 var activity = context.RequestServices.GetService<ActivityEventService>();
-                var milestone = FeedbackCampaigns.ParseMilestoneFromCampaignId(campaignId);
+                var milestone = FeedbackCampaigns.ParseMilestoneFromCampaignId(activeCampaignId);
                 activity?.Log(username, ActivityEventCatalog.FeedbackLater, new Dictionary<string, object>
                 {
-                    ["campaignId"] = campaignId!,
+                    ["campaignId"] = activeCampaignId,
                     ["milestone"] = milestone
                 });
 
@@ -848,11 +739,7 @@ internal static class ApiEndpoints
 
         api.MapPost("/activity/prompt-shown", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -940,20 +827,12 @@ internal static class ApiEndpoints
         });
         api.MapGet("/dashboard-feedback", async context =>
         {
-            if (!ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAdminAsync(context)) return;
 
             try
             {
-                var feedbackService = context.RequestServices.GetService<UserFeedbackService>();
-                if (feedbackService == null || !feedbackService.IsEnabled)
-                {
-                    await ApiHelpers.WritePlainError(context, 503, "Feedback service not available");
-                    return;
-                }
+                var feedbackService = await ApiHelpers.RequireFeedbackServiceAsync(context);
+                if (feedbackService == null) return;
 
                 var entries = await feedbackService.GetSubmittedFeedbackAsync();
                 await ApiHelpers.WriteJson(context, new
@@ -1039,11 +918,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/stats-data", async context =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             try
             {
@@ -1126,11 +1001,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/question-explanation", async (HttpContext context) =>
         {
-            if (!ApiHelpers.IsAuthenticated(context))
-            {
-                await ApiHelpers.WritePlainError(context, 401, "Unauthorized");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAsync(context)) return;
 
             var questionId = context.Request.Query["questionId"].ToString();
             if (string.IsNullOrWhiteSpace(questionId))
@@ -1159,11 +1030,7 @@ internal static class ApiEndpoints
 
         api.MapGet("/question-explanations-status", async (HttpContext context) =>
         {
-            if (!ApiHelpers.IsAuthenticated(context) || !ApiHelpers.IsAdminSession(context))
-            {
-                await ApiHelpers.WritePlainError(context, 403, "Forbidden");
-                return;
-            }
+            if (!await ApiHelpers.RequireAuthAdminAsync(context)) return;
 
             try
             {

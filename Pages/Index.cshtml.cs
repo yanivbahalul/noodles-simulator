@@ -113,9 +113,7 @@ public class IndexModel : PageModel
                 Username = prep.Username;
                 OnlineCount = prep.OnlineCount;
                 ActiveNoticeId = prep.ActiveNoticeId;
-                ApplyFeedbackPrompt(prep.FeedbackPrompt);
-                ApplyGitHubStarPrompt(prep.GitHubStarPrompt);
-                ShowWelcomeModal = prep.WelcomePrompt.Show;
+                ApplyGetPrep(prep);
 
                 _indexPage.ApplyPracticeQueryParams(
                     HttpContext,
@@ -124,7 +122,7 @@ public class IndexModel : PageModel
                 if (PracticeQuizService.ShouldClearAnswerFlashOnGet(Request))
                     _practiceQuiz?.ClearAnswerFlash(HttpContext.Session);
 
-                ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(prep.User, HttpContext.Session, DailyTotal));
+                await ApplyUserStatsAsync(prep.User);
                 NewlyUnlockedAchievements = _indexPage.LoadPendingAchievements(HttpContext.Session);
                 if (!await TryRestoreAnswerFlashAsync())
                 {
@@ -169,7 +167,7 @@ public class IndexModel : PageModel
                     Request.Query["difficulty"].ToString());
                 try { await LoadRandomQuestionAsync(); }
                 catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
-                ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
+                await ApplyUserStatsAsync(auth.User);
                 return Page();
             }
 
@@ -251,13 +249,13 @@ public class IndexModel : PageModel
                 && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString(PracticeQuizService.FlashQuestionKey)))
             {
                 await TryRestoreAnswerFlashAsync();
-                ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
+                await ApplyUserStatsFromProgressAsync(auth.User);
                 NewlyUnlockedAchievements = new List<string>();
                 HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
                 return new JsonResult(BuildSubmitAnswerResponse());
             }
 
-            ApplyEvaluation(_practiceAnswer?.PrepareSubmittedAnswer(
+            ApplyAnswerState(_practiceAnswer?.PrepareSubmittedAnswer(
                 HttpContext.Session, questionImage, answer, tryRecover: true)
                 ?? new PracticeAnswerEvaluation { QuestionImage = questionImage, SelectedAnswer = answer });
 
@@ -272,7 +270,7 @@ public class IndexModel : PageModel
 
             SaveAnswerFlash();
             _practiceQuiz?.ClearPrefetch(HttpContext.Session);
-            ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(auth.User, HttpContext.Session, DailyTotal));
+            await ApplyUserStatsFromProgressAsync(auth.User);
             HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
             return new JsonResult(BuildSubmitAnswerResponse());
         }
@@ -298,7 +296,7 @@ public class IndexModel : PageModel
                 ApplyQuestionDisplay(display);
             }
 
-            ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
+            await ApplyUserStatsAsync(auth.User);
             return new JsonResult(BuildNextQuestionResponse());
         }
         catch (Exception ex)
@@ -324,7 +322,7 @@ public class IndexModel : PageModel
             if (response == null)
                 return new StatusCodeResult(204);
 
-            ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(auth.User, HttpContext.Session, DailyTotal));
+            await ApplyUserStatsAsync(auth.User);
             return new JsonResult(response);
         }
         catch (Exception ex)
@@ -362,6 +360,31 @@ public class IndexModel : PageModel
         return (result.User, null);
     }
 
+    private void ApplyGetPrep(PracticeIndexGetPrepareResult prep)
+    {
+        var feedback = prep.FeedbackPrompt;
+        ShowFeedbackModal = feedback.Show;
+        FeedbackCampaignId = feedback.CampaignId;
+        FeedbackMilestone = feedback.Milestone;
+
+        var star = prep.GitHubStarPrompt;
+        ShowGitHubStarModal = star.Show;
+        GitHubStarMilestone = star.Milestone;
+        ShowWelcomeModal = prep.WelcomePrompt.Show;
+    }
+
+    private async Task ApplyUserStatsAsync(User user)
+    {
+        if (_indexPage == null) return;
+        ApplyUserStatsView(await _indexPage.BuildUserStatsViewAsync(user, HttpContext.Session, DailyTotal));
+    }
+
+    private async Task ApplyUserStatsFromProgressAsync(User user)
+    {
+        if (_indexPage == null) return;
+        ApplyUserStatsView(await _indexPage.BuildUserStatsViewFromProgressAsync(user, HttpContext.Session, DailyTotal));
+    }
+
     private void ApplyUserStatsView(PracticeUserStatsView? view)
     {
         if (view == null) return;
@@ -380,37 +403,34 @@ public class IndexModel : PageModel
         PracticeIndexPageService.SaveQuizStatsSession(HttpContext.Session, view);
     }
 
-    private void ApplyFeedbackPrompt(PracticeFeedbackPromptView view)
-    {
-        ShowFeedbackModal = view.Show;
-        FeedbackCampaignId = view.CampaignId;
-        FeedbackMilestone = view.Milestone;
-    }
+    private void ApplyAnswerState(PracticeAnswerEvaluation evaluation) =>
+        ApplyAnswerState(
+            evaluation.QuestionImage,
+            evaluation.SelectedAnswer,
+            evaluation.CorrectAnswerKey,
+            evaluation.ShuffledAnswers,
+            evaluation.IsCorrect);
 
-    private void ApplyGitHubStarPrompt(PracticeGitHubStarPromptView? view)
-    {
-        if (view == null) return;
-        ShowGitHubStarModal = view.Show;
-        GitHubStarMilestone = view.Milestone;
-    }
+    private void ApplyAnswerState(PracticeQuizService.PracticeAnswerFlash flash) =>
+        ApplyAnswerState(
+            flash.QuestionImage,
+            flash.SelectedAnswer,
+            flash.CorrectAnswerKey,
+            flash.ShuffledAnswers,
+            flash.IsCorrect);
 
-    private void ApplyEvaluation(PracticeAnswerEvaluation evaluation)
+    private void ApplyAnswerState(
+        string questionImage,
+        string selectedAnswer,
+        string correctKey,
+        Dictionary<string, string> shuffledAnswers,
+        bool isCorrect)
     {
-        QuestionImage = evaluation.QuestionImage;
-        SelectedAnswer = evaluation.SelectedAnswer;
-        CorrectAnswerKey = evaluation.CorrectAnswerKey;
-        ShuffledAnswers = evaluation.ShuffledAnswers;
-        IsCorrect = evaluation.IsCorrect;
-        AnswerChecked = true;
-    }
-
-    private void ApplyAnswerFlash(PracticeQuizService.PracticeAnswerFlash flash)
-    {
-        QuestionImage = flash.QuestionImage;
-        SelectedAnswer = flash.SelectedAnswer;
-        IsCorrect = flash.IsCorrect;
-        CorrectAnswerKey = flash.CorrectAnswerKey;
-        ShuffledAnswers = flash.ShuffledAnswers;
+        QuestionImage = questionImage;
+        SelectedAnswer = selectedAnswer;
+        CorrectAnswerKey = correctKey;
+        ShuffledAnswers = shuffledAnswers;
+        IsCorrect = isCorrect;
         AnswerChecked = true;
     }
 
@@ -421,11 +441,8 @@ public class IndexModel : PageModel
         QuestionImage = display.State.QuestionImage;
         CorrectAnswerKey = display.State.CorrectAnswerKey;
         ShuffledAnswers = display.State.ShuffledAnswers;
-        ApplyQuestionUrls(display.Urls);
-    }
 
-    private void ApplyQuestionUrls(PracticeQuestionUrls urls)
-    {
+        var urls = display.Urls;
         if (urls == null) return;
 
         QuestionImageUrl = urls.QuestionImageUrl;
@@ -452,7 +469,7 @@ public class IndexModel : PageModel
         if (_practiceQuiz == null || !_practiceQuiz.TryReadAnswerFlash(HttpContext.Session, out var flash))
             return false;
 
-        ApplyAnswerFlash(flash);
+        ApplyAnswerState(flash);
         var display = await _practiceQuiz.BuildDisplayAsync(QuestionImage, ShuffledAnswers, CorrectAnswerKey);
         ApplyQuestionDisplay(display);
         SavePracticeQuestionState();
@@ -521,7 +538,7 @@ public class IndexModel : PageModel
     {
         var questionImage = Request.Form["questionImage"].ToString();
         var answer = Request.Form["answer"].ToString();
-        ApplyEvaluation(_practiceAnswer?.PrepareSubmittedAnswer(HttpContext.Session, questionImage, answer)
+        ApplyAnswerState(_practiceAnswer?.PrepareSubmittedAnswer(HttpContext.Session, questionImage, answer)
             ?? new PracticeAnswerEvaluation
             {
                 QuestionImage = questionImage,
@@ -554,22 +571,54 @@ public class IndexModel : PageModel
         }
     }
 
-    private async Task ApplyUrlsFromServiceAsync()
-    {
-        if (_practiceQuiz == null)
-            return;
+    private PracticeNextQuestionSnapshot MakeNextQuestionSnapshot(bool includeQuestion = false) =>
+        includeQuestion
+            ? new PracticeNextQuestionSnapshot
+            {
+                QuestionImage = QuestionImage ?? "",
+                QuestionImageUrl = QuestionImageUrl ?? "",
+                QuestionImageOriginalName = QuestionImageOriginalName ?? QuestionImage ?? "",
+                ShuffledAnswers = ShuffledAnswers ?? new Dictionary<string, string>(),
+                AnswerImageUrls = AnswerImageUrls,
+                AnswerImageOriginalNames = AnswerImageOriginalNames,
+                PracticeMode = PracticeMode,
+                PracticeDifficulty = PracticeDifficulty,
+                DailyProgress = DailyProgress,
+                DailyTotal = DailyTotal,
+                CurrentStreak = CurrentStreak
+            }
+            : new PracticeNextQuestionSnapshot
+            {
+                PracticeMode = PracticeMode,
+                PracticeDifficulty = PracticeDifficulty,
+                DailyProgress = DailyProgress,
+                DailyTotal = DailyTotal,
+                CurrentStreak = CurrentStreak
+            };
 
-        var urls = await _practiceQuiz.PopulateUrlsAsync(QuestionImage, ShuffledAnswers);
-        ApplyQuestionUrls(urls);
-    }
-
-    private PracticeNextQuestionSnapshot MakeNextQuestionSnapshot() => new()
+    private PracticeSubmitAnswerSnapshot MakeSubmitAnswerSnapshot() => new()
     {
-        PracticeMode = PracticeMode,
-        PracticeDifficulty = PracticeDifficulty,
-        DailyProgress = DailyProgress,
+        IsCorrect = IsCorrect,
+        SelectedAnswer = SelectedAnswer ?? "",
+        CorrectAnswerKey = CorrectAnswerKey ?? "",
+        ShuffledAnswers = ShuffledAnswers ?? new Dictionary<string, string>(),
+        AnswerImageUrls = AnswerImageUrls,
+        AnswerImageOriginalNames = AnswerImageOriginalNames,
+        UserCorrect = UserCorrect,
+        UserTotal = UserTotal,
+        UserSuccessRate = UserSuccessRate,
+        CurrentStreak = CurrentStreak,
+        UserXp = UserXp,
+        UserLevel = UserLevel,
+        XpProgressPercent = XpProgressPercent,
+        XpGain = _lastXpGain,
+        LevelUpTo = _levelUpTo,
+        BrokenStreakAt = _brokenStreakAt,
+        DailyJustCompleted = _dailyJustCompleted,
+        DailyFinalScore = _dailyFinalScore,
         DailyTotal = DailyTotal,
-        CurrentStreak = CurrentStreak
+        NewlyUnlockedAchievements = NewlyUnlockedAchievements,
+        HasExplanation = HasExplanation
     };
 
     private void ResetAnswerFeedbackState()
@@ -582,44 +631,8 @@ public class IndexModel : PageModel
     }
 
     private object BuildSubmitAnswerResponse() =>
-        PracticeQuizApiResponses.BuildSubmitAnswer(new PracticeSubmitAnswerSnapshot
-        {
-            IsCorrect = IsCorrect,
-            SelectedAnswer = SelectedAnswer ?? "",
-            CorrectAnswerKey = CorrectAnswerKey ?? "",
-            ShuffledAnswers = ShuffledAnswers ?? new Dictionary<string, string>(),
-            AnswerImageUrls = AnswerImageUrls,
-            AnswerImageOriginalNames = AnswerImageOriginalNames,
-            UserCorrect = UserCorrect,
-            UserTotal = UserTotal,
-            UserSuccessRate = UserSuccessRate,
-            CurrentStreak = CurrentStreak,
-            UserXp = UserXp,
-            UserLevel = UserLevel,
-            XpProgressPercent = XpProgressPercent,
-            XpGain = _lastXpGain,
-            LevelUpTo = _levelUpTo,
-            BrokenStreakAt = _brokenStreakAt,
-            DailyJustCompleted = _dailyJustCompleted,
-            DailyFinalScore = _dailyFinalScore,
-            DailyTotal = DailyTotal,
-            NewlyUnlockedAchievements = NewlyUnlockedAchievements,
-            HasExplanation = HasExplanation
-        });
+        PracticeQuizApiResponses.BuildSubmitAnswer(MakeSubmitAnswerSnapshot());
 
     private object BuildNextQuestionResponse() =>
-        PracticeQuizApiResponses.BuildNextQuestion(new PracticeNextQuestionSnapshot
-        {
-            QuestionImage = QuestionImage ?? "",
-            QuestionImageUrl = QuestionImageUrl ?? "",
-            QuestionImageOriginalName = QuestionImageOriginalName ?? QuestionImage ?? "",
-            ShuffledAnswers = ShuffledAnswers ?? new Dictionary<string, string>(),
-            AnswerImageUrls = AnswerImageUrls,
-            AnswerImageOriginalNames = AnswerImageOriginalNames,
-            PracticeMode = PracticeMode,
-            PracticeDifficulty = PracticeDifficulty,
-            DailyProgress = DailyProgress,
-            DailyTotal = DailyTotal,
-            CurrentStreak = CurrentStreak
-        });
+        PracticeQuizApiResponses.BuildNextQuestion(MakeNextQuestionSnapshot(includeQuestion: true));
 }

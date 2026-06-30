@@ -25,8 +25,6 @@
         return value != null ? `${value}%` : null;
     }
 
-    dashboard.setText = setText;
-
     dashboard.showDashboardError = async function showDashboardError(message) {
         await window.notifyAppError?.(message);
     };
