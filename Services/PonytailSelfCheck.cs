@@ -13,6 +13,7 @@ public static class PonytailSelfCheck
         CheckQuestionExplanationPaths();
         CheckQuizStatsHydrate();
         CheckQuestionLabelFormat();
+        CheckExplanationRatingUrgency();
         Console.WriteLine("[ponytail] all self-checks passed");
     }
 
@@ -97,5 +98,24 @@ public static class PonytailSelfCheck
         Assert(
             !MediaUrl.TryNormalizePath("../secret", out _),
             "media path blocks traversal");
+    }
+
+    private static void CheckExplanationRatingUrgency()
+    {
+        var bad = new QuestionExplanationRatingSummary
+        {
+            AvgStars = 2,
+            RatingCount = 5,
+            LowCount = 3,
+            UrgencyScore = (5.0 - 2) * 5 + 3 * 2.0
+        };
+        var good = new QuestionExplanationRatingSummary
+        {
+            AvgStars = 4.8,
+            RatingCount = 2,
+            LowCount = 0,
+            UrgencyScore = (5.0 - 4.8) * 2
+        };
+        Assert(bad.UrgencyScore > good.UrgencyScore, "urgency ranks bad explanations first");
     }
 }

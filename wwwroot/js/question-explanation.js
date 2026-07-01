@@ -36,7 +36,7 @@
         const submit = ratingSubmit();
         if (thanks) thanks.hidden = true;
         if (fb) { fb.hidden = true; fb.value = ""; }
-        if (submit) { submit.hidden = true; submit.disabled = false; }
+        if (submit) { submit.hidden = true; submit.disabled = false; submit.textContent = "שלח דירוג"; }
         panel?.querySelector(".question-explanation-rating-prompt")?.removeAttribute("hidden");
         panel?.querySelector(".explanation-stars")?.removeAttribute("hidden");
         starBtns().forEach((btn) => {
@@ -75,7 +75,12 @@
                 paintStars(selectedStars);
                 const fb = ratingFeedback();
                 const submit = ratingSubmit();
-                if (fb) fb.hidden = false;
+                if (fb) {
+                    fb.hidden = false;
+                    fb.placeholder = selectedStars <= 3
+                        ? "מה לא היה תקין? (מומלץ לפרט)"
+                        : "מה לא היה תקין? (אופציונלי)";
+                }
                 if (submit) submit.hidden = false;
                 scheduleViewport();
             });
@@ -117,8 +122,10 @@
             if (thanks) thanks.hidden = false;
             starBtns().forEach((btn) => { btn.disabled = true; });
         } catch {
-            if (submit) submit.disabled = false;
-            setBtnText("שגיאה בשליחת דירוג");
+            if (submit) {
+                submit.disabled = false;
+                submit.textContent = "שגיאה — נסה שוב";
+            }
         }
         scheduleViewport();
     }
