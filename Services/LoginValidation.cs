@@ -1,5 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
+using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
 
@@ -12,7 +14,7 @@ public static class LoginValidation
         return null;
     }
 
-    public static string? RegistrationError(string username, string password)
+    public static string? RegistrationError(IConfiguration configuration, string username, string password)
     {
         var empty = CredentialsEmptyError(username, password);
         if (empty != null) return empty;
@@ -20,7 +22,7 @@ public static class LoginValidation
         if (username.Length < 5 || password.Length < 5)
             return "שם המשתמש והסיסמה חייבים להיות באורך של לפחות 5 תווים.";
 
-        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+        if (AdminConfiguration.IsReservedUsername(configuration, username))
             return "שם המשתמש הזה שמור. בחר שם אחר.";
 
         if (!Regex.IsMatch(username, @"^[a-zA-Z0-9א-ת]+$"))

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -14,6 +16,7 @@ public static class PonytailSelfCheck
         CheckQuizStatsHydrate();
         CheckQuestionLabelFormat();
         CheckExplanationRatingUrgency();
+        CheckAdminOtp();
         Console.WriteLine("[ponytail] all self-checks passed");
     }
 
@@ -117,5 +120,31 @@ public static class PonytailSelfCheck
             UrgencyScore = (5.0 - 4.8) * 2
         };
         Assert(bad.UrgencyScore > good.UrgencyScore, "urgency ranks bad explanations first");
+    }
+
+    private static void CheckAdminOtp()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Admin:Username"] = "Admin",
+                ["Admin:Password"] = "secret-admin",
+                ["Admin:OtpEmail"] = "admin@example.com"
+            })
+            .Build();
+
+        Assert(AdminConfiguration.IsAdminUsername(config, "admin"), "admin username match");
+        Assert(AdminConfiguration.IsReservedUsername(config, "ADMIN"), "reserved admin username");
+        Assert(AdminConfiguration.VerifyPassword(config, "secret-admin"), "admin password ok");
+        Assert(!AdminConfiguration.VerifyPassword(config, "wrong"), "admin password reject");
+
+        var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(
+            new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
+        var otp = new AdminOtpService(cache, new EmailService(config), config);
+        Assert(!otp.Verify("missing", "123456"), "admin otp missing session");
+
+        otp.SeedTestOtp("fixed", "042819");
+        Assert(otp.Verify("fixed", "042819"), "admin otp verify");
+        Assert(!otp.Verify("fixed", "042819"), "admin otp one-time use");
     }
 }

@@ -68,8 +68,8 @@ public class RememberMeService
 
         if (request.Cookies.TryGetValue(AuthCookieNames.LegacyUsername, out var legacy) && !string.IsNullOrWhiteSpace(legacy))
         {
-            var isAdmin = string.Equals(legacy, "Admin", StringComparison.OrdinalIgnoreCase);
-            return (legacy.Trim(), isAdmin);
+            // ponytail: legacy cookie is username-only; admin requires the protected Remember cookie.
+            return (legacy.Trim(), false);
         }
 
         return null;

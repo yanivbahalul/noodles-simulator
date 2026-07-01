@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 
@@ -13,6 +14,14 @@ namespace NoodlesSimulator.Api;
 
 internal static class ApiHelpers
 {
+    internal static bool IsAdminSession(HttpContext context, IConfiguration configuration)
+    {
+        if (!string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal))
+            return false;
+
+        return AdminConfiguration.IsAdminUsername(configuration, context.Session.GetString("Username"));
+    }
+
     internal static bool IsAdminSession(HttpContext context) =>
         string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
 
@@ -47,7 +56,8 @@ internal static class ApiHelpers
 
     internal static async Task<bool> RequireAdminAsync(HttpContext context)
     {
-        if (IsAdminSession(context)) return true;
+        var config = context.RequestServices.GetRequiredService<IConfiguration>();
+        if (IsAdminSession(context, config)) return true;
         await WritePlainError(context, 401, "Unauthorized");
         return false;
     }
@@ -61,7 +71,8 @@ internal static class ApiHelpers
 
     internal static async Task<bool> RequireAuthAdminAsync(HttpContext context)
     {
-        if (IsAuthenticated(context) && IsAdminSession(context)) return true;
+        var config = context.RequestServices.GetRequiredService<IConfiguration>();
+        if (IsAuthenticated(context) && IsAdminSession(context, config)) return true;
         await WritePlainError(context, 403, "Forbidden");
         return false;
     }

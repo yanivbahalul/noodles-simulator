@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 using System.Threading.Tasks;
 
@@ -25,14 +26,16 @@ public class LoginModel : PageModel
     [BindProperty]
     public string Password { get; set; }
 
+    [BindProperty]
+    public string OtpCode { get; set; }
+
     public string ErrorMessage { get; set; }
+    public bool ShowAdminOtp { get; set; }
 
     public IActionResult OnGet()
     {
         var result = _loginPage.TryOnGet(HttpContext);
-        if (result.RedirectToIndex)
-            return RedirectToPage("/Index");
-        return Page();
+        return FromResult(result);
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -41,6 +44,7 @@ public class LoginModel : PageModel
         {
             Username = Username?.Trim();
             Password = Password?.Trim();
+            OtpCode = OtpCode?.Trim();
 
             var action = Request.Form["action"];
             var attemptKey = _loginPage.BuildAttemptKey(HttpContext, Username);
@@ -56,14 +60,14 @@ public class LoginModel : PageModel
                 result = await _loginPage.TryLoginAsync(HttpContext, Username, Password, attemptKey, _logger);
             else if (action == "register")
                 result = await _loginPage.TryRegisterAsync(HttpContext, Username, Password, attemptKey, _logger);
+            else if (action == "verify-admin-otp")
+                result = await _loginPage.TryVerifyAdminOtpAsync(HttpContext, OtpCode, attemptKey, _logger);
+            else if (action == "resend-admin-otp")
+                result = await _loginPage.TryResendAdminOtpAsync(HttpContext, _logger);
             else
                 result = LoginFlowResult.Error("בקשה לא תקינה.");
 
-            if (result.RedirectToIndex)
-                return RedirectToPage("/Index");
-
-            ErrorMessage = result.ErrorMessage;
-            return Page();
+            return FromResult(result);
         }
         catch (System.Exception ex)
         {
@@ -71,5 +75,16 @@ public class LoginModel : PageModel
             ErrorMessage = "שגיאת מערכת. נסה שוב מאוחר יותר.";
             return Page();
         }
+    }
+
+    private IActionResult FromResult(LoginFlowResult result)
+    {
+        if (result.RedirectToIndex)
+            return RedirectToPage("/Index");
+
+        ShowAdminOtp = result.ShowAdminOtp
+            || HttpContext.Session.GetString(AdminConfiguration.PendingOtpSessionKey) == "1";
+        ErrorMessage = result.ErrorMessage;
+        return Page();
     }
 }

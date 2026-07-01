@@ -27,6 +27,25 @@
             @Model.ErrorMessage
         </p>
     }
+    @if (Model.ShowAdminOtp)
+    {
+        <p class="login-label">נשלח קוד אימות למייל המנהל. הזן אותו כדי להשלים התחברות.</p>
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <div class="login-fields">
+                <label for="otp" class="login-label">קוד אימות</label>
+                <input type="text" name="OtpCode" id="otp" class="input-field"
+                       inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                       required />
+            </div>
+            <div class="login-actions">
+                <button type="submit" name="action" value="verify-admin-otp" class="main-btn login-action-btn">אימות</button>
+                <button type="submit" name="action" value="resend-admin-otp" class="secondary-btn login-action-btn">שלח קוד שוב</button>
+            </div>
+        </form>
+    }
+    else
+    {
     <form method="post">
         @Html.AntiForgeryToken()
         <div class="login-fields">
@@ -43,6 +62,7 @@
             <button type="submit" name="action" value="register" class="secondary-btn login-action-btn">הרשמה</button>
         </div>
     </form>
+    }
 </div>
 
 <partial name="Shared/_SiteFooter" />

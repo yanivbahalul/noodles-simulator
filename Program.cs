@@ -155,6 +155,7 @@ var progressDir = isProd
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
 builder.Services.AddSingleton<RememberMeService>();
 builder.Services.AddSingleton<LoginThrottleService>();
+builder.Services.AddSingleton<AdminOtpService>();
 builder.Services.AddSingleton<LoginPageService>();
 builder.Services.AddSingleton<TestResultsPageService>();
 builder.Services.AddSingleton<UserProgressStore>(sp =>
@@ -208,6 +209,7 @@ builder.Services.AddSingleton<TestExamService>(sp =>
 builder.Services.AddSingleton<AdminUserService>(sp =>
     new AdminUserService(
         sp.GetRequiredService<AuthService>(),
+        sp.GetRequiredService<IConfiguration>(),
         sp.GetService<UserProgressService>(),
         sp.GetService<TestSessionService>(),
         sp.GetService<ActivityEventService>(),

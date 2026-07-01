@@ -31,6 +31,7 @@ public class AuthService
     private readonly string _apiKey;
     private const string PasswordHashPrefix = "pbkdf2$";
     private readonly UserStatsService? _stats;
+    private readonly IConfiguration _config;
     private int _cachedOnlineCount = -1;
     private DateTime _cachedOnlineCountAt = DateTime.MinValue;
     private static readonly TimeSpan OnlineCountCacheTtl = TimeSpan.FromSeconds(30);
@@ -39,6 +40,7 @@ public class AuthService
 
     public AuthService(IConfiguration config, UserStatsService? stats = null)
     {
+        _config = config;
         _stats = stats;
         _url = SupabaseConfiguration.Url(config)
                ?? throw new Exception("Missing Supabase URL ENV var (SUPABASE_URL).");
@@ -112,7 +114,7 @@ public class AuthService
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             return false;
 
-        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+        if (AdminConfiguration.IsReservedUsername(_config, username))
             return false;
 
         if (username.Length < 5 || password.Length < 5)

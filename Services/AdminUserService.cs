@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -7,6 +8,7 @@ namespace NoodlesSimulator.Services;
 public class AdminUserService
 {
     private readonly AuthService _auth;
+    private readonly IConfiguration _configuration;
     private readonly UserProgressService? _progress;
     private readonly TestSessionService? _testSessions;
     private readonly ActivityEventService? _activityEvents;
@@ -14,12 +16,14 @@ public class AdminUserService
 
     public AdminUserService(
         AuthService auth,
+        IConfiguration configuration,
         UserProgressService? progress = null,
         TestSessionService? testSessions = null,
         ActivityEventService? activityEvents = null,
         UserStatsService? stats = null)
     {
         _auth = auth;
+        _configuration = configuration;
         _progress = progress;
         _testSessions = testSessions;
         _activityEvents = activityEvents;
@@ -32,7 +36,7 @@ public class AdminUserService
             return (false, "Missing username");
 
         username = username.Trim();
-        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+        if (AdminConfiguration.IsAdminUsername(_configuration, username))
             return (false, "Cannot reset admin user");
 
         var user = await _auth.GetUserAsync(username);
@@ -98,7 +102,7 @@ public class AdminUserService
             return (false, "Missing username");
 
         username = username.Trim();
-        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
+        if (AdminConfiguration.IsAdminUsername(_configuration, username))
             return (false, "Cannot delete admin user");
 
         var user = await _auth.GetUserAsync(username);
