@@ -176,7 +176,11 @@ public class UserProgressService
         try
         {
             var json = JsonSerializer.Serialize(data, AppJson.Options);
-            _memCache.Set(MemKey(username), json, MemCacheTtl);
+            _memCache.Set(MemKey(username), json, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = MemCacheTtl,
+                Size = json.Length
+            });
         }
         catch (Exception ex)
         {

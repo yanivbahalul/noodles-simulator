@@ -139,7 +139,7 @@ public static class PonytailSelfCheck
         Assert(!AdminConfiguration.VerifyPassword(config, "wrong"), "admin password reject");
 
         var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(
-            new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());
+            new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions { SizeLimit = 1024 });
         var otp = new AdminOtpService(cache, new EmailService(config), config);
         Assert(!otp.Verify("missing", "123456"), "admin otp missing session");
 

@@ -57,7 +57,7 @@ public sealed class AdminOtpService
             Attempts = 0,
             SentAtUtc = DateTime.UtcNow
         };
-        _cache.Set(cacheKey, state, CodeLifetime);
+        _cache.Set(cacheKey, state, CacheEntry(CodeLifetime));
 
         var to = AdminConfiguration.OtpEmail(_configuration)!;
         var subject = "קוד אימות — Noodles Simulator";
@@ -88,7 +88,7 @@ public sealed class AdminOtpService
             return false;
         }
 
-        _cache.Set(cacheKey, state, CodeLifetime);
+        _cache.Set(cacheKey, state, CacheEntry(CodeLifetime));
 
         var normalized = code.Trim();
         if (normalized.Length != CodeLength)
@@ -110,10 +110,13 @@ public sealed class AdminOtpService
         _cache.Set(
             CacheKey(sessionId),
             new OtpState { Code = code, Attempts = 0, SentAtUtc = DateTime.UtcNow },
-            CodeLifetime);
+            CacheEntry(CodeLifetime));
     }
 
     private static string CacheKey(string sessionId) => $"admin-otp:{sessionId}";
+
+    private static MemoryCacheEntryOptions CacheEntry(TimeSpan ttl) =>
+        new() { AbsoluteExpirationRelativeToNow = ttl, Size = 1 };
 
     private static string GenerateCode()
     {

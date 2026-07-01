@@ -39,8 +39,18 @@ public sealed class LoginThrottleService
     public void RecordFailure(string key)
     {
         var now = DateTime.UtcNow;
-        var state = _cache.GetOrCreate(key, _ => new AttemptState())!;
-        _cache.Set(key, state, AttemptWindow + BlockDuration);
+        var ttl = AttemptWindow + BlockDuration;
+        var state = _cache.GetOrCreate(key, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = ttl;
+            entry.Size = 1;
+            return new AttemptState();
+        })!;
+        _cache.Set(key, state, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = ttl,
+            Size = 1
+        });
 
         if (now - state.LastFailureUtc > AttemptWindow)
         {
