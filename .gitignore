@@ -24,6 +24,9 @@ widget/
 # Explanation video generation — local only (never push to GitHub)
 tools/generate-explanations/
 
+# Question image normalizer — local only
+tools/normalize-questions/
+
 # Local explanation demos, TTS experiments, review batches
 wwwroot/demo/explanations/
 wwwroot/demo/polish-debug-*/
