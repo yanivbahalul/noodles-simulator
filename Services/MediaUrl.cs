@@ -6,12 +6,26 @@ namespace NoodlesSimulator.Services;
 /// <summary>Stable public URLs for Supabase Storage objects (served via /media proxy).</summary>
 public static class MediaUrl
 {
-    public static string ForStoragePath(string? objectPath)
+    /// <summary>Quiz screenshot originals (mirrored from former bucket root).</summary>
+    public const string OriginalsPrefix = "original";
+
+    /// <summary>Bare filename → storage path; paths with a folder (explanations/, sessions/) unchanged.</summary>
+    public static string ResolveObjectPath(string? fileOrPath)
     {
-        if (string.IsNullOrWhiteSpace(objectPath))
+        if (string.IsNullOrWhiteSpace(fileOrPath))
             return string.Empty;
 
-        return "/media/" + objectPath.Trim().TrimStart('/').Replace('\\', '/');
+        var p = fileOrPath.Trim().TrimStart('/').Replace('\\', '/');
+        if (p.Contains("..", StringComparison.Ordinal))
+            throw new ArgumentException("Invalid path", nameof(fileOrPath));
+
+        return p.Contains('/') ? p : $"{OriginalsPrefix}/{p}";
+    }
+
+    public static string ForStoragePath(string? objectPath)
+    {
+        var resolved = ResolveObjectPath(objectPath);
+        return string.IsNullOrWhiteSpace(resolved) ? string.Empty : "/media/" + resolved;
     }
 
     public static bool TryNormalizePath(string? path, out string objectPath)

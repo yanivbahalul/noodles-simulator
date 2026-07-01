@@ -59,13 +59,24 @@
         return el && !el.hidden ? el.offsetHeight : 0;
     }
 
+    function getExplanationPanelHeight(panel) {
+        if (!panel || panel.hidden) return 0;
+        // ponytail: fixed reserve while video plays — rating form expand must not shrink question image / scroll
+        if (panel.classList.contains("is-playing")) {
+            const wrap = document.getElementById("question-explanation-video-wrap");
+            const videoH = wrap && !wrap.hidden ? wrap.offsetHeight : 0;
+            return videoH + 200;
+        }
+        return panel.offsetHeight;
+    }
+
     function getReservedBelowQuestion(answers, buttonRow, feedback) {
         const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
         const explanationPanel = document.getElementById("question-explanation-panel");
         return (answers?.offsetHeight ?? 0) +
             (buttonRow?.offsetHeight ?? 0) +
             getVisibleHeight(feedback) +
-            getVisibleHeight(explanationPanel) +
+            getExplanationPanelHeight(explanationPanel) +
             hintHeight +
             32;
     }

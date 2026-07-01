@@ -160,7 +160,7 @@ public class SystemHealthService
 
         return await TimedAsync("storage", "אחסון תמונות", async () =>
         {
-            var files = await _storage.ListFilesAsync("");
+            var files = await _storage.ListFilesAsync(MediaUrl.OriginalsPrefix + "/");
             var images = files.Count(f =>
                 f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
                 f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
@@ -178,7 +178,7 @@ public class SystemHealthService
 
         return await TimedAsync("media", "פרוקסי מדיה (/media)", async () =>
         {
-            var files = await _storage.ListFilesAsync("");
+            var files = await _storage.ListFilesAsync(MediaUrl.OriginalsPrefix + "/");
             var sample = files.FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase));
             if (string.IsNullOrWhiteSpace(sample))
                 return (false, "לא נמצאה תמונה לבדיקה");

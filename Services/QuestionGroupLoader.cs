@@ -33,10 +33,12 @@ public class QuestionGroupLoader
     {
         if (_storage != null)
         {
-            return (await _storage.ListFilesAsync(""))
+            return (await _storage.ListFilesAsync(MediaUrl.OriginalsPrefix + "/"))
                 .Where(IsImageFile)
+                .Select(Path.GetFileName)
+                .Where(name => !string.IsNullOrEmpty(name))
                 .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                .ToList()!;
         }
 
         var imagesDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");

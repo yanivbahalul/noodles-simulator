@@ -15,8 +15,7 @@ public class SupabaseStorageService
     private readonly string _bucket;
     private readonly int _ttlSeconds;
     private bool _initialized;
-    private List<string> _listCache;
-    private DateTime _listCacheAt;
+    private readonly ConcurrentDictionary<string, (List<string> files, DateTime at)> _listCaches = new();
     private readonly TimeSpan _listTtl = TimeSpan.FromMinutes(30);
     private readonly ConcurrentDictionary<string, (string url, DateTime cachedAt)> _signedUrlCache = new();
     private readonly TimeSpan _signedUrlTtl;
@@ -48,6 +47,8 @@ public class SupabaseStorageService
         if (string.IsNullOrWhiteSpace(objectPath))
             throw new ArgumentException("objectPath is required.", nameof(objectPath));
 
+        objectPath = MediaUrl.ResolveObjectPath(objectPath);
+
         if (_signedUrlCache.TryGetValue(objectPath, out var entry)
             && DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
         {
@@ -72,7 +73,9 @@ public class SupabaseStorageService
         {
             if (string.IsNullOrWhiteSpace(p)) continue;
 
-            if (_signedUrlCache.TryGetValue(p, out var entry) && DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
+            var resolved = MediaUrl.ResolveObjectPath(p);
+
+            if (_signedUrlCache.TryGetValue(resolved, out var entry) && DateTime.UtcNow - entry.cachedAt < _signedUrlTtl)
             {
                 dict[p] = entry.url;
                 continue;
@@ -80,8 +83,8 @@ public class SupabaseStorageService
 
             tasks.Add(Task.Run(async () =>
             {
-                var url = await from.CreateSignedUrl(p, _ttlSeconds);
-                _signedUrlCache[p] = (url, DateTime.UtcNow);
+                var url = await from.CreateSignedUrl(resolved, _ttlSeconds);
+                _signedUrlCache[resolved] = (url, DateTime.UtcNow);
                 dict[p] = url;
             }));
         }
@@ -93,6 +96,8 @@ public class SupabaseStorageService
     {
         if (string.IsNullOrWhiteSpace(objectPath))
             throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
+        objectPath = MediaUrl.ResolveObjectPath(objectPath);
 
         await EnsureInitAsync();
         var from = _client.Storage.From(_bucket);
@@ -113,6 +118,8 @@ public class SupabaseStorageService
     {
         if (string.IsNullOrWhiteSpace(objectPath))
             throw new ArgumentException("objectPath is required.", nameof(objectPath));
+
+        objectPath = MediaUrl.ResolveObjectPath(objectPath);
 
         await EnsureInitAsync();
         var from = _client.Storage.From(_bucket);
@@ -145,9 +152,9 @@ public class SupabaseStorageService
 
     public async Task<List<string>> ListFilesAsync(string prefix = "")
     {
-        // Use simple in-memory cache to avoid listing on every request
-        if (_listCache != null && (DateTime.UtcNow - _listCacheAt) < _listTtl)
-            return _listCache;
+        prefix ??= "";
+        if (_listCaches.TryGetValue(prefix, out var cached) && (DateTime.UtcNow - cached.at) < _listTtl)
+            return cached.files;
 
         await EnsureInitAsync();
         var from = _client.Storage.From(_bucket);
@@ -181,8 +188,7 @@ public class SupabaseStorageService
                 break;
             offset += page.Count;
         }
-        _listCache = list;
-        _listCacheAt = DateTime.UtcNow;
+        _listCaches[prefix] = (list, DateTime.UtcNow);
         return list;
     }
 

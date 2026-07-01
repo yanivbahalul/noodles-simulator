@@ -377,7 +377,7 @@ _ = Task.Run(async () =>
         var explanations = scope.ServiceProvider.GetService<QuestionExplanationService>();
         var sw = System.Diagnostics.Stopwatch.StartNew();
         if (storage != null)
-            await storage.ListFilesAsync("");
+            await storage.ListFilesAsync(MediaUrl.OriginalsPrefix + "/");
         if (explanations != null)
             await explanations.WarmReadyFilesAsync();
         Console.WriteLine($"[Startup] Storage + explanation list warmed ({sw.ElapsedMilliseconds}ms)");

@@ -70,7 +70,8 @@
         starBtns().forEach((btn) => {
             if (btn.dataset.bound === "1") return;
             btn.dataset.bound = "1";
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
                 selectedStars = Number(btn.dataset.star || 0);
                 paintStars(selectedStars);
                 const fb = ratingFeedback();
@@ -82,7 +83,7 @@
                         : "מה לא היה תקין? (אופציונלי)";
                 }
                 if (submit) submit.hidden = false;
-                scheduleViewport();
+                btn.blur();
             });
         });
         const submit = ratingSubmit();
@@ -127,7 +128,6 @@
                 submit.textContent = "שגיאה — נסה שוב";
             }
         }
-        scheduleViewport();
     }
 
     function scheduleViewport() {
