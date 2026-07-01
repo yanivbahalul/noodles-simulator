@@ -30,6 +30,14 @@ internal static partial class ApiEndpoints
 
         app.MapGet("/health", async context =>
         {
+            var env = context.RequestServices.GetRequiredService<IHostEnvironment>();
+            if (env.IsProduction())
+            {
+                context.Response.StatusCode = StatusCodes.Status200OK;
+                await ApiHelpers.WriteJson(context, new { ok = true });
+                return;
+            }
+
             var config = context.RequestServices.GetRequiredService<IConfiguration>();
             var url = SupabaseConfiguration.Url(config);
             var anon = SupabaseConfiguration.AnonApiKey(config);

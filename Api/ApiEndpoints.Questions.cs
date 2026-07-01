@@ -20,10 +20,17 @@ internal static partial class ApiEndpoints
     {
         api.MapGet("/question-difficulty", async (HttpContext context) =>
         {
+            if (!await ApiHelpers.RequireAuthAdminAsync(context)) return;
+
             var svc = context.RequestServices.GetService<QuestionDifficultyService>();
-            if (svc == null) return Results.Problem("Difficulty service unavailable", statusCode: 503);
+            if (svc == null)
+            {
+                await ApiHelpers.WritePlainError(context, 503, "Difficulty service unavailable");
+                return;
+            }
+
             var items = await svc.GetAllQuestionsAsync();
-            return Results.Json(new { items });
+            await ApiHelpers.WriteJson(context, new { items });
         });
 
 

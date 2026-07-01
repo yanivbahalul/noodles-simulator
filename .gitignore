@@ -27,6 +27,9 @@ tools/generate-explanations/
 # Question image normalizer — local only
 tools/normalize-questions/
 
+# HexStrike MCP — clone locally, not versioned
+tools/hexstrike-ai/
+
 # Local explanation demos, TTS experiments, review batches
 wwwroot/demo/explanations/
 wwwroot/demo/polish-debug-*/

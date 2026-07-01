@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "hexstrike-ai": {
+      "command": "/Users/yaniv/noodles-simulator/tools/hexstrike-ai/hexstrike-env/bin/python3",
+      "args": [
+        "/Users/yaniv/noodles-simulator/tools/hexstrike-ai/hexstrike_mcp.py",
+        "--server",
+        "http://127.0.0.1:8888"
+      ],
+      "description": "HexStrike AI — merge into ~/.cursor/mcp.json",
+      "timeout": 300
+    }
+  }
+}

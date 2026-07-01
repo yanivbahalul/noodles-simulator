@@ -79,7 +79,6 @@ public class SystemVerificationService
         {
             new SystemVerificationPlanItem { Id = "http-online-count", Name = "מחוברים כעת", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "http-leaderboard", Name = "לוח תוצאות", Category = "APIs ציבוריים" },
-            new SystemVerificationPlanItem { Id = "http-question-difficulty", Name = "קושי שאלות", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "http-login-page", Name = "דף התחברות", Category = "APIs ציבוריים" },
             new SystemVerificationPlanItem { Id = "sb-user-stats", Name = "טבלת user_stats", Category = "Supabase" },
             new SystemVerificationPlanItem { Id = "sb-user-question-stats", Name = "טבלת user_question_stats", Category = "Supabase" },
@@ -213,7 +212,6 @@ public class SystemVerificationService
     {
         yield return ("http-online-count", "מחוברים כעת", "APIs ציבוריים", $"{baseUrl}/api/online-count", 200);
         yield return ("http-leaderboard", "לוח תוצאות", "APIs ציבוריים", $"{baseUrl}/api/leaderboard-data?tab=total", 200);
-        yield return ("http-question-difficulty", "קושי שאלות", "APIs ציבוריים", $"{baseUrl}/api/question-difficulty", 200);
         yield return ("http-login-page", "דף התחברות", "APIs ציבוריים", $"{baseUrl}/Login", 200);
     }
 
