@@ -1,0 +1,13 @@
+<div id="question-explanation-rating" class="question-explanation-rating" hidden>
+    <p class="question-explanation-rating-prompt">איך היה ההסבר?</p>
+    <div class="explanation-stars" id="explanation-stars" role="radiogroup" aria-label="דירוג הסבר">
+        @for (var s = 1; s <= 5; s++)
+        {
+            <button type="button" class="explanation-star-btn" data-star="@s" aria-label="@s כוכבים">★</button>
+        }
+    </div>
+    <textarea id="question-explanation-feedback" class="question-explanation-feedback" rows="2" maxlength="500"
+              placeholder="מה לא היה תקין? (אופציונלי)" hidden></textarea>
+    <button type="button" id="question-explanation-rating-submit" class="secondary-btn question-explanation-rating-submit" hidden>שלח דירוג</button>
+    <p id="question-explanation-rating-thanks" class="question-explanation-rating-thanks" hidden>תודה על המשוב!</p>
+</div>

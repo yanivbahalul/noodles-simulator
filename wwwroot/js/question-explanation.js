@@ -6,9 +6,122 @@
     const video = () => document.getElementById("question-explanation-video");
 
     const BTN_LABEL = "הסבר";
+    const RATED_KEY = "explanation-rated:";
 
     let loadToken = 0;
     let clickHandler = null;
+    let currentQuestionId = "";
+    let selectedStars = 0;
+
+    const ratingPanel = () => document.getElementById("question-explanation-rating");
+    const ratingThanks = () => document.getElementById("question-explanation-rating-thanks");
+    const ratingFeedback = () => document.getElementById("question-explanation-feedback");
+    const ratingSubmit = () => document.getElementById("question-explanation-rating-submit");
+    const starBtns = () => document.querySelectorAll(".explanation-star-btn");
+
+    function alreadyRated(questionId) {
+        if (!questionId) return false;
+        try { return localStorage.getItem(RATED_KEY + questionId) === "1"; } catch { return false; }
+    }
+
+    function markRated(questionId) {
+        try { localStorage.setItem(RATED_KEY + questionId, "1"); } catch { /* ignore */ }
+    }
+
+    function clearRatingForm() {
+        selectedStars = 0;
+        const panel = ratingPanel();
+        const thanks = ratingThanks();
+        const fb = ratingFeedback();
+        const submit = ratingSubmit();
+        if (thanks) thanks.hidden = true;
+        if (fb) { fb.hidden = true; fb.value = ""; }
+        if (submit) { submit.hidden = true; submit.disabled = false; }
+        panel?.querySelector(".question-explanation-rating-prompt")?.removeAttribute("hidden");
+        panel?.querySelector(".explanation-stars")?.removeAttribute("hidden");
+        starBtns().forEach((btn) => {
+            btn.classList.remove("is-selected", "is-active");
+            btn.disabled = false;
+        });
+    }
+
+    function resetRatingUi() {
+        clearRatingForm();
+        const panel = ratingPanel();
+        if (panel) panel.hidden = true;
+    }
+
+    function paintStars(count) {
+        starBtns().forEach((btn) => {
+            const n = Number(btn.dataset.star || 0);
+            btn.classList.toggle("is-active", n > 0 && n <= count);
+        });
+    }
+
+    function showRatingPrompt(questionId) {
+        if (!questionId || alreadyRated(questionId)) {
+            resetRatingUi();
+            return;
+        }
+        const panel = ratingPanel();
+        if (!panel) return;
+        clearRatingForm();
+        panel.hidden = false;
+        starBtns().forEach((btn) => {
+            if (btn.dataset.bound === "1") return;
+            btn.dataset.bound = "1";
+            btn.addEventListener("click", () => {
+                selectedStars = Number(btn.dataset.star || 0);
+                paintStars(selectedStars);
+                const fb = ratingFeedback();
+                const submit = ratingSubmit();
+                if (fb) fb.hidden = false;
+                if (submit) submit.hidden = false;
+                scheduleViewport();
+            });
+        });
+        const submit = ratingSubmit();
+        if (submit && submit.dataset.bound !== "1") {
+            submit.dataset.bound = "1";
+            submit.addEventListener("click", () => submitRating(questionId));
+        }
+        scheduleViewport();
+    }
+
+    async function submitRating(questionId) {
+        if (!questionId || selectedStars < 1) return;
+        const submit = ratingSubmit();
+        const fb = ratingFeedback();
+        if (submit) submit.disabled = true;
+        try {
+            const res = await fetch("/api/question-explanation-rating", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    questionId,
+                    stars: selectedStars,
+                    feedback: fb?.value?.trim() || ""
+                })
+            });
+            if (!res.ok) throw new Error("save failed");
+            markRated(questionId);
+            const panel = ratingPanel();
+            const thanks = ratingThanks();
+            if (panel) {
+                panel.querySelector(".question-explanation-rating-prompt")?.setAttribute("hidden", "");
+                panel.querySelector(".explanation-stars")?.setAttribute("hidden", "");
+                if (fb) fb.hidden = true;
+                if (submit) submit.hidden = true;
+            }
+            if (thanks) thanks.hidden = false;
+            starBtns().forEach((btn) => { btn.disabled = true; });
+        } catch {
+            if (submit) submit.disabled = false;
+            setBtnText("שגיאה בשליחת דירוג");
+        }
+        scheduleViewport();
+    }
 
     function scheduleViewport() {
         window.QuizViewport?.scheduleQuizViewportAdjust?.();
@@ -21,6 +134,8 @@
 
     function reset() {
         loadToken += 1;
+        currentQuestionId = "";
+        resetRatingUi();
         const p = panel();
         const b = btn();
         const wrap = videoWrap();
@@ -119,6 +234,8 @@
             p.classList.remove("is-loading-video");
             p.classList.add("is-playing");
             b.hidden = true;
+            currentQuestionId = questionId;
+            showRatingPrompt(questionId);
             scheduleViewport();
             try {
                 await v.play();
@@ -151,6 +268,7 @@
         if (!p || !b) return;
 
         p.hidden = false;
+        currentQuestionId = questionId;
         p.classList.remove("is-playing", "is-loading-video");
         b.hidden = false;
         b.disabled = false;

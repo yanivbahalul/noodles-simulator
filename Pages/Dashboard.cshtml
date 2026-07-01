@@ -326,6 +326,26 @@
                 </tbody>
             </table>
         </div>
+
+        <h3 class="dashboard-section-title" style="font-size: var(--fs-md); margin-top: 1.5rem;">⭐ דירוגי משתמשים להסברים</h3>
+        <p class="dashboard-section-hint">ממוין לפי דחיפות תיקון (ממוצע נמוך + יותר דירוגים). הרץ קודם: <code>supabase/question_explanation_ratings.sql</code></p>
+        <div class="dashboard-table-shell">
+            <table class="dashboard-table" id="explanation-ratings-table">
+                <thead>
+                    <tr>
+                        <th>עדיפות</th>
+                        <th>שאלה</th>
+                        <th>ממוצע</th>
+                        <th>דירוגים</th>
+                        <th>נמוך (1–2)</th>
+                        <th>משוב אחרון</th>
+                    </tr>
+                </thead>
+                <tbody id="explanation-ratings-tbody">
+                    <tr><td colspan="6">טוען...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
     <section class="dashboard-tab-panel" data-dashboard-panel="reports" hidden>
         <h2 class="dashboard-section-title">📩 תור דיווחי שאלות</h2>

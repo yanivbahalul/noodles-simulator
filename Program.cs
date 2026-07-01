@@ -58,6 +58,7 @@ builder.Services.AddSingleton<QuestionExplanationService>(sp =>
     new QuestionExplanationService(
         sp.GetRequiredService<IConfiguration>(),
         sp.GetService<SupabaseStorageService>()));
+builder.Services.AddSingleton<QuestionExplanationRatingService>();
 
 builder.Services.AddSingleton<EmailService>(provider =>
 {
