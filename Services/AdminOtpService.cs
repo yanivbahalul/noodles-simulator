@@ -105,6 +105,11 @@ public sealed class AdminOtpService
 
     public void Clear(string sessionId) => _cache.Remove(CacheKey(sessionId));
 
+    public bool HasActiveChallenge(string sessionId) =>
+        !string.IsNullOrWhiteSpace(sessionId)
+        && _cache.TryGetValue(CacheKey(sessionId), out OtpState? state)
+        && state != null;
+
     internal void SeedTestOtp(string sessionId, string code)
     {
         _cache.Set(

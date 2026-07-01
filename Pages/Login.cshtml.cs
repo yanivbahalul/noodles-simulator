@@ -64,6 +64,8 @@ public class LoginModel : PageModel
                 result = await _loginPage.TryVerifyAdminOtpAsync(HttpContext, OtpCode, attemptKey, _logger);
             else if (action == "resend-admin-otp")
                 result = await _loginPage.TryResendAdminOtpAsync(HttpContext, _logger);
+            else if (action == "cancel-admin-otp")
+                result = await _loginPage.TryCancelAdminOtpAsync(HttpContext);
             else
                 result = LoginFlowResult.Error("בקשה לא תקינה.");
 

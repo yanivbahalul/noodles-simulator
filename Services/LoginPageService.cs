@@ -34,7 +34,13 @@ public class LoginPageService
     public LoginFlowResult TryOnGet(HttpContext http)
     {
         if (http.Session.GetString(AdminConfiguration.PendingOtpSessionKey) == "1")
-            return LoginFlowResult.AdminOtp();
+        {
+            if (_adminOtp.HasActiveChallenge(http.Session.Id))
+                return LoginFlowResult.AdminOtp();
+
+            ClearPendingAdmin(http);
+            return LoginFlowResult.Error("לא נמצא קוד אימות פעיל. התחבר מחדש.");
+        }
 
         if (!string.IsNullOrEmpty(http.Session.GetString("Username")))
             return LoginFlowResult.Index();
@@ -143,6 +149,12 @@ public class LoginPageService
             logger.LogError(ex, "Session/cookie error after admin OTP for {Username}", adminUsername);
             return LoginFlowResult.Error("שגיאה בשמירת הפרטים. נסה שוב.");
         }
+    }
+
+    public Task<LoginFlowResult> TryCancelAdminOtpAsync(HttpContext http)
+    {
+        ClearPendingAdmin(http);
+        return Task.FromResult(LoginFlowResult.Page());
     }
 
     public Task<LoginFlowResult> TryResendAdminOtpAsync(HttpContext http, ILogger logger)
@@ -266,6 +278,7 @@ public class LoginPageService
         catch (Exception ex)
         {
             logger.LogError(ex, "Admin OTP challenge setup failed");
+            ClearPendingAdmin(http);
             return LoginFlowResult.Error("שגיאה בהתחברות. נסה שוב.");
         }
     }

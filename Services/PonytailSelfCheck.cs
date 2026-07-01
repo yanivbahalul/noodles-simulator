@@ -144,6 +144,7 @@ public static class PonytailSelfCheck
         Assert(!otp.Verify("missing", "123456"), "admin otp missing session");
 
         otp.SeedTestOtp("fixed", "042819");
+        Assert(otp.HasActiveChallenge("fixed"), "admin otp active challenge");
         Assert(otp.Verify("fixed", "042819"), "admin otp verify");
         Assert(!otp.Verify("fixed", "042819"), "admin otp one-time use");
     }
