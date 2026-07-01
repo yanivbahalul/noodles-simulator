@@ -115,7 +115,7 @@ public class LoginPageService
         ILogger logger)
     {
         if (http.Session.GetString(AdminConfiguration.PendingOtpSessionKey) != "1")
-            return LoginFlowResult.Error("אין התחברות admin ממתינה. התחבר מחדש.");
+            return LoginFlowResult.Error("אין התחברות ממתינה. התחבר מחדש.");
 
         var adminUsername = http.Session.GetString(AdminConfiguration.PendingUsernameSessionKey);
         if (string.IsNullOrWhiteSpace(adminUsername))
@@ -148,7 +148,7 @@ public class LoginPageService
     public Task<LoginFlowResult> TryResendAdminOtpAsync(HttpContext http, ILogger logger)
     {
         if (http.Session.GetString(AdminConfiguration.PendingOtpSessionKey) != "1")
-            return Task.FromResult(LoginFlowResult.Error("אין התחברות admin ממתינה. התחבר מחדש."));
+            return Task.FromResult(LoginFlowResult.Error("אין התחברות ממתינה. התחבר מחדש."));
 
         var (ok, error) = _adminOtp.SendOtp(http.Session.Id);
         if (!ok)
@@ -230,7 +230,7 @@ public class LoginPageService
         {
             logger.LogWarning("Admin login attempted but ADMIN_USERNAME/ADMIN_PASSWORD are not configured");
             _throttle.RecordFailure(attemptKey);
-            return LoginFlowResult.Error("התחברות admin לא מוגדרת בשרת.");
+            return LoginFlowResult.Error("התחברות לא מוגדרת בשרת.");
         }
 
         if (!AdminConfiguration.VerifyPassword(_configuration, password))
@@ -242,7 +242,7 @@ public class LoginPageService
         if (!_adminOtp.CanSendOtp())
         {
             logger.LogWarning("Admin login blocked: email OTP is not configured");
-            return LoginFlowResult.Error("התחברות admin דורשת מייל לקוד אימות (EMAIL_TO / Brevo).");
+            return LoginFlowResult.Error("נדרש מייל לקוד אימות (EMAIL_TO / Brevo).");
         }
 
         try
@@ -266,7 +266,7 @@ public class LoginPageService
         catch (Exception ex)
         {
             logger.LogError(ex, "Admin OTP challenge setup failed");
-            return LoginFlowResult.Error("שגיאה בהתחברות admin. נסה שוב.");
+            return LoginFlowResult.Error("שגיאה בהתחברות. נסה שוב.");
         }
     }
 

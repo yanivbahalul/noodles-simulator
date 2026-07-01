@@ -60,7 +60,7 @@ public sealed class AdminOtpService
         _cache.Set(cacheKey, state, CodeLifetime);
 
         var to = AdminConfiguration.OtpEmail(_configuration)!;
-        var subject = "קוד אימות Admin — Noodles Simulator";
+        var subject = "קוד אימות — Noodles Simulator";
         var body = $"""
             <p>קוד האימות שלך: <strong dir="ltr">{code}</strong></p>
             <p>הקוד תקף ל-{CodeLifetime.TotalMinutes:0} דקות.</p>

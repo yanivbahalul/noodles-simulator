@@ -23,7 +23,7 @@ public static class LoginValidation
             return "שם המשתמש והסיסמה חייבים להיות באורך של לפחות 5 תווים.";
 
         if (AdminConfiguration.IsReservedUsername(configuration, username))
-            return "שם המשתמש הזה שמור. בחר שם אחר.";
+            return "שם המשתמש לא זמין. בחר שם אחר.";
 
         if (!Regex.IsMatch(username, @"^[a-zA-Z0-9א-ת]+$"))
             return "שם המשתמש יכול להכיל רק אותיות (עברית/אנגלית) ומספרים.";
