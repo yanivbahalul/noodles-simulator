@@ -70,21 +70,39 @@
         return panel.offsetHeight;
     }
 
-    function getReservedBelowQuestion(answers, buttonRow, feedback) {
-        const hintHeight = document.getElementById("quiz-keyboard-hint")?.offsetHeight ?? 0;
+    function getReservedBelowQuestion(answers, feedback) {
         const explanationPanel = document.getElementById("question-explanation-panel");
+        // ponytail: demo only reserves answers (+ visible post-answer UI) — not button row / keyboard hint
         return (answers?.offsetHeight ?? 0) +
-            (buttonRow?.offsetHeight ?? 0) +
             getVisibleHeight(feedback) +
             getExplanationPanelHeight(explanationPanel) +
-            hintHeight +
-            32;
+            24;
+    }
+
+    function isPostAnswerLayout() {
+        const feedback = document.getElementById("answer-feedback");
+        if (feedback && !feedback.hidden && feedback.textContent?.trim()) return true;
+        const panel = document.getElementById("question-explanation-panel");
+        return Boolean(panel && !panel.hidden);
+    }
+
+    function naturalDisplayHeight(mainImg, cssCap) {
+        const nw = mainImg.naturalWidth;
+        const nh = mainImg.naturalHeight;
+        if (!nw || !nh) return cssCap;
+        const w = mainImg.offsetWidth || mainImg.clientWidth;
+        if (!w) return cssCap;
+        return Math.min(cssCap, Math.ceil((nh * w) / nw));
     }
 
     function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
-        if (availableForQuestion <= 96) return;
-        const cssCap = viewportH * 0.58;
-        const newMax = `${Math.floor(Math.min(cssCap, availableForQuestion))}px`;
+        const cssCap = Math.floor(viewportH * 0.58);
+        let cap = Math.min(cssCap, naturalDisplayHeight(mainImg, cssCap));
+        if (isPostAnswerLayout() && availableForQuestion > 96) {
+            cap = Math.min(cap, availableForQuestion);
+        }
+        if (cap <= 96) return;
+        const newMax = `${cap}px`;
         if (mainImg.style.maxHeight !== newMax) {
             mainImg.style.maxHeight = newMax;
         }
@@ -95,13 +113,12 @@
         const mainImg = document.getElementById("main-question-image");
         const answers = document.getElementById("answers-grid");
         const feedback = document.getElementById("answer-feedback");
-        const buttonRow = container?.querySelector(".button-row");
         if (!container || !mainImg) return;
 
         const viewportH = window.innerHeight;
         const { minTop } = getQuizScrollMargins(viewportH);
         const containerRect = container.getBoundingClientRect();
-        const reservedBelowQuestion = getReservedBelowQuestion(answers, buttonRow, feedback);
+        const reservedBelowQuestion = getReservedBelowQuestion(answers, feedback);
         const availableForQuestion = viewportH - Math.max(minTop, containerRect.top) - reservedBelowQuestion;
         applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH);
 
