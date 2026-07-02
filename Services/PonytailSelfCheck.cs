@@ -125,29 +125,45 @@ public static class PonytailSelfCheck
 
     private static void CheckAdminOtp()
     {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Admin:Username"] = "Admin",
-                ["Admin:Password"] = "secret-admin",
-                ["Admin:OtpEmail"] = "admin@example.com"
-            })
-            .Build();
+        var envKeys = new[] { "ADMIN_USERNAME", "ADMIN_PASSWORD", "ADMIN_OTP_EMAIL", "EMAIL_TO" };
+        var saved = new Dictionary<string, string?>();
+        foreach (var key in envKeys)
+        {
+            saved[key] = Environment.GetEnvironmentVariable(key);
+            Environment.SetEnvironmentVariable(key, null);
+        }
 
-        Assert(AdminConfiguration.IsAdminUsername(config, "admin"), "admin username match");
-        Assert(AdminConfiguration.IsReservedUsername(config, "ADMIN"), "reserved admin username");
-        Assert(AdminConfiguration.VerifyPassword(config, "secret-admin"), "admin password ok");
-        Assert(!AdminConfiguration.VerifyPassword(config, "wrong"), "admin password reject");
+        try
+        {
+            var config = new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Admin:Username"] = "Admin",
+                    ["Admin:Password"] = "secret-admin",
+                    ["Admin:OtpEmail"] = "admin@example.com"
+                })
+                .Build();
 
-        var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(
-            new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions { SizeLimit = 1024 });
-        var otp = new AdminOtpService(cache, new EmailService(config), config);
-        Assert(!otp.Verify("missing", "123456"), "admin otp missing session");
+            Assert(AdminConfiguration.IsAdminUsername(config, "admin"), "admin username match");
+            Assert(AdminConfiguration.IsReservedUsername(config, "ADMIN"), "reserved admin username");
+            Assert(AdminConfiguration.VerifyPassword(config, "secret-admin"), "admin password ok");
+            Assert(!AdminConfiguration.VerifyPassword(config, "wrong"), "admin password reject");
 
-        otp.SeedTestOtp("fixed", "042819");
-        Assert(otp.HasActiveChallenge("fixed"), "admin otp active challenge");
-        Assert(otp.Verify("fixed", "042819"), "admin otp verify");
-        Assert(!otp.Verify("fixed", "042819"), "admin otp one-time use");
+            var cache = new Microsoft.Extensions.Caching.Memory.MemoryCache(
+                new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions { SizeLimit = 1024 });
+            var otp = new AdminOtpService(cache, new EmailService(config), config);
+            Assert(!otp.Verify("missing", "123456"), "admin otp missing session");
+
+            otp.SeedTestOtp("fixed", "042819");
+            Assert(otp.HasActiveChallenge("fixed"), "admin otp active challenge");
+            Assert(otp.Verify("fixed", "042819"), "admin otp verify");
+            Assert(!otp.Verify("fixed", "042819"), "admin otp one-time use");
+        }
+        finally
+        {
+            foreach (var kv in saved)
+                Environment.SetEnvironmentVariable(kv.Key, kv.Value);
+        }
     }
 
     private static void CheckAdminSessionUser()
@@ -163,7 +179,10 @@ public static class PonytailSelfCheck
             PracticeIndexPageService.ResolveSessionUser(null, "admin", "0", config) == null,
             "admin stub requires IsAdmin session");
         Assert(
-            PracticeIndexPageService.ResolveSessionUser(null, "other", "1", config) == null,
-            "admin stub requires configured username");
+            AdminConfiguration.IsAdminSession(config, "admin", "1"),
+            "admin session gate");
+        Assert(
+            !AdminConfiguration.IsAdminSession(config, "other", "1"),
+            "admin session rejects wrong username");
     }
 }

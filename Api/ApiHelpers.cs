@@ -14,13 +14,11 @@ namespace NoodlesSimulator.Api;
 
 internal static class ApiHelpers
 {
-    internal static bool IsAdminSession(HttpContext context, IConfiguration configuration)
-    {
-        if (!string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal))
-            return false;
-
-        return AdminConfiguration.IsAdminSession(configuration, context.Session.GetString("Username"), context.Session.GetString("IsAdmin"));
-    }
+    internal static bool IsAdminSession(HttpContext context, IConfiguration configuration) =>
+        AdminConfiguration.IsAdminSession(
+            configuration,
+            context.Session.GetString("Username"),
+            context.Session.GetString("IsAdmin"));
 
     internal static bool IsAdminSession(HttpContext context) =>
         string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);

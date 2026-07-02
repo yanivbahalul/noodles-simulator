@@ -232,7 +232,10 @@ public class UserProgressStore
         }
     }
 
-    private async Task SaveDocumentAsync(string username, UserProgressService.ProgressDataDocument data)
+    public Task SaveDocumentAsync(string username, UserProgressService.ProgressDataDocument data) =>
+        SaveDocumentCoreAsync(username, data);
+
+    private async Task SaveDocumentCoreAsync(string username, UserProgressService.ProgressDataDocument data)
     {
         var progressJson = JsonSerializer.Serialize(data, AppJson.Options);
         var payload = new[]

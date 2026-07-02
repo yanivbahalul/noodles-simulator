@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,7 @@ public class UserProgressService
     private readonly UserQuestionStatsStore _questionStats;
     private readonly IMemoryCache _memCache;
     private readonly object _lock = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> MutationLocks = new();
 
     public class UserQuestionStat
     {
@@ -422,7 +424,10 @@ public class UserProgressService
         File.Delete(tmp);
     }
 
-    private void Save(string username, UserProgressData data)
+    private void Save(string username, UserProgressData data) =>
+        SaveAsync(username, data).GetAwaiter().GetResult();
+
+    private async Task SaveAsync(string username, UserProgressData data)
     {
         GetRequestCache()[username] = data;
         StoreMemCache(username, data);
@@ -435,23 +440,62 @@ public class UserProgressService
             }
         }
 
-        _ = Task.Run(async () =>
+        try
         {
-            try
-            {
-                if (_stats?.IsEnabled == true)
-                    await _stats.UpsertAsync(UserStatsService.FromProgress(username, data));
+            if (_stats?.IsEnabled == true)
+                await _stats.UpsertAsync(UserStatsService.FromProgress(username, data));
 
-                if (_store?.IsEnabled == true)
-                    _store.SaveDocument(username, ToDocument(data));
-            }
-            catch (Exception ex)
+            if (_store?.IsEnabled == true)
+                await _store.SaveDocumentAsync(username, ToDocument(data));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UserProgressService] Supabase save failed for {username}: {ex.Message}");
+            // ponytail: local file fallback when remote upsert fails — upgrade path: retry queue.
+            lock (_lock)
             {
-                Console.WriteLine($"[UserProgressService] Supabase save failed for {username}: {ex.Message}");
+                WriteFile(username, data);
             }
-        });
+        }
 
         QueueDbSync(username, data);
+    }
+
+    private async Task MutateAsync(string username, Action<UserProgressData> mutate)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return;
+        var gate = MutationLocks.GetOrAdd(username, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            var data = await LoadForMutationAsync(username);
+            mutate(data);
+            await SaveAsync(username, data);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    private async Task<T> MutateAsync<T>(string username, Func<UserProgressData, T> mutate)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return mutate(new UserProgressData());
+
+        var gate = MutationLocks.GetOrAdd(username, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
+        {
+            var data = await LoadForMutationAsync(username);
+            var result = mutate(data);
+            await SaveAsync(username, data);
+            return result;
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     private void QueueDbSync(string username, UserProgressData data)
@@ -477,41 +521,41 @@ public class UserProgressService
         return data;
     }
 
-    public async Task RecordAnswerAsync(string username, string questionId, bool isCorrect, int xpGained, int currentStreak = 0)
+    public Task RecordAnswerAsync(string username, string questionId, bool isCorrect, int xpGained, int currentStreak = 0)
     {
-        if (string.IsNullOrWhiteSpace(username)) return;
-        var data = await LoadForMutationAsync(username);
+        if (string.IsNullOrWhiteSpace(username)) return Task.CompletedTask;
 
-        if (!string.IsNullOrWhiteSpace(questionId))
+        return MutateAsync(username, data =>
         {
-            if (!data.QuestionStats.TryGetValue(questionId, out var stat))
+            if (!string.IsNullOrWhiteSpace(questionId))
             {
-                stat = new UserQuestionStat();
-                data.QuestionStats[questionId] = stat;
+                if (!data.QuestionStats.TryGetValue(questionId, out var stat))
+                {
+                    stat = new UserQuestionStat();
+                    data.QuestionStats[questionId] = stat;
+                }
+                stat.Attempts++;
+                if (isCorrect) stat.Correct++;
+                stat.LastAnsweredUtc = DateTime.UtcNow;
+                stat.LastWasCorrect = isCorrect;
+
+                if (_questionStats?.IsEnabled == true)
+                    _ = _questionStats.RecordAnswerAsync(username, questionId, isCorrect);
+
+                if (!isCorrect && !data.SessionMistakes.Contains(questionId, StringComparer.OrdinalIgnoreCase))
+                    data.SessionMistakes.Add(questionId);
             }
-            stat.Attempts++;
-            if (isCorrect) stat.Correct++;
-            stat.LastAnsweredUtc = DateTime.UtcNow;
-            stat.LastWasCorrect = isCorrect;
 
-            if (_questionStats?.IsEnabled == true)
-                _ = _questionStats.RecordAnswerAsync(username, questionId, isCorrect);
+            if (isCorrect)
+            {
+                data.WeeklyCorrect++;
+                data.DailyCorrect++;
+                data.Xp += Math.Max(0, xpGained);
+            }
 
-            if (!isCorrect && !data.SessionMistakes.Contains(questionId, StringComparer.OrdinalIgnoreCase))
-                data.SessionMistakes.Add(questionId);
-        }
-
-        if (isCorrect)
-        {
-            data.WeeklyCorrect++;
-            data.DailyCorrect++;
-            data.Xp += Math.Max(0, xpGained);
-        }
-
-        if (currentStreak > data.BestStreak)
-            data.BestStreak = currentStreak;
-
-        Save(username, data);
+            if (currentStreak > data.BestStreak)
+                data.BestStreak = currentStreak;
+        });
     }
 
     public async Task ResetAllAsync(string username)
@@ -552,96 +596,82 @@ public class UserProgressService
         QueueDbSync(username, fresh);
     }
 
-    public async Task<int> RecordExamCompleteAsync(string username, int correctCount, int totalQuestions, int score)
-    {
-        var data = await LoadForMutationAsync(username);
-        var previousExamCorrect = data.LastExamCorrect;
-        var hadPreviousExam = data.ExamsCompleted > 0;
-        data.ExamsCompleted++;
-        if (correctCount == totalQuestions && totalQuestions > 0)
-            data.PerfectExamsCount++;
-        if (hadPreviousExam)
+    public Task<int> RecordExamCompleteAsync(string username, int correctCount, int totalQuestions, int score) =>
+        MutateAsync(username, data =>
         {
-            var improvement = correctCount - previousExamCorrect;
-            if (improvement > data.MaxExamImprovement)
-                data.MaxExamImprovement = improvement;
-        }
-        data.LastExamCorrect = correctCount;
-        if (correctCount > data.BestExamCorrect)
+            var previousExamCorrect = data.LastExamCorrect;
+            var hadPreviousExam = data.ExamsCompleted > 0;
+            data.ExamsCompleted++;
+            if (correctCount == totalQuestions && totalQuestions > 0)
+                data.PerfectExamsCount++;
+            if (hadPreviousExam)
+            {
+                var improvement = correctCount - previousExamCorrect;
+                if (improvement > data.MaxExamImprovement)
+                    data.MaxExamImprovement = improvement;
+            }
+            data.LastExamCorrect = correctCount;
+            if (correctCount > data.BestExamCorrect)
+            {
+                data.BestExamCorrect = correctCount;
+                data.BestExamScore = score;
+            }
+            data.Xp += score;
+            return previousExamCorrect;
+        });
+
+    public Task RecordDailyChallengeAnswerAsync(string username, bool isCorrect) =>
+        MutateAsync(username, data =>
         {
-            data.BestExamCorrect = correctCount;
-            data.BestExamScore = score;
-        }
-        data.Xp += score;
-        Save(username, data);
-        return previousExamCorrect;
-    }
+            var today = TodayKey();
+            if (data.DailyChallengeDate != today)
+            {
+                data.DailyChallengeDate = today;
+                data.DailyChallengeScore = 0;
+            }
+            if (isCorrect) data.DailyChallengeScore++;
+        });
 
-    public async Task RecordDailyChallengeAnswerAsync(string username, bool isCorrect)
-    {
-        var data = await LoadForMutationAsync(username);
-        var today = TodayKey();
-        if (data.DailyChallengeDate != today)
+    public Task RecordDailyChallengeCompleteAsync(string username, bool isPerfect) =>
+        MutateAsync(username, data =>
         {
-            data.DailyChallengeDate = today;
-            data.DailyChallengeScore = 0;
-        }
-        if (isCorrect) data.DailyChallengeScore++;
-        Save(username, data);
-    }
+            var today = TodayKey();
+            var yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
+            if (data.LastDailyCompleteDate == today)
+                return;
 
-    public async Task RecordDailyChallengeCompleteAsync(string username, bool isPerfect)
+            if (data.LastDailyCompleteDate == yesterday)
+                data.DailyStreakDays++;
+            else
+                data.DailyStreakDays = 1;
+
+            data.LastDailyCompleteDate = today;
+            data.DailyChallengesCompleted++;
+            if (isPerfect)
+                data.DailyPerfectCount++;
+
+            data.Xp += QuizGamification.DailyChallengeCompletionXp(data.DailyChallengeScore);
+        });
+
+    public Task IncrementReviewClearAsync(string username) =>
+        MutateAsync(username, data => data.ReviewClearCount++);
+
+    public Task IncrementWeakCorrectAsync(string username) =>
+        MutateAsync(username, data => data.WeakModeCorrectCount++);
+
+    public Task IncrementHardCorrectAsync(string username) =>
+        MutateAsync(username, data => data.HardCorrectCount++);
+
+    public Task<bool> RemoveSessionMistakeAsync(string username, string questionId)
     {
-        var data = await LoadForMutationAsync(username);
-        var today = TodayKey();
-        var yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
-        if (data.LastDailyCompleteDate == today)
-            return;
+        if (string.IsNullOrWhiteSpace(questionId)) return Task.FromResult(false);
 
-        if (data.LastDailyCompleteDate == yesterday)
-            data.DailyStreakDays++;
-        else
-            data.DailyStreakDays = 1;
-
-        data.LastDailyCompleteDate = today;
-        data.DailyChallengesCompleted++;
-        if (isPerfect)
-            data.DailyPerfectCount++;
-
-        data.Xp += QuizGamification.DailyChallengeCompletionXp(data.DailyChallengeScore);
-        Save(username, data);
-    }
-
-    public async Task IncrementReviewClearAsync(string username)
-    {
-        var data = await LoadForMutationAsync(username);
-        data.ReviewClearCount++;
-        Save(username, data);
-    }
-
-    public async Task IncrementWeakCorrectAsync(string username)
-    {
-        var data = await LoadForMutationAsync(username);
-        data.WeakModeCorrectCount++;
-        Save(username, data);
-    }
-
-    public async Task IncrementHardCorrectAsync(string username)
-    {
-        var data = await LoadForMutationAsync(username);
-        data.HardCorrectCount++;
-        Save(username, data);
-    }
-
-    public async Task<bool> RemoveSessionMistakeAsync(string username, string questionId)
-    {
-        if (string.IsNullOrWhiteSpace(questionId)) return false;
-        var data = await LoadForMutationAsync(username);
-        var hadMistakes = data.SessionMistakes.Count > 0;
-        data.SessionMistakes.RemoveAll(q => string.Equals(q, questionId, StringComparison.OrdinalIgnoreCase));
-        var cleared = hadMistakes && data.SessionMistakes.Count == 0;
-        Save(username, data);
-        return cleared;
+        return MutateAsync(username, data =>
+        {
+            var hadMistakes = data.SessionMistakes.Count > 0;
+            data.SessionMistakes.RemoveAll(q => string.Equals(q, questionId, StringComparison.OrdinalIgnoreCase));
+            return hadMistakes && data.SessionMistakes.Count == 0;
+        });
     }
 
     public async Task<(double Accuracy, int DistinctQuestions)> GetOverallAccuracyStatsAsync(string username) =>
@@ -658,17 +688,16 @@ public class UserProgressService
         return (totalCorrect / (double)totalAttempts, distinct);
     }
 
-    public async Task AddSessionMistakesAsync(string username, IEnumerable<string> questionIds)
-    {
-        var data = await LoadForMutationAsync(username);
-        foreach (var q in questionIds)
+    public Task AddSessionMistakesAsync(string username, IEnumerable<string> questionIds) =>
+        MutateAsync(username, data =>
         {
-            if (string.IsNullOrWhiteSpace(q)) continue;
-            if (!data.SessionMistakes.Contains(q, StringComparer.OrdinalIgnoreCase))
-                data.SessionMistakes.Add(q);
-        }
-        Save(username, data);
-    }
+            foreach (var q in questionIds)
+            {
+                if (string.IsNullOrWhiteSpace(q)) continue;
+                if (!data.SessionMistakes.Contains(q, StringComparer.OrdinalIgnoreCase))
+                    data.SessionMistakes.Add(q);
+            }
+        });
 
     public async Task<List<string>> UnlockAchievementsAsync(string username, IEnumerable<string> keys)
     {
@@ -718,15 +747,15 @@ public class UserProgressService
         return 1;
     }
 
-    public async Task UpdateBestStreakAsync(string username, int streak)
+    public Task UpdateBestStreakAsync(string username, int streak)
     {
-        if (streak <= 0) return;
-        var data = await LoadForMutationAsync(username);
-        if (streak > data.BestStreak)
+        if (streak <= 0) return Task.CompletedTask;
+
+        return MutateAsync(username, data =>
         {
-            data.BestStreak = streak;
-            Save(username, data);
-        }
+            if (streak > data.BestStreak)
+                data.BestStreak = streak;
+        });
     }
 
     public async Task<Dictionary<string, int>> GetXpByUsernameAsync()
