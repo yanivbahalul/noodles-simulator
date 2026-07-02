@@ -17,6 +17,7 @@ public static class PonytailSelfCheck
         CheckQuestionLabelFormat();
         CheckExplanationRatingUrgency();
         CheckAdminOtp();
+        CheckAdminSessionUser();
         Console.WriteLine("[ponytail] all self-checks passed");
     }
 
@@ -147,5 +148,22 @@ public static class PonytailSelfCheck
         Assert(otp.HasActiveChallenge("fixed"), "admin otp active challenge");
         Assert(otp.Verify("fixed", "042819"), "admin otp verify");
         Assert(!otp.Verify("fixed", "042819"), "admin otp one-time use");
+    }
+
+    private static void CheckAdminSessionUser()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Admin:Username"] = "admin" })
+            .Build();
+
+        Assert(
+            PracticeIndexPageService.ResolveSessionUser(null, "admin", "1", config)?.Username == "admin",
+            "admin session user stub");
+        Assert(
+            PracticeIndexPageService.ResolveSessionUser(null, "admin", "0", config) == null,
+            "admin stub requires IsAdmin session");
+        Assert(
+            PracticeIndexPageService.ResolveSessionUser(null, "other", "1", config) == null,
+            "admin stub requires configured username");
     }
 }

@@ -102,9 +102,16 @@
     }
 
     function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
+        // ponytail: pre-answer sizing is CSS-only (width 100% + max-height) — inline maxHeight here caused load-time jump
+        if (!isPostAnswerLayout()) {
+            mainImg.style.removeProperty("max-height");
+            return;
+        }
+        if (!mainImg.complete || !mainImg.naturalWidth || !mainImg.naturalHeight) return;
+
         const cssCap = Math.floor(viewportH * 0.58);
         let cap = Math.min(cssCap, naturalDisplayHeight(mainImg, cssCap));
-        if (isPostAnswerLayout() && availableForQuestion > 96) {
+        if (availableForQuestion > 96) {
             cap = Math.min(cap, availableForQuestion);
         }
         if (cap <= 96) return;
@@ -120,6 +127,7 @@
         const answers = document.getElementById("answers-grid");
         const feedback = document.getElementById("answer-feedback");
         if (!container || !mainImg) return;
+        if (!mainImg.complete) return;
 
         const viewportH = window.innerHeight;
         const { minTop } = getQuizScrollMargins(viewportH);
@@ -157,7 +165,6 @@
             scheduleQuizViewportAdjust
         );
         window.addEventListener("resize", scheduleQuizViewportAdjust);
-        scheduleQuizViewportAdjust();
     }
 
     window.QuizViewport = {

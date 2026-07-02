@@ -195,6 +195,7 @@ builder.Services.AddSingleton<PracticeAnswerService>(sp =>
 builder.Services.AddSingleton<PracticeIndexPageService>(sp =>
     new PracticeIndexPageService(
         sp.GetRequiredService<AuthService>(),
+        sp.GetRequiredService<IConfiguration>(),
         sp.GetService<UserProgressService>(),
         sp.GetService<UserFeedbackService>(),
         sp.GetService<ActivityEventService>(),

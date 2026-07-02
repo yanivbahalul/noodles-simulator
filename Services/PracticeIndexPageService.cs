@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
@@ -64,6 +65,7 @@ public sealed class PracticeAuthResult
 public class PracticeIndexPageService
 {
     private readonly AuthService _auth;
+    private readonly IConfiguration _configuration;
     private readonly UserProgressService? _userProgress;
     private readonly UserFeedbackService? _feedback;
     private readonly ActivityEventService? _activityEvents;
@@ -71,16 +73,28 @@ public class PracticeIndexPageService
 
     public PracticeIndexPageService(
         AuthService auth,
+        IConfiguration configuration,
         UserProgressService? userProgress = null,
         UserFeedbackService? feedback = null,
         ActivityEventService? activityEvents = null,
         PracticeQuizService? practiceQuiz = null)
     {
         _auth = auth;
+        _configuration = configuration;
         _userProgress = userProgress;
         _feedback = feedback;
         _activityEvents = activityEvents;
         _practiceQuiz = practiceQuiz;
+    }
+
+    // ponytail: admin auth is env-based; no users row required after OTP.
+    internal static User? ResolveSessionUser(User? user, string username, string? isAdminFlag, IConfiguration config)
+    {
+        if (user != null) return user;
+        if (string.Equals(isAdminFlag, "1", StringComparison.Ordinal)
+            && AdminConfiguration.IsAdminUsername(config, username))
+            return new User { Username = username };
+        return null;
     }
 
     public void EnsureQuizSessionStarted(ISession session)
@@ -115,6 +129,8 @@ public class PracticeIndexPageService
         {
             Console.WriteLine($"[PrepareGetPage GetOnlineUserCount Error] {ex.Message}");
         }
+
+        user = ResolveSessionUser(user, username, http.Session.GetString("IsAdmin"), _configuration);
 
         var result = new PracticeIndexGetPrepareResult
         {
@@ -154,6 +170,7 @@ public class PracticeIndexPageService
         try { user = await _auth.GetUserAsync(username); }
         catch (Exception ex) { Console.WriteLine($"[PracticeIndexPage TryRequireUser GetUserAsync Error] {ex.Message}"); }
 
+        user = ResolveSessionUser(user, username, http.Session.GetString("IsAdmin"), _configuration);
         if (user == null)
         {
             http.Session.Clear();

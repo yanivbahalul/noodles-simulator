@@ -3,6 +3,7 @@
     function setQuestionImage(mainImg, url, modalImg) {
         if (!mainImg || !url) return;
 
+        mainImg.style.removeProperty("max-height");
         const adjust = () => window.QuizViewport?.scheduleQuizViewportAdjust?.();
         mainImg.onload = adjust;
         mainImg.onerror = adjust;
