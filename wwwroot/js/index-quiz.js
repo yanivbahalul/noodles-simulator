@@ -92,15 +92,8 @@
         prefetch?.schedulePrefetchNextQuestion?.();
     }
 
-    function setImageSource(img, url) {
-        if (img && url) img.src = url;
-    }
-
     function updateQuestionImages(mainImg, modalImg, data) {
-        const url = data.questionImageUrl;
-        if (mainImg) mainImg.style.maxHeight = "";
-        setImageSource(mainImg, url);
-        setImageSource(modalImg, url);
+        window.QuizDisplay?.setQuestionImage?.(mainImg, data.questionImageUrl, modalImg);
     }
 
     function renderAnswerButtons(grid, answers) {

@@ -83,12 +83,7 @@
         const grid = document.getElementById("answers-grid");
         if (!grid) return;
 
-        if (mainImg) {
-            mainImg.style.maxHeight = "";
-            mainImg.src = data.questionImageUrl;
-            mainImg.addEventListener("load", scheduleQuizViewportAdjust, { once: true });
-        }
-        if (modalImg) modalImg.src = data.questionImageUrl;
+        window.QuizDisplay?.setQuestionImage?.(mainImg, data.questionImageUrl, modalImg);
 
         renderAnswerButtons(grid, data.answers);
         highlightSelectedAnswer(data.selectedAnswerKey);
