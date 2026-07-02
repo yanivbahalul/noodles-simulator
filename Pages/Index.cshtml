@@ -234,18 +234,7 @@
     <div id="app-notice-modal" class="difficulty-modal app-notice-modal">
         <div class="difficulty-modal-content app-notice-content">
             <span class="close-difficulty-modal" id="close-app-notice-btn">&times;</span>
-            @if (Model.ActiveNoticeId == AppNotices.ExamNavigation)
-            {
-                <h2 class="difficulty-modal-title">📝 מצב מבחן — ניווט חופשי</h2>
-                <p class="difficulty-modal-message">עכשיו אפשר <strong>לדלג בין שאלות במבחן</strong> ולחזור לענות מאוחר יותר — לא חייבים להישאר תקועים על שאלה אחת.</p>
-                <ul class="app-notice-list">
-                    <li>השתמשו בחצים או במספרי השאלות למעבר מהיר</li>
-                    <li>שאלות שעניתם עליהן מסומנות בירוק</li>
-                    <li>אפשר לשנות תשובה בחזרה לשאלה שכבר עניתם עליה</li>
-                </ul>
-                <p class="difficulty-modal-message app-notice-footer">בהצלחה במבחן!</p>
-            }
-            else if (Model.ActiveNoticeId == AppNotices.June2026Update)
+            @if (Model.ActiveNoticeId == AppNotices.June2026Update)
             {
                 <h2 class="difficulty-modal-title">🎉 עדכון גדול ל-Noodles Simulator</h2>
                 <ul class="app-notice-list">
