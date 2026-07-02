@@ -1,31 +1,22 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace NoodlesSimulator.Models;
 
 public static class AppNotices
 {
-    public const string ExamFix = "exam-fix-2026-06";
+    private static readonly string[] PriorityOrder = Array.Empty<string>();
 
-    private static readonly string[] PriorityOrder = { ExamFix };
-
-    private static readonly HashSet<string> ValidIds = new(StringComparer.Ordinal)
-    {
-        ExamFix
-    };
+    private static readonly HashSet<string> ValidIds = new(StringComparer.Ordinal);
 
     public static bool IsValid(string? noticeId) =>
         !string.IsNullOrWhiteSpace(noticeId) && ValidIds.Contains(noticeId);
 
     public static string? GetFirstUndismissed(IReadOnlyList<string>? dismissed)
     {
-        if (dismissed == null || dismissed.Count == 0)
-            return PriorityOrder[0];
-
         foreach (var id in PriorityOrder)
         {
-            if (!dismissed.Contains(id, StringComparer.Ordinal))
+            if (dismissed == null || !dismissed.Contains(id, StringComparer.Ordinal))
                 return id;
         }
 

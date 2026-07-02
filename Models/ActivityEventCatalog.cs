@@ -250,7 +250,7 @@ public static class ActivityEventCatalog
         {
             "exam-nav-2026-06" => "ניווט במבחן",
             "update-2026-06" => "עדכון יוני 2026",
-            AppNotices.ExamFix => "תיקון מבחן",
+            "exam-fix-2026-06" => "תיקון מבחן",
             _ => string.IsNullOrWhiteSpace(noticeId) ? "הודעה" : noticeId
         };
     }
