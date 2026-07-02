@@ -4,6 +4,7 @@
     const btnText = () => document.getElementById("question-explanation-btn-text");
     const videoWrap = () => document.getElementById("question-explanation-video-wrap");
     const video = () => document.getElementById("question-explanation-video");
+    const closeBtn = () => document.getElementById("question-explanation-close-btn");
 
     const BTN_LABEL = "הסבר";
     const RATED_KEY = "explanation-rated:";
@@ -139,6 +140,42 @@
         if (el) el.textContent = text;
     }
 
+    function setCloseVisible(visible) {
+        const c = closeBtn();
+        if (c) c.hidden = !visible;
+    }
+
+    function bindCloseButton() {
+        const c = closeBtn();
+        if (!c || c.dataset.bound === "1") return;
+        c.dataset.bound = "1";
+        c.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeExplanation();
+        });
+    }
+
+    function closeExplanation() {
+        const p = panel();
+        const b = btn();
+        const wrap = videoWrap();
+        const v = video();
+        if (!p) return;
+
+        loadToken += 1;
+        v?.pause();
+        if (wrap) wrap.hidden = true;
+        p.classList.remove("is-playing", "is-loading-video");
+        resetRatingUi();
+        setCloseVisible(false);
+        if (b) {
+            b.hidden = false;
+            b.disabled = false;
+        }
+        setBtnText(BTN_LABEL);
+        scheduleViewport();
+    }
+
     function reset() {
         loadToken += 1;
         currentQuestionId = "";
@@ -161,6 +198,7 @@
         }
         setBtnText(BTN_LABEL);
         if (wrap) wrap.hidden = true;
+        setCloseVisible(false);
         if (v) {
             v.pause();
             v.removeAttribute("src");
@@ -217,6 +255,7 @@
         b.disabled = true;
         setBtnText("טוען הסבר...");
         wrap.hidden = false;
+        setCloseVisible(true);
         p.classList.add("is-loading-video");
         scheduleViewport();
 
@@ -225,6 +264,7 @@
             if (token !== loadToken) return;
             if (!url) {
                 wrap.hidden = true;
+                setCloseVisible(false);
                 p.classList.remove("is-loading-video");
                 setBtnText("אין הסבר לשאלה זו");
                 b.disabled = false;
@@ -253,6 +293,7 @@
             if (token !== loadToken) return;
             p.classList.remove("is-loading-video");
             wrap.hidden = true;
+            setCloseVisible(false);
             b.hidden = false;
             b.disabled = false;
             setBtnText("שגיאה בטעינה — נסה שוב");
@@ -293,6 +334,7 @@
             playExplanation(questionId, isCorrect);
         };
         b.addEventListener("click", clickHandler);
+        bindCloseButton();
         scheduleViewport();
     }
 
@@ -323,6 +365,7 @@
 
     window.QuestionExplanation = {
         reset,
+        closeExplanation,
         showIfAvailable,
         showAfterAnswer,
         showForWrongAnswer,

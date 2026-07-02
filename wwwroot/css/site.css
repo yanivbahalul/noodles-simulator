@@ -1494,6 +1494,7 @@ button.answer-btn,
 }
 
 .question-explanation-video-wrap {
+    position: relative;
     width: 100%;
     max-width: 640px;
     margin: 12px auto 0;
@@ -1501,6 +1502,28 @@ button.answer-btn,
     overflow: hidden;
     background: #0a0a0a;
     aspect-ratio: 16 / 9;
+}
+
+.question-explanation-close-btn {
+    position: absolute;
+    top: 8px;
+    inset-inline-start: 8px;
+    z-index: 2;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.question-explanation-close-btn:hover {
+    background: rgba(0, 0, 0, 0.9);
+    color: #ff6b6b;
 }
 
 .question-explanation-panel.is-loading-video .question-explanation-video-wrap {

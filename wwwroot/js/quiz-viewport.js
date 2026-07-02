@@ -61,11 +61,9 @@
 
     function getExplanationPanelHeight(panel) {
         if (!panel || panel.hidden) return 0;
-        // ponytail: fixed reserve while video plays — rating form expand must not shrink question image / scroll
-        if (panel.classList.contains("is-playing")) {
-            const wrap = document.getElementById("question-explanation-video-wrap");
-            const videoH = wrap && !wrap.hidden ? wrap.offsetHeight : 0;
-            return videoH + 200;
+        // ponytail: video open — scroll page instead of shrinking question image
+        if (panel.classList.contains("is-playing") || panel.classList.contains("is-loading-video")) {
+            return 0;
         }
         return panel.offsetHeight;
     }
@@ -102,8 +100,11 @@
     }
 
     function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
-        // ponytail: pre-answer sizing is CSS-only (width 100% + max-height) — inline maxHeight here caused load-time jump
-        if (!isPostAnswerLayout()) {
+        const explanationPanel = document.getElementById("question-explanation-panel");
+        const videoOpen = explanationPanel?.classList.contains("is-playing") ||
+            explanationPanel?.classList.contains("is-loading-video");
+        // ponytail: pre-answer sizing is CSS-only; video open scrolls instead of inline shrink
+        if (!isPostAnswerLayout() || videoOpen) {
             mainImg.style.removeProperty("max-height");
             return;
         }
