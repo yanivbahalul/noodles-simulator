@@ -153,6 +153,9 @@ builder.Services.AddSingleton(new QuestionReportService(questionReportsPath));
 var progressDir = isProd
     ? Path.Combine("/data-keys", "progress")
     : Path.Combine(Directory.GetCurrentDirectory(), "progress");
+var mediaCacheDir = MediaDiskCache.DefaultRoot(isProd);
+Directory.CreateDirectory(mediaCacheDir);
+builder.Services.AddSingleton(new MediaDiskCache(mediaCacheDir));
 builder.Services.AddSingleton<RememberMeService>();
 builder.Services.AddSingleton<LoginThrottleService>();
 builder.Services.AddSingleton<AdminOtpService>();

@@ -13,6 +13,7 @@ public static class PonytailSelfCheck
         CheckExamScoring();
         CheckQuizGamification();
         CheckQuestionExplanationPaths();
+        CheckMediaDiskCache();
         CheckQuizStatsHydrate();
         CheckQuestionLabelFormat();
         CheckExplanationRatingUrgency();
@@ -83,6 +84,23 @@ public static class PonytailSelfCheck
         Assert(
             QuestionLabel.Format("Screenshot at Jan 5 12-30-45.png") == "05/01 12:30",
             "screenshot label");
+    }
+
+    private static void CheckMediaDiskCache()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "noodles-media-cache-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var cache = new MediaDiskCache(root);
+            cache.WriteAsync("explanations/q1.mp4", new byte[] { 1, 2, 3 }).GetAwaiter().GetResult();
+            Assert(cache.TryGetFilePath("explanations/q1.mp4", out var path) && File.Exists(path), "disk cache write/read");
+            Assert(!cache.TryGetFilePath("../secret.mp4", out _), "disk cache blocks traversal");
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
     private static void CheckQuestionExplanationPaths()

@@ -2,8 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
 using NoodlesSimulator.Services;
 
 namespace NoodlesSimulator.Api;
@@ -11,7 +9,6 @@ namespace NoodlesSimulator.Api;
 internal static class MediaEndpoints
 {
     private const string CacheControl = "public, max-age=31536000, immutable";
-    private static readonly TimeSpan ServerCacheTtl = TimeSpan.FromDays(7);
 
     internal static void Map(WebApplication app)
     {
@@ -22,7 +19,7 @@ internal static class MediaEndpoints
         HttpContext ctx,
         string path,
         SupabaseStorageService? storage,
-        IMemoryCache cache)
+        MediaDiskCache? diskCache)
     {
         if (storage == null)
         {
@@ -36,28 +33,24 @@ internal static class MediaEndpoints
             return;
         }
 
-        var cacheKey = "media:" + objectPath;
-        if (!cache.TryGetValue(cacheKey, out byte[]? bytes))
-        {
-            try
-            {
-                bytes = await storage.DownloadBytesAsync(objectPath);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Media] Download failed for {objectPath}: {ex.Message}");
-                ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-                return;
-            }
+        var contentType = MediaUrl.ContentType(objectPath);
 
-            if (bytes != null && bytes.Length > 0)
-            {
-                cache.Set(cacheKey, bytes, new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = ServerCacheTtl,
-                    Size = bytes.Length
-                });
-            }
+        if (diskCache != null && diskCache.TryGetFilePath(objectPath, out var cachedPath))
+        {
+            await WriteFileAsync(ctx, cachedPath, contentType);
+            return;
+        }
+
+        byte[] bytes;
+        try
+        {
+            bytes = await storage.DownloadBytesAsync(objectPath);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Media] Download failed for {objectPath}: {ex.Message}");
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
         }
 
         if (bytes == null || bytes.Length == 0)
@@ -66,8 +59,33 @@ internal static class MediaEndpoints
             return;
         }
 
+        if (diskCache != null)
+        {
+            try
+            {
+                await diskCache.WriteAsync(objectPath, bytes, ctx.RequestAborted);
+                if (diskCache.TryGetFilePath(objectPath, out cachedPath))
+                {
+                    await WriteFileAsync(ctx, cachedPath, contentType);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Media] Disk cache write failed for {objectPath}: {ex.Message}");
+            }
+        }
+
         ctx.Response.Headers.CacheControl = CacheControl;
-        ctx.Response.ContentType = MediaUrl.ContentType(objectPath);
-        await ctx.Response.Body.WriteAsync(bytes);
+        ctx.Response.ContentType = contentType;
+        await ctx.Response.Body.WriteAsync(bytes, ctx.RequestAborted);
+    }
+
+    private static Task WriteFileAsync(HttpContext ctx, string filePath, string contentType)
+    {
+        ctx.Response.Headers.CacheControl = CacheControl;
+        ctx.Response.ContentType = contentType;
+        // ponytail: SendFile streams from disk; enables Range for video without RAM buffer
+        return ctx.Response.SendFileAsync(filePath);
     }
 }
