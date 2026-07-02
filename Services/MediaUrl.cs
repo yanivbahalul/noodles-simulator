@@ -9,6 +9,9 @@ public static class MediaUrl
     /// <summary>Quiz screenshot originals (mirrored from former bucket root).</summary>
     public const string OriginalsPrefix = "original";
 
+    /// <summary>Quiz screenshots after normalize-questions batch (served to users).</summary>
+    public const string NormalizedPrefix = "normalized";
+
     /// <summary>Bare filename → storage path; paths with a folder (explanations/, sessions/) unchanged.</summary>
     public static string ResolveObjectPath(string? fileOrPath)
     {
@@ -19,7 +22,7 @@ public static class MediaUrl
         if (p.Contains("..", StringComparison.Ordinal))
             throw new ArgumentException("Invalid path", nameof(fileOrPath));
 
-        return p.Contains('/') ? p : $"{OriginalsPrefix}/{p}";
+        return p.Contains('/') ? p : $"{NormalizedPrefix}/{p}";
     }
 
     public static string ForStoragePath(string? objectPath)
