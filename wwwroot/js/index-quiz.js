@@ -188,14 +188,20 @@
     function processQuizAnswerResponse(res, data) {
         if (data.redirect) {
             window.location.assign(data.redirect);
-            return;
+            return true;
         }
-        if (!res.ok) throw new Error("submit failed");
+        if (!res.ok) return false;
         applyAnswerResult(data);
         answerChecked = true;
+        return true;
     }
 
-    async function recoverQuizAnswerSubmitError() {
+    async function recoverQuizAnswerSubmitError(form, submitter) {
+        // ponytail: form POST carries antiforgery in body — works when JSON AJAX fails
+        if (form && submitter) {
+            form.requestSubmit(submitter);
+            return;
+        }
         if (window.showAppToast) {
             window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
         } else if (window.showAppAlert) {
@@ -209,23 +215,25 @@
         }
     }
 
-    async function runQuizAnswerRequest(payload) {
+    async function runQuizAnswerRequest(payload, form) {
         try {
             const { res, data } = await submitQuizAnswer(
                 payload.questionImage,
                 payload.answer,
                 getAntiForgeryToken()
             );
-            processQuizAnswerResponse(res, data);
+            if (!processQuizAnswerResponse(res, data)) {
+                await recoverQuizAnswerSubmitError(form, payload.submitter);
+            }
         } catch {
-            await recoverQuizAnswerSubmitError();
+            await recoverQuizAnswerSubmitError(form, payload.submitter);
         }
     }
 
     async function submitQuizAnswerWithBusyState(payload, form) {
         setQuizBusy(true, { silent: true });
         try {
-            await runQuizAnswerRequest(payload);
+            await runQuizAnswerRequest(payload, form);
         } finally {
             setQuizBusy(false);
             if (answerChecked) lockAnswerButtonsAfterCheck();
