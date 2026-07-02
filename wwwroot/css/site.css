@@ -561,7 +561,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
 
 .quiz-container > img {
     max-width: 100%;
-    max-height: min(40vh, calc(100dvh - 22rem));
+    max-height: min(58vh, calc(100dvh - 11rem));
     width: auto;
     height: auto;
     border-radius: var(--radius-md);

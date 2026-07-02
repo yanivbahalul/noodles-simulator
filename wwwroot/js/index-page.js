@@ -374,6 +374,39 @@
         if (modal) modal.classList.remove("difficulty-modal-open");
     }
 
+    function applyAnswerStats(data) {
+        if (!data.stats && !data.feedback?.levelUpTo) return;
+        const statsPayload = {
+            ...(data.stats ?? {}),
+            xpGain: data.feedback?.xpGain ?? 0
+        };
+        if (data.feedback?.levelUpTo) {
+            statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
+        }
+        const shouldPulse = Boolean(
+            data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
+        );
+        applyStatsData(statsPayload, {
+            pulse: shouldPulse,
+            skipStreakUpdate: true
+        });
+    }
+
+    function applyAnswerSideEffects(data) {
+        applyAnswerStats(data);
+        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
+        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
+        showAchievementToast(data.achievements);
+        if (data.feedback?.dailyComplete) {
+            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
+        }
+    }
+
+    function bindDailyCompleteModal() {
+        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
+        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
+    }
+
     function isTypingTarget(el) {
         if (!el) return false;
         const tag = el.tagName?.toLowerCase();
@@ -415,39 +448,6 @@
             if (tryAdvanceToNextQuestion(e, quizBusy)) return;
             trySelectAnswerByKey(e, answerChecked, quizBusy);
         });
-    }
-
-    function bindDailyCompleteModal() {
-        bindClick("daily-complete-dismiss-btn", closeDailyCompleteModal);
-        bindModalDismiss("daily-complete-modal", closeDailyCompleteModal);
-    }
-
-    function applyAnswerStats(data) {
-        if (!data.stats && !data.feedback?.levelUpTo) return;
-        const statsPayload = {
-            ...(data.stats ?? {}),
-            xpGain: data.feedback?.xpGain ?? 0
-        };
-        if (data.feedback?.levelUpTo) {
-            statsPayload.level = Math.max(statsPayload.level ?? 1, data.feedback.levelUpTo);
-        }
-        const shouldPulse = Boolean(
-            data.isCorrect && (data.feedback?.xpGain > 0 || data.feedback?.levelUpTo)
-        );
-        applyStatsData(statsPayload, {
-            pulse: shouldPulse,
-            skipStreakUpdate: true
-        });
-    }
-
-    function applyAnswerSideEffects(data) {
-        applyAnswerStats(data);
-        updateStreakBadge(data.stats?.streak ?? 0, { pulse: Boolean(data.isCorrect) });
-        if (data.feedback?.levelUpTo) showLevelUpToast(data.feedback.levelUpTo);
-        showAchievementToast(data.achievements);
-        if (data.feedback?.dailyComplete) {
-            showDailyCompleteModal(data.feedback.dailyScore ?? 0, data.feedback.dailyTotal ?? 10);
-        }
     }
 
     window.IndexPage = { applyAnswerSideEffects, playFeedbackSound, updateStreakBadge, closeImageModal, closeAppDialog };

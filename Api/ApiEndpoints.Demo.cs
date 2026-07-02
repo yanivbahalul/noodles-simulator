@@ -32,8 +32,10 @@ internal static partial class ApiEndpoints
         .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
+      // ponytail: normalized/ grows during batch — bypass 30min list cache so demo count stays current
+      var normalizedPaths = await storage.ListFilesAsync(NormalizedPrefix + "/", refresh: true);
       var normalized = new HashSet<string>(
-        (await storage.ListFilesAsync(NormalizedPrefix + "/"))
+        normalizedPaths
         .Where(QuestionGroupLoader.IsImageFile)
         .Select(p => Path.GetFileName(p)!)
         .Where(n => !string.IsNullOrEmpty(n)),

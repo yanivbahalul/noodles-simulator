@@ -150,10 +150,10 @@ public class SupabaseStorageService
         await from.Remove(objectPath);
     }
 
-    public async Task<List<string>> ListFilesAsync(string prefix = "")
+    public async Task<List<string>> ListFilesAsync(string prefix = "", bool refresh = false)
     {
         prefix ??= "";
-        if (_listCaches.TryGetValue(prefix, out var cached) && (DateTime.UtcNow - cached.at) < _listTtl)
+        if (!refresh && _listCaches.TryGetValue(prefix, out var cached) && (DateTime.UtcNow - cached.at) < _listTtl)
             return cached.files;
 
         await EnsureInitAsync();

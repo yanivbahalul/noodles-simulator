@@ -131,7 +131,7 @@ public class PracticeIndexPageService
 
         _ = _auth.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
         result.WelcomePrompt = ResolveWelcomePrompt(http);
-        result.ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
+        result.ActiveNoticeId = "";
 
         var isAdmin = string.Equals(http.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
         result.FeedbackPrompt = await ResolveFeedbackPromptAsync(user, isAdmin);

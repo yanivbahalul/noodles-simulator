@@ -83,7 +83,7 @@
 
     function applyQuestionImageMaxHeight(mainImg, availableForQuestion, viewportH) {
         if (availableForQuestion <= 96) return;
-        const cssCap = viewportH * 0.4;
+        const cssCap = viewportH * 0.58;
         const newMax = `${Math.floor(Math.min(cssCap, availableForQuestion))}px`;
         if (mainImg.style.maxHeight !== newMax) {
             mainImg.style.maxHeight = newMax;

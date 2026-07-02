@@ -6,11 +6,21 @@
     <link rel="stylesheet" href="/css/site.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        .demo-wrap { max-width: 960px; margin: 0 auto; padding: 16px; position: relative; z-index: 1; }
-        .demo-title { color: #eee; text-align: center; margin: 12px 0 8px; font-size: 1.1rem; }
+        /* Same width cap as live quiz — gray .quiz-container from site.css (--quiz-max 900px) */
+        .demo-wrap {
+            max-width: var(--content-max);
+            margin: 0 auto;
+            padding: 16px var(--gutter-page);
+            position: relative;
+            z-index: 1;
+        }
+        .demo-wrap .answer-btn img {
+            filter: none !important;
+        }
+        .demo-title { color: #eee; text-align: center; margin: 8px 0 4px; font-size: 1rem; }
         .demo-nav {
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            margin: 16px 0; flex-wrap: wrap;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            margin: 8px 0; flex-wrap: wrap;
         }
         .demo-nav button {
             border: 1px solid #555; background: #2a2a2a; color: #eee;
@@ -72,6 +82,7 @@
         </div>
     </div>
 </div>
+
 
 <script src="/js/quiz-viewport.js"></script>
 <script>
