@@ -15,6 +15,12 @@ using NoodlesSimulator.Models;
 
 namespace NoodlesSimulator.Services;
 
+public sealed class UserLookupResult
+{
+    public User? User { get; init; }
+    public bool TransientError { get; init; }
+}
+
 public class AuthService
 {
     public const string UserSelectPublic =
@@ -160,10 +166,13 @@ public class AuthService
     }
 
     public async Task<User?> GetUserAsync(string username) =>
-        await FetchUserAsync(username, includePassword: false);
+        (await LookupUserAsync(username)).User;
+
+    public async Task<UserLookupResult> LookupUserAsync(string username) =>
+        await FetchUserLookupAsync(username, includePassword: false);
 
     public async Task<User?> GetUserForAuthAsync(string username) =>
-        await FetchUserAsync(username, includePassword: true);
+        (await FetchUserLookupAsync(username, includePassword: true)).User;
 
     private async Task MergeStatsIntoUserAsync(User user)
     {
@@ -175,12 +184,12 @@ public class AuthService
             UserStatsService.ApplyToUser(row, user);
     }
 
-    private async Task<User?> FetchUserAsync(string username, bool includePassword)
+    private async Task<UserLookupResult> FetchUserLookupAsync(string username, bool includePassword)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(username))
-                return null;
+                return new UserLookupResult();
 
             var trimmed = username.Trim();
             var safeUsername = Uri.EscapeDataString(trimmed);
@@ -195,29 +204,36 @@ public class AuthService
                 if (exact != null)
                 {
                     await MergeStatsIntoUserAsync(exact);
-                    return exact;
+                    return new UserLookupResult { User = exact };
                 }
+            }
+            else if ((int)res.StatusCode >= 500)
+            {
+                return new UserLookupResult { TransientError = true };
             }
 
             var ilikeRes = await _client.GetAsync(
                 $"{_url}/rest/v1/users?Username=ilike.{safeUsername}&select={select}&limit=5");
             var ilikeJson = await ilikeRes.Content.ReadAsStringAsync();
             if (!ilikeRes.IsSuccessStatusCode)
-                return null;
+                return new UserLookupResult { TransientError = (int)ilikeRes.StatusCode >= 500 };
 
             var matches = JsonSerializer.Deserialize<List<User>>(ilikeJson, AppJson.Options);
             var match = matches?.FirstOrDefault(u =>
                 string.Equals(u.Username, trimmed, StringComparison.OrdinalIgnoreCase));
             if (match != null)
                 await MergeStatsIntoUserAsync(match);
-            return match;
+            return new UserLookupResult { User = match };
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GetUserAsync Exception] {ex}");
-            return null;
+            Console.WriteLine($"[LookupUserAsync Exception] {ex}");
+            return new UserLookupResult { TransientError = true };
         }
     }
+
+    private async Task<User?> FetchUserAsync(string username, bool includePassword) =>
+        (await FetchUserLookupAsync(username, includePassword)).User;
 
     public async Task<bool> UpdateUserAsync(User updatedUser)
     {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 using System;
@@ -13,6 +14,7 @@ namespace NoodlesSimulator.Pages;
 public class DashboardModel : PageModel
 {
     private readonly AuthService _authService;
+    private readonly IConfiguration _configuration;
     private readonly QuestionDifficultyService _difficultyService;
     private readonly UserFeedbackService _feedbackService;
     private readonly QuestionReportService _questionReports;
@@ -21,6 +23,7 @@ public class DashboardModel : PageModel
 
     public DashboardModel(
         AuthService authService,
+        IConfiguration configuration,
         QuestionDifficultyService difficultyService = null,
         UserFeedbackService feedbackService = null,
         QuestionReportService questionReports = null,
@@ -28,6 +31,7 @@ public class DashboardModel : PageModel
         ActivityEventService activityEvents = null)
     {
         _authService = authService;
+        _configuration = configuration;
         _difficultyService = difficultyService;
         _feedbackService = feedbackService;
         _questionReports = questionReports;
@@ -59,8 +63,10 @@ public class DashboardModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        var isAdmin = HttpContext.Session.GetString("IsAdmin");
-        if (!string.Equals(isAdmin, "1", StringComparison.Ordinal))
+        if (!AdminConfiguration.IsAdminSession(
+                _configuration,
+                HttpContext.Session.GetString("Username"),
+                HttpContext.Session.GetString("IsAdmin")))
         {
             return RedirectToPage("/Login");
         }
@@ -80,8 +86,10 @@ public class DashboardModel : PageModel
 
     public async Task<IActionResult> OnPostRecalculateDifficultiesAsync()
     {
-        var isAdmin = HttpContext.Session.GetString("IsAdmin");
-        if (!string.Equals(isAdmin, "1", StringComparison.Ordinal))
+        if (!AdminConfiguration.IsAdminSession(
+                _configuration,
+                HttpContext.Session.GetString("Username"),
+                HttpContext.Session.GetString("IsAdmin")))
             return new JsonResult(new { success = false });
 
         try

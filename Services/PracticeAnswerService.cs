@@ -74,6 +74,12 @@ public class PracticeAnswerService
         return string.Equals(selected, correctKey, StringComparison.Ordinal);
     }
 
+    public bool HasTrustedQuestionState(PracticeAnswerEvaluation evaluation) =>
+        !string.IsNullOrWhiteSpace(evaluation.QuestionImage)
+        && !string.IsNullOrWhiteSpace(evaluation.CorrectAnswerKey)
+        && evaluation.ShuffledAnswers is { Count: > 0 }
+        && evaluation.ShuffledAnswers.ContainsKey(evaluation.SelectedAnswer ?? "");
+
     public PracticeAnswerEvaluation PrepareSubmittedAnswer(
         ISession session,
         string questionImage,

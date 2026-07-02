@@ -18,6 +18,8 @@ internal static partial class ApiEndpoints
   {
     api.MapGet("/demo/normalize-preview", async context =>
     {
+      if (!await ApiHelpers.RequireAuthAdminAsync(context)) return;
+
       var storage = context.RequestServices.GetService<SupabaseStorageService>();
       if (storage == null)
       {

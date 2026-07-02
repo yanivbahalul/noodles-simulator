@@ -48,6 +48,10 @@ internal static class AdminConfiguration
         !string.IsNullOrWhiteSpace(Username(configuration))
         && !string.IsNullOrWhiteSpace(Password(configuration));
 
+    public static bool IsAdminSession(IConfiguration configuration, string? username, string? isAdminFlag) =>
+        string.Equals(isAdminFlag, "1", StringComparison.Ordinal)
+        && IsAdminUsername(configuration, username);
+
     public static bool VerifyPassword(IConfiguration configuration, string password)
     {
         var expected = Password(configuration);

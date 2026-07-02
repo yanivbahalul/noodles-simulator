@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 
@@ -16,11 +17,13 @@ public class SystemCheckModel : PageModel
 {
     private readonly SystemVerificationService _verification;
     private readonly IHostEnvironment _env;
+    private readonly IConfiguration _configuration;
 
-    public SystemCheckModel(SystemVerificationService verification, IHostEnvironment env)
+    public SystemCheckModel(SystemVerificationService verification, IHostEnvironment env, IConfiguration configuration)
     {
         _verification = verification;
         _env = env;
+        _configuration = configuration;
     }
 
     public string EnvironmentName { get; private set; } = "";
@@ -111,5 +114,8 @@ public class SystemCheckModel : PageModel
     }
 
     private bool IsAdmin() =>
-        string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
+        AdminConfiguration.IsAdminSession(
+            _configuration,
+            HttpContext.Session.GetString("Username"),
+            HttpContext.Session.GetString("IsAdmin"));
 }

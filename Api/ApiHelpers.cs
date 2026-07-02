@@ -19,7 +19,7 @@ internal static class ApiHelpers
         if (!string.Equals(context.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal))
             return false;
 
-        return AdminConfiguration.IsAdminUsername(configuration, context.Session.GetString("Username"));
+        return AdminConfiguration.IsAdminSession(configuration, context.Session.GetString("Username"), context.Session.GetString("IsAdmin"));
     }
 
     internal static bool IsAdminSession(HttpContext context) =>

@@ -46,6 +46,7 @@ public sealed class PracticeIndexGetPrepareResult
 {
     public bool RedirectLogin { get; set; }
     public bool RedirectBanned { get; set; }
+    public bool RedirectCheater { get; set; }
     public string Username { get; set; } = "";
     public User? User { get; set; }
     public int OnlineCount { get; set; }
@@ -60,6 +61,7 @@ public sealed class PracticeAuthResult
     public User? User { get; init; }
     public string? Username { get; init; }
     public bool RedirectLogin { get; init; }
+    public bool RedirectCheater { get; init; }
 }
 
 public class PracticeIndexPageService
@@ -87,14 +89,23 @@ public class PracticeIndexPageService
         _practiceQuiz = practiceQuiz;
     }
 
-    // ponytail: admin auth is env-based; no users row required after OTP.
     internal static User? ResolveSessionUser(User? user, string username, string? isAdminFlag, IConfiguration config)
     {
         if (user != null) return user;
-        if (string.Equals(isAdminFlag, "1", StringComparison.Ordinal)
-            && AdminConfiguration.IsAdminUsername(config, username))
+        if (AdminConfiguration.IsAdminSession(config, username, isAdminFlag))
             return new User { Username = username };
         return null;
+    }
+
+    private User? ResolveAuthUser(UserLookupResult lookup, string username, ISession session)
+    {
+        if (lookup.TransientError)
+        {
+            return ResolveSessionUser(lookup.User, username, session.GetString("IsAdmin"), _configuration)
+                   ?? new User { Username = username };
+        }
+
+        return ResolveSessionUser(lookup.User, username, session.GetString("IsAdmin"), _configuration);
     }
 
     public void EnsureQuizSessionStarted(ISession session)
@@ -115,13 +126,17 @@ public class PracticeIndexPageService
 
         EnsureQuizSessionStarted(http.Session);
 
-        var userTask = _auth.GetUserAsync(username);
+        var userTask = _auth.LookupUserAsync(username);
         var onlineTask = _auth.GetOnlineUserCountAsync();
         await Task.WhenAll(userTask, onlineTask);
 
-        User? user = null;
-        try { user = await userTask; }
-        catch (Exception ex) { Console.WriteLine($"[PrepareGetPage GetUserAsync Error] {ex.Message}"); }
+        UserLookupResult lookup;
+        try { lookup = await userTask; }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PrepareGetPage LookupUserAsync Error] {ex.Message}");
+            lookup = new UserLookupResult { TransientError = true };
+        }
 
         int onlineCount = 0;
         try { onlineCount = await onlineTask; }
@@ -130,7 +145,7 @@ public class PracticeIndexPageService
             Console.WriteLine($"[PrepareGetPage GetOnlineUserCount Error] {ex.Message}");
         }
 
-        user = ResolveSessionUser(user, username, http.Session.GetString("IsAdmin"), _configuration);
+        var user = ResolveAuthUser(lookup, username, http.Session);
 
         var result = new PracticeIndexGetPrepareResult
         {
@@ -149,6 +164,9 @@ public class PracticeIndexPageService
         if (user.IsBanned)
             return new PracticeIndexGetPrepareResult { RedirectBanned = true };
 
+        if (user.IsCheater)
+            return new PracticeIndexGetPrepareResult { RedirectCheater = true };
+
         _ = _auth.TouchLastSeenAsync(user.Username, DateTime.UtcNow);
         result.WelcomePrompt = ResolveWelcomePrompt(http);
         result.ActiveNoticeId = AppNotices.GetFirstUndismissed(user.DismissedNotices) ?? "";
@@ -166,11 +184,15 @@ public class PracticeIndexPageService
         if (string.IsNullOrEmpty(username))
             return new PracticeAuthResult { RedirectLogin = true };
 
-        User? user = null;
-        try { user = await _auth.GetUserAsync(username); }
-        catch (Exception ex) { Console.WriteLine($"[PracticeIndexPage TryRequireUser GetUserAsync Error] {ex.Message}"); }
+        UserLookupResult lookup;
+        try { lookup = await _auth.LookupUserAsync(username); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PracticeIndexPage TryRequireUser LookupUserAsync Error] {ex.Message}");
+            lookup = new UserLookupResult { TransientError = true };
+        }
 
-        user = ResolveSessionUser(user, username, http.Session.GetString("IsAdmin"), _configuration);
+        var user = ResolveAuthUser(lookup, username, http.Session);
         if (user == null)
         {
             http.Session.Clear();
@@ -184,6 +206,9 @@ public class PracticeIndexPageService
             RememberMeService.Clear(http.Response);
             return new PracticeAuthResult { RedirectLogin = true };
         }
+
+        if (user.IsCheater)
+            return new PracticeAuthResult { RedirectCheater = true, User = user, Username = username };
 
         return new PracticeAuthResult { User = user, Username = username };
     }

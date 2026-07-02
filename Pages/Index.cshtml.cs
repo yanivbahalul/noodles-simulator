@@ -109,6 +109,8 @@ public class IndexModel : PageModel
                     RememberMeService.Clear(Response);
                     return RedirectToPage("/Login");
                 }
+                if (prep.RedirectCheater)
+                    return RedirectToPage("/Cheater");
 
                 Username = prep.Username;
                 OnlineCount = prep.OnlineCount;
@@ -172,6 +174,18 @@ public class IndexModel : PageModel
             }
 
             ProcessSubmittedAnswerForm();
+            if (string.IsNullOrWhiteSpace(CorrectAnswerKey)
+                || ShuffledAnswers == null
+                || ShuffledAnswers.Count == 0
+                || !ShuffledAnswers.ContainsKey(SelectedAnswer ?? ""))
+            {
+                _practiceQuiz?.ClearAnswerFlash(HttpContext.Session);
+                try { await LoadRandomQuestionAsync(); }
+                catch (Exception ex) { Console.WriteLine($"[OnPostAsync ReloadQuestion Error] {ex.Message}"); }
+                await ApplyUserStatsAsync(auth.User);
+                return Page();
+            }
+
             await ProcessSubmittedAnswerCoreAsync(auth.User);
             var cheaterAction = await DetectCheaterAsync(auth.User);
             if (cheaterAction == CheaterDetectionAction.RedirectLogin)
@@ -259,6 +273,15 @@ public class IndexModel : PageModel
                 HttpContext.Session, questionImage, answer, tryRecover: true)
                 ?? new PracticeAnswerEvaluation { QuestionImage = questionImage, SelectedAnswer = answer });
 
+            if (_practiceAnswer != null && !_practiceAnswer.HasTrustedQuestionState(new PracticeAnswerEvaluation
+            {
+                QuestionImage = QuestionImage,
+                SelectedAnswer = SelectedAnswer,
+                CorrectAnswerKey = CorrectAnswerKey,
+                ShuffledAnswers = ShuffledAnswers
+            }))
+                return new JsonResult(new { error = "Invalid question" }) { StatusCode = 400 };
+
             await ProcessSubmittedAnswerCoreAsync(auth.User);
 
             var cheaterAction = _practiceAnswer?.DetectCheater(HttpContext.Session, auth.User)
@@ -343,6 +366,9 @@ public class IndexModel : PageModel
 
         if (result.RedirectLogin)
             return (null, RedirectToPage("/Login"));
+
+        if (result.RedirectCheater)
+            return (null, RedirectToPage("/Cheater"));
 
         Username = result.Username ?? "";
         return (result.User, null);

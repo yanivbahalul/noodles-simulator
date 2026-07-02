@@ -134,7 +134,61 @@
         renderAnswerButtons(grid, data.answers);
     }
 
-    function syncOriginalQuestionLink(data) {
+    function originalMediaUrl(fileName) {
+        if (!fileName) return "";
+        return `/media/original/${encodeURIComponent(fileName)}`;
+    }
+
+    let showingOriginalQuestion = false;
+
+    function tagAnswerNormalizedUrls() {
+        document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
+            if (img.src) img.dataset.normalizedUrl = img.src;
+        });
+    }
+
+    function cacheNormalizedQuestionMedia(data) {
+        showingOriginalQuestion = false;
+        const mainImg = document.getElementById("main-question-image");
+        const questionFile = data.questionImageOriginalName || data.questionImage || "";
+        if (mainImg && data.questionImageUrl) {
+            mainImg.dataset.normalizedUrl = data.questionImageUrl;
+            mainImg.dataset.originalUrl = originalMediaUrl(questionFile);
+        }
+        const btn = document.getElementById("show-original-question-btn");
+        if (btn) btn.textContent = "הצג שאלה מקורית";
+    }
+
+    function setQuestionMediaMode(showOriginal) {
+        const mainImg = document.getElementById("main-question-image");
+        const modalImg = document.getElementById("modal-img");
+        const btn = document.getElementById("show-original-question-btn");
+        if (!mainImg) return;
+
+        showingOriginalQuestion = showOriginal;
+        if (showOriginal) {
+            const qUrl = mainImg.dataset.originalUrl
+                || originalMediaUrl(btn?.dataset.questionId || document.getElementById("quiz-question-image")?.value || "");
+            window.QuizDisplay?.setQuestionImage?.(mainImg, qUrl, modalImg);
+            document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
+                const file = img.dataset.answerFile;
+                if (!file) return;
+                if (!img.dataset.normalizedUrl) img.dataset.normalizedUrl = img.src;
+                img.src = originalMediaUrl(file);
+            });
+            if (btn) btn.textContent = "הצג שאלה מנורמלת";
+        } else {
+            const normalizedUrl = mainImg.dataset.normalizedUrl || mainImg.src;
+            window.QuizDisplay?.setQuestionImage?.(mainImg, normalizedUrl, modalImg);
+            document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
+                if (img.dataset.normalizedUrl) img.src = img.dataset.normalizedUrl;
+            });
+            if (btn) btn.textContent = "הצג שאלה מקורית";
+        }
+        scheduleQuizViewportAdjust();
+    }
+
+    function syncOriginalQuestionButton(data) {
         const btn = document.getElementById("show-original-question-btn");
         if (!btn) return;
         const id = data.questionImageOriginalName || data.questionImage || "";
@@ -150,11 +204,17 @@
         const btn = document.getElementById("show-original-question-btn");
         if (!btn || btn.dataset.bound === "1") return;
         btn.dataset.bound = "1";
+
+        const mainImg = document.getElementById("main-question-image");
+        if (mainImg?.src && !mainImg.dataset.normalizedUrl) {
+            mainImg.dataset.normalizedUrl = mainImg.src;
+            const qId = btn.dataset.questionId || document.getElementById("quiz-question-image")?.value || "";
+            if (qId) mainImg.dataset.originalUrl = originalMediaUrl(qId);
+        }
+        tagAnswerNormalizedUrls();
+
         btn.addEventListener("click", () => {
-            const id = btn.dataset.questionId;
-            if (!id) return;
-            const url = `/QuestionView?id=${encodeURIComponent(id)}&from=index&source=original`;
-            window.open(url, "_blank", "noopener");
+            setQuestionMediaMode(!showingOriginalQuestion);
         });
     }
 
@@ -166,9 +226,11 @@
         );
         setHiddenQuestionImage(data.questionImage);
         renderQuestionAnswersGrid(data);
+        tagAnswerNormalizedUrls();
+        cacheNormalizedQuestionMedia(data);
         clearAnswerFeedback(document.getElementById("answer-feedback"));
         window.QuestionExplanation?.reset?.();
-        syncOriginalQuestionLink(data);
+        syncOriginalQuestionButton(data);
         syncReportFormForQuestion(data);
         if (data.practiceMode === "daily") updatePracticeModeBadge(data);
     }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
 using NoodlesSimulator.Models;
 using NoodlesSimulator.Services;
 
@@ -13,15 +14,18 @@ namespace NoodlesSimulator.Pages;
 public class StatsModel : PageModel
 {
     private readonly AuthService _authService;
+    private readonly IConfiguration _configuration;
     private readonly UserProgressService _userProgress;
     private readonly TestSessionService _testSessions;
 
     public StatsModel(
         AuthService authService,
+        IConfiguration configuration,
         UserProgressService userProgress = null,
         TestSessionService testSessions = null)
     {
         _authService = authService;
+        _configuration = configuration;
         _userProgress = userProgress;
         _testSessions = testSessions;
     }
@@ -70,15 +74,20 @@ public class StatsModel : PageModel
             if (string.IsNullOrEmpty(username))
                 return RedirectToPage("/Login");
 
-            var user = await _authService.GetUserAsync(username);
-            if (user == null)
-                return RedirectToPage("/Login");
-
-            var isAdmin = HttpContext.Session.GetString("IsAdmin") == "1";
+            var isAdmin = AdminConfiguration.IsAdminSession(
+                _configuration, username, HttpContext.Session.GetString("IsAdmin"));
             ViewData["ShowAdminLink"] = isAdmin;
 
             if (string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase))
                 return isAdmin ? RedirectToPage("/Dashboard") : RedirectToPage("/Stats");
+
+            var lookup = await _authService.LookupUserAsync(username);
+            var user = PracticeIndexPageService.ResolveSessionUser(
+                lookup.User, username, HttpContext.Session.GetString("IsAdmin"), _configuration);
+            if (user == null && lookup.TransientError)
+                user = new User { Username = username };
+            if (user == null)
+                return RedirectToPage("/Login");
 
             Username = user.Username;
             CurrentStreak = HttpContext.Session.GetInt32("CurrentStreak") ?? 0;
