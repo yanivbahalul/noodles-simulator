@@ -234,22 +234,7 @@
     <div id="app-notice-modal" class="difficulty-modal app-notice-modal">
         <div class="difficulty-modal-content app-notice-content">
             <span class="close-difficulty-modal" id="close-app-notice-btn">&times;</span>
-            @if (Model.ActiveNoticeId == AppNotices.June2026Update)
-            {
-                <h2 class="difficulty-modal-title">🎉 עדכון גדול ל-Noodles Simulator</h2>
-                <ul class="app-notice-list">
-                    <li><strong>גיימיפיקציה</strong> — XP, רמות ורצף תשובות נכונות 🔥</li>
-                    <li><strong>הישגים</strong> — עשרות הישגים לפתיחה בדף «הישגים» 🏅</li>
-                    <li><strong>טבלת מובילים</strong> — דירוג לפי נכונות, אחוז הצלחה, שבועי, מבחנים, הישגים ורמה 🏆</li>
-                    <li><strong>מצבי תרגול</strong> — חולשות, סקירת טעויות ואתגר יומי 📚</li>
-                    <li><strong>שמירה בענן</strong> — ההתקדמות שלך נשמרת ומסתנכרנת ☁️</li>
-                    <li><strong>«זכור אותי»</strong> — נשאר מחובר גם אחרי סגירת הדפדפן 🔐</li>
-                    <li><strong>מצב מבחן</strong> — תוקנה בעיה שמנעה התחלת מבחן חדש ✅</li>
-                    <li><strong>ביצועים</strong> — האתר מהיר ויציב יותר גם בעומס ⚡</li>
-                </ul>
-                <p class="difficulty-modal-message app-notice-footer">תהנו! לחצו «הבנתי» כדי להמשיך לתרגל.</p>
-            }
-            else if (Model.ActiveNoticeId == AppNotices.ExamFix)
+            @if (Model.ActiveNoticeId == AppNotices.ExamFix)
             {
                 <h2 class="difficulty-modal-title">מצב המבחן תוקן</h2>
                 <p class="difficulty-modal-message">תיקנו בעיה במצב המבחן. אפשר להתחיל מבחן חדש בלחיצה על «מצב מבחן» בדף הבית.</p>

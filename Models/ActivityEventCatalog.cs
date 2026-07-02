@@ -249,7 +249,7 @@ public static class ActivityEventCatalog
         return noticeId switch
         {
             "exam-nav-2026-06" => "ניווט במבחן",
-            AppNotices.June2026Update => "עדכון יוני 2026",
+            "update-2026-06" => "עדכון יוני 2026",
             AppNotices.ExamFix => "תיקון מבחן",
             _ => string.IsNullOrWhiteSpace(noticeId) ? "הודעה" : noticeId
         };

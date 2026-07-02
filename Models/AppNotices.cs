@@ -6,14 +6,12 @@ namespace NoodlesSimulator.Models;
 
 public static class AppNotices
 {
-    public const string June2026Update = "update-2026-06";
     public const string ExamFix = "exam-fix-2026-06";
 
-    private static readonly string[] PriorityOrder = { June2026Update, ExamFix };
+    private static readonly string[] PriorityOrder = { ExamFix };
 
     private static readonly HashSet<string> ValidIds = new(StringComparer.Ordinal)
     {
-        June2026Update,
         ExamFix
     };
 
