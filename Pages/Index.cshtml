@@ -178,13 +178,6 @@
         <form class="inline-form-reset">
             <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
         </form>
-        @if (ViewData["ShowAdminLink"] as bool? == true && !string.IsNullOrEmpty(Model.QuestionImageOriginalName ?? Model.QuestionImage))
-        {
-            <button type="button"
-                    class="next-question-btn"
-                    id="show-original-question-btn"
-                    data-question-id="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)">הצג שאלה מנורמלת</button>
-        }
         <form method="get" id="next-question-form">
             <input type="hidden" name="next" value="1" />
             @if (!string.IsNullOrEmpty(Model.PracticeMode) && Model.PracticeMode != "normal")

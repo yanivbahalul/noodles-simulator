@@ -35,10 +35,6 @@ public class QuestionViewModel : PageModel
         if (string.IsNullOrWhiteSpace(username))
             return RedirectToPage("/Login");
 
-        var useOriginal = string.Equals(Request.Query["source"].ToString(), "original", StringComparison.OrdinalIgnoreCase);
-        if (useOriginal && !IsAdmin())
-            return Forbid();
-
         SetBackNavigation(Request.Query["from"].ToString(), Request.Query["scope"].ToString());
 
         var questionId = Request.Query["id"].ToString();
@@ -46,12 +42,9 @@ public class QuestionViewModel : PageModel
             return Page();
 
         var selectedFile = ApplyQueryParameters();
-        await LoadQuestionAsync(questionId, selectedFile, useOriginal);
+        await LoadQuestionAsync(questionId, selectedFile);
         return Page();
     }
-
-    private bool IsAdmin() =>
-        string.Equals(HttpContext.Session.GetString("IsAdmin"), "1", StringComparison.Ordinal);
 
     private string ApplyQueryParameters()
     {
@@ -66,7 +59,7 @@ public class QuestionViewModel : PageModel
         return selectedFile;
     }
 
-    private async Task LoadQuestionAsync(string questionId, string selectedFile, bool useOriginal = false)
+    private async Task LoadQuestionAsync(string questionId, string selectedFile)
     {
         if (_questionGroups == null)
             return;
@@ -78,11 +71,7 @@ public class QuestionViewModel : PageModel
         if (_storage != null)
         {
             string ResolveUrl(string file) =>
-                string.IsNullOrWhiteSpace(file)
-                    ? null
-                    : useOriginal
-                        ? $"/media/{MediaUrl.OriginalsPrefix}/{file}"
-                        : MediaUrl.ForStoragePath(file);
+                string.IsNullOrWhiteSpace(file) ? null : MediaUrl.ForStoragePath(file);
 
             QuestionImageUrl = ResolveUrl(group[0]);
             PopulateAnswerUrls(group, (key, file) => ResolveUrl(file));

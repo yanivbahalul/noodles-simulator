@@ -6,11 +6,8 @@ namespace NoodlesSimulator.Services;
 /// <summary>Stable public URLs for Supabase Storage objects (served via /media proxy).</summary>
 public static class MediaUrl
 {
-    /// <summary>Quiz screenshot originals (mirrored from former bucket root).</summary>
-    public const string OriginalsPrefix = "original";
-
-    /// <summary>Quiz screenshots after normalize-questions batch (served to users).</summary>
-    public const string NormalizedPrefix = "normalized";
+    /// <summary>Quiz screenshot originals in Supabase Storage (<c>raw/</c> prefix).</summary>
+    public const string RawPrefix = "raw";
 
     /// <summary>Bare filename → storage path; paths with a folder (explanations/, sessions/) unchanged.</summary>
     public static string ResolveObjectPath(string? fileOrPath)
@@ -22,8 +19,7 @@ public static class MediaUrl
         if (p.Contains("..", StringComparison.Ordinal))
             throw new ArgumentException("Invalid path", nameof(fileOrPath));
 
-        // ponytail: serve originals until normalized batch is verified — flip back to NormalizedPrefix
-        return p.Contains('/') ? p : $"{OriginalsPrefix}/{p}";
+        return p.Contains('/') ? p : $"{RawPrefix}/{p}";
     }
 
     public static string ForStoragePath(string? objectPath)

@@ -570,7 +570,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
     object-fit: contain;
 }
 
-/* Raw Q&A tiles — match normalize review before-panel; quiz chrome unchanged */
+/* Raw Q&A tiles — white question/answer cards; quiz chrome unchanged */
 .quiz-container .quiz-main-image,
 .quiz-container .test-main-question-image,
 .quiz-container .review-main-question-image,
@@ -600,7 +600,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
 
 .quiz-container .answers .answer-btn img,
 .test-quiz-container .answers .answer-btn img {
-    filter: none !important;
+    filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
     max-height: 96px;
     border-radius: 4px;
 }

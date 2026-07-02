@@ -33,7 +33,7 @@ public class QuestionGroupLoader
     {
         if (_storage != null)
         {
-            return (await _storage.ListFilesAsync(MediaUrl.OriginalsPrefix + "/"))
+            return (await _storage.ListFilesAsync(MediaUrl.RawPrefix + "/"))
                 .Where(IsImageFile)
                 .Select(Path.GetFileName)
                 .Where(name => !string.IsNullOrEmpty(name))

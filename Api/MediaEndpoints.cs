@@ -36,12 +36,9 @@ internal static class MediaEndpoints
             return;
         }
 
-        var isNormalized = objectPath.StartsWith("normalized/", StringComparison.OrdinalIgnoreCase);
-
-        byte[]? bytes;
-        if (isNormalized)
+        var cacheKey = "media:" + objectPath;
+        if (!cache.TryGetValue(cacheKey, out byte[]? bytes))
         {
-            // ponytail: normalized/ is overwritten in place during batch — no long server cache
             try
             {
                 bytes = await storage.DownloadBytesAsync(objectPath);
@@ -52,31 +49,14 @@ internal static class MediaEndpoints
                 ctx.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
-        }
-        else
-        {
-            var cacheKey = "media:" + objectPath;
-            if (!cache.TryGetValue(cacheKey, out bytes))
-            {
-                try
-                {
-                    bytes = await storage.DownloadBytesAsync(objectPath);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Media] Download failed for {objectPath}: {ex.Message}");
-                    ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-                    return;
-                }
 
-                if (bytes != null && bytes.Length > 0)
+            if (bytes != null && bytes.Length > 0)
+            {
+                cache.Set(cacheKey, bytes, new MemoryCacheEntryOptions
                 {
-                    cache.Set(cacheKey, bytes, new MemoryCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = ServerCacheTtl,
-                        Size = bytes.Length
-                    });
-                }
+                    AbsoluteExpirationRelativeToNow = ServerCacheTtl,
+                    Size = bytes.Length
+                });
             }
         }
 
@@ -86,9 +66,7 @@ internal static class MediaEndpoints
             return;
         }
 
-        ctx.Response.Headers.CacheControl = isNormalized
-            ? "no-store"
-            : CacheControl;
+        ctx.Response.Headers.CacheControl = CacheControl;
         ctx.Response.ContentType = MediaUrl.ContentType(objectPath);
         await ctx.Response.Body.WriteAsync(bytes);
     }
