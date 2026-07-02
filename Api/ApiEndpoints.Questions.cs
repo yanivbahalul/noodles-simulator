@@ -18,22 +18,6 @@ internal static partial class ApiEndpoints
 {
     private static void MapQuestions(RouteGroupBuilder api)
     {
-        api.MapGet("/question-difficulty", async (HttpContext context) =>
-        {
-            if (!await ApiHelpers.RequireAuthAdminAsync(context)) return;
-
-            var svc = context.RequestServices.GetService<QuestionDifficultyService>();
-            if (svc == null)
-            {
-                await ApiHelpers.WritePlainError(context, 503, "Difficulty service unavailable");
-                return;
-            }
-
-            var items = await svc.GetAllQuestionsAsync();
-            await ApiHelpers.WriteJson(context, new { items });
-        });
-
-
         api.MapGet("/question-explanation", async (HttpContext context) =>
         {
             if (!await ApiHelpers.RequireAuthAsync(context)) return;

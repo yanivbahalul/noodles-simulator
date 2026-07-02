@@ -18,16 +18,6 @@ internal static partial class ApiEndpoints
 {
     internal static void Map(WebApplication app)
     {
-        app.MapPost("/clear-session", async context =>
-        {
-            if (!await ApiHelpers.RequireAuthAsync(context)) return;
-
-            context.Session.Clear();
-            RememberMeService.Clear(context.Response);
-            context.Response.StatusCode = 200;
-            await context.Response.CompleteAsync();
-        });
-
         app.MapGet("/health", async context =>
         {
             var env = context.RequestServices.GetRequiredService<IHostEnvironment>();

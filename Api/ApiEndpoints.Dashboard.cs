@@ -57,36 +57,6 @@ internal static partial class ApiEndpoints
         });
 
 
-        api.MapGet("/dashboard-activity", async context =>
-        {
-            if (!await ApiHelpers.RequireAdminAsync(context)) return;
-
-            var activity = context.RequestServices.GetService<ActivityEventService>();
-            if (activity == null || !activity.IsEnabled)
-            {
-                await ApiHelpers.WriteJson(context, new { items = Array.Empty<object>() });
-                return;
-            }
-
-            var limit = 50;
-            if (int.TryParse(context.Request.Query["limit"], out var parsed) && parsed > 0 && parsed <= 100)
-                limit = parsed;
-
-            var events = await activity.GetRecentAsync(limit);
-            await ApiHelpers.WriteJson(context, new
-            {
-                items = events.Select(e => new
-                {
-                    id = e.Id,
-                    username = e.Username,
-                    eventType = e.EventType,
-                    payload = e.Payload,
-                    createdAt = e.CreatedAt.ToUniversalTime().ToString("o")
-                })
-            });
-        });
-
-
         api.MapGet("/dashboard-user", async context =>
         {
             if (!await ApiHelpers.RequireAdminAsync(context)) return;
@@ -326,31 +296,6 @@ internal static partial class ApiEndpoints
 
             ApiHelpers.InvalidateDashboardCaches(context.RequestServices);
             await ApiHelpers.WriteJson(context, new { success = true, token = token.Trim() });
-        });
-
-
-        api.MapGet("/dashboard-feedback", async context =>
-        {
-            if (!await ApiHelpers.RequireAdminAsync(context)) return;
-
-            var feedbackService = await ApiHelpers.RequireFeedbackServiceAsync(context);
-            if (feedbackService == null) return;
-
-            var entries = await feedbackService.GetSubmittedFeedbackAsync();
-            await ApiHelpers.WriteJson(context, new
-            {
-                campaignId = FeedbackCampaigns.MilestoneCampaignPrefix,
-                entries = entries.Select(e => new
-                {
-                    e.Id,
-                    e.Username,
-                    e.Rating,
-                    e.Message,
-                    e.Milestone,
-                    isLater = e.IsLater,
-                    createdAt = e.CreatedAt.ToString("o")
-                })
-            });
         });
 
     }
