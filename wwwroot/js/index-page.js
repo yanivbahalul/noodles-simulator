@@ -470,7 +470,6 @@
         bindModalDismiss("difficulty-modal", () => window.IndexModals?.closeDifficultyModal?.());
         bindModalDismiss("practice-options-modal", () => window.IndexModals?.closePracticeOptionsModal?.());
         window.IndexQuiz?.bindQuizAnswerForm?.();
-        window.IndexQuiz?.bindOriginalQuestionButton?.();
         window.IndexQuiz?.bindNextQuestion?.();
         bindReportForm();
         window.IndexModals?.bindWelcomeModal?.();

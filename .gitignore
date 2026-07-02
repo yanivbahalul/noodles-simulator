@@ -32,7 +32,4 @@ wwwroot/demo/explanation-demo-*
 wwwroot/demo/explanation-frame-*
 wwwroot/demo/explanation-demo*.mp4
 
-# Normalize-preview local copies (demo reads Supabase via /api/demo/normalize-preview)
-wwwroot/demo/normalize-preview/before/
-wwwroot/demo/normalize-preview/after/
 tools/hexstrike-ai
