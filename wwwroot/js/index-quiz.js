@@ -4,6 +4,7 @@
 
     let answerChecked = false;
     let quizBusy = false;
+    let allowNativeFormSubmit = false;
     let questionRenderSeq = 0;
 
     function getAntiForgeryToken() {
@@ -169,6 +170,7 @@
     async function submitQuizAnswer(questionImage, answer, token) {
         const res = await window.RequestChannels.quizFetch("/Index?handler=SubmitAnswer", {
             method: "POST",
+            credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json",
                 "RequestVerificationToken": token,
@@ -176,7 +178,11 @@
             },
             body: JSON.stringify({ questionImage, answer })
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data = {};
+        if (text) {
+            try { data = JSON.parse(text); } catch { /* antiforgery etc. may return empty body */ }
+        }
         return { res, data };
     }
 
@@ -198,8 +204,10 @@
     }
 
     async function recoverQuizAnswerSubmitError(form, submitter) {
-        // ponytail: form POST carries antiforgery in body — works when JSON AJAX fails
+        // ponytail: form POST carries antiforgery in body — bypass our AJAX handler on retry
         if (form && submitter) {
+            quizBusy = false;
+            allowNativeFormSubmit = true;
             form.requestSubmit(submitter);
             return;
         }
@@ -242,6 +250,10 @@
     }
 
     async function handleQuizAnswerSubmit(e, form) {
+        if (allowNativeFormSubmit) {
+            allowNativeFormSubmit = false;
+            return;
+        }
         e.preventDefault();
         if (answerChecked || quizBusy) return;
 

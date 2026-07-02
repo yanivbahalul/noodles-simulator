@@ -124,7 +124,11 @@ public class PracticeIndexPageService
         };
 
         if (user == null)
-            return result;
+        {
+            http.Session.Clear();
+            RememberMeService.Clear(http.Response);
+            return new PracticeIndexGetPrepareResult { RedirectLogin = true };
+        }
 
         if (user.IsBanned)
             return new PracticeIndexGetPrepareResult { RedirectBanned = true };
@@ -151,7 +155,11 @@ public class PracticeIndexPageService
         catch (Exception ex) { Console.WriteLine($"[PracticeIndexPage TryRequireUser GetUserAsync Error] {ex.Message}"); }
 
         if (user == null)
+        {
+            http.Session.Clear();
+            RememberMeService.Clear(http.Response);
             return new PracticeAuthResult { RedirectLogin = true };
+        }
 
         if (user.IsBanned)
         {
