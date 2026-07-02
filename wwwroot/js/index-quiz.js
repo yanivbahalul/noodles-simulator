@@ -171,7 +171,8 @@
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                RequestVerificationToken: token
+                "RequestVerificationToken": token,
+                "X-Requested-With": "XMLHttpRequest"
             },
             body: JSON.stringify({ questionImage, answer })
         });

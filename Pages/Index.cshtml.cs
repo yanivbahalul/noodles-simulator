@@ -219,7 +219,6 @@ public class IndexModel : PageModel
         }
     }
 
-    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> OnPostSubmitAnswerAsync()
     {
         try
