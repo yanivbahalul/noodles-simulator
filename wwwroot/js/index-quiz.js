@@ -134,56 +134,62 @@
         renderAnswerButtons(grid, data.answers);
     }
 
+    function normalizedMediaUrl(fileName) {
+        if (!fileName) return "";
+        return `/media/normalized/${encodeURIComponent(fileName)}`;
+    }
+
     function originalMediaUrl(fileName) {
         if (!fileName) return "";
         return `/media/original/${encodeURIComponent(fileName)}`;
     }
 
-    let showingOriginalQuestion = false;
+    let showingNormalizedQuestion = false;
 
-    function tagAnswerNormalizedUrls() {
+    function tagAnswerQuizUrls() {
         document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
-            if (img.src) img.dataset.normalizedUrl = img.src;
+            if (img.src) img.dataset.quizUrl = img.src;
         });
     }
 
     function cacheNormalizedQuestionMedia(data) {
-        showingOriginalQuestion = false;
+        showingNormalizedQuestion = false;
         const mainImg = document.getElementById("main-question-image");
         const questionFile = data.questionImageOriginalName || data.questionImage || "";
         if (mainImg && data.questionImageUrl) {
-            mainImg.dataset.normalizedUrl = data.questionImageUrl;
+            mainImg.dataset.quizUrl = data.questionImageUrl;
+            mainImg.dataset.normalizedUrl = normalizedMediaUrl(questionFile);
             mainImg.dataset.originalUrl = originalMediaUrl(questionFile);
         }
         const btn = document.getElementById("show-original-question-btn");
-        if (btn) btn.textContent = "הצג שאלה מקורית";
+        if (btn) btn.textContent = "הצג שאלה מנורמלת";
     }
 
-    function setQuestionMediaMode(showOriginal) {
+    function setQuestionMediaMode(showNormalized) {
         const mainImg = document.getElementById("main-question-image");
         const modalImg = document.getElementById("modal-img");
         const btn = document.getElementById("show-original-question-btn");
         if (!mainImg) return;
 
-        showingOriginalQuestion = showOriginal;
-        if (showOriginal) {
-            const qUrl = mainImg.dataset.originalUrl
-                || originalMediaUrl(btn?.dataset.questionId || document.getElementById("quiz-question-image")?.value || "");
+        showingNormalizedQuestion = showNormalized;
+        const questionFile = btn?.dataset.questionId || document.getElementById("quiz-question-image")?.value || "";
+        if (showNormalized) {
+            const qUrl = mainImg.dataset.normalizedUrl || normalizedMediaUrl(questionFile);
             window.QuizDisplay?.setQuestionImage?.(mainImg, qUrl, modalImg);
             document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
                 const file = img.dataset.answerFile;
                 if (!file) return;
-                if (!img.dataset.normalizedUrl) img.dataset.normalizedUrl = img.src;
-                img.src = originalMediaUrl(file);
-            });
-            if (btn) btn.textContent = "הצג שאלה מנורמלת";
-        } else {
-            const normalizedUrl = mainImg.dataset.normalizedUrl || mainImg.src;
-            window.QuizDisplay?.setQuestionImage?.(mainImg, normalizedUrl, modalImg);
-            document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
-                if (img.dataset.normalizedUrl) img.src = img.dataset.normalizedUrl;
+                if (!img.dataset.quizUrl) img.dataset.quizUrl = img.src;
+                img.src = normalizedMediaUrl(file);
             });
             if (btn) btn.textContent = "הצג שאלה מקורית";
+        } else {
+            const quizUrl = mainImg.dataset.quizUrl || mainImg.dataset.originalUrl || originalMediaUrl(questionFile);
+            window.QuizDisplay?.setQuestionImage?.(mainImg, quizUrl, modalImg);
+            document.querySelectorAll("#answers-grid .answer-btn img").forEach((img) => {
+                if (img.dataset.quizUrl) img.src = img.dataset.quizUrl;
+            });
+            if (btn) btn.textContent = "הצג שאלה מנורמלת";
         }
         scheduleQuizViewportAdjust();
     }
@@ -206,15 +212,18 @@
         btn.dataset.bound = "1";
 
         const mainImg = document.getElementById("main-question-image");
-        if (mainImg?.src && !mainImg.dataset.normalizedUrl) {
-            mainImg.dataset.normalizedUrl = mainImg.src;
+        if (mainImg?.src && !mainImg.dataset.quizUrl) {
+            mainImg.dataset.quizUrl = mainImg.src;
             const qId = btn.dataset.questionId || document.getElementById("quiz-question-image")?.value || "";
-            if (qId) mainImg.dataset.originalUrl = originalMediaUrl(qId);
+            if (qId) {
+                mainImg.dataset.originalUrl = originalMediaUrl(qId);
+                mainImg.dataset.normalizedUrl = normalizedMediaUrl(qId);
+            }
         }
-        tagAnswerNormalizedUrls();
+        tagAnswerQuizUrls();
 
         btn.addEventListener("click", () => {
-            setQuestionMediaMode(!showingOriginalQuestion);
+            setQuestionMediaMode(!showingNormalizedQuestion);
         });
     }
 
@@ -226,7 +235,7 @@
         );
         setHiddenQuestionImage(data.questionImage);
         renderQuestionAnswersGrid(data);
-        tagAnswerNormalizedUrls();
+        tagAnswerQuizUrls();
         cacheNormalizedQuestionMedia(data);
         clearAnswerFeedback(document.getElementById("answer-feedback"));
         window.QuestionExplanation?.reset?.();

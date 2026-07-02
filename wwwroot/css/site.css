@@ -568,6 +568,7 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     margin-top: 10px;
     object-fit: contain;
+    background: #fff;
 }
 
 /* -----------------------------------------------------------------------
@@ -576,10 +577,9 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
 .answers {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: clamp(10px, 2.4vw, 24px);
-    margin-top: clamp(16px, 3vw, 30px);
+    gap: 10px;
+    margin-top: 12px;
     width: 100%;
-    justify-items: center;
 }
 
 /* Below ~360px (very narrow phones), single column avoids
@@ -593,14 +593,17 @@ body > *:not(.site-footer):not(.site-footer-wrap):not(.background-gif) {
 button.answer-btn,
 .answer-btn {
     border: none;
-    background: none;
+    background: #fff;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease, outline 0.3s ease;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     overflow: hidden;
     width: 100%;
-    padding: 0;
-    display: block;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
     box-shadow: none;
 }
 
@@ -611,14 +614,12 @@ button.answer-btn,
 
 .answer-btn img {
     max-width: 100%;
-    max-height: clamp(120px, 24vw, 200px);
+    max-height: 96px;
     width: auto;
     height: auto;
-    border-radius: var(--radius-md);
+    border-radius: 4px;
     display: block;
     margin: 0 auto;
-    transition: filter 0.3s ease;
-    filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
     object-fit: contain;
 }
 
@@ -1398,10 +1399,7 @@ button.answer-btn,
 
 /* Image answer buttons override the unified button look to remain visual tiles. */
 .answer-btn {
-    padding: 0 !important;
-    display: block !important;
     box-shadow: none !important;
-    min-height: 0 !important;
     min-width: 0 !important;
 }
 
@@ -1712,6 +1710,14 @@ button.answer-btn,
 
 .test-main-question-image,
 .review-main-question-image,
+.question-view-main-image,
+.quiz-main-image {
+    background: #fff;
+    border-radius: var(--radius-md);
+}
+
+.test-main-question-image,
+.review-main-question-image,
 .question-view-main-image {
     cursor: pointer;
 }
@@ -1811,10 +1817,9 @@ button.answer-btn,
     height: clamp(80px, 16vw, 120px);
     border-radius: 6px;
     object-fit: contain;
-    background: transparent;
+    background: #fff;
     display: block;
     overflow: hidden;
-    filter: grayscale(100%) brightness(90%) contrast(200%) saturate(0%);
 }
 
 /* -----------------------------------------------------------------------

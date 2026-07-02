@@ -44,31 +44,41 @@ internal static partial class ApiEndpoints
         StringComparer.OrdinalIgnoreCase);
 
       var groups = QuestionGroupLoader.GroupSequential(originalNames);
-      var ready = groups.Where(g => g.All(normalized.Contains)).ToList();
 
-      var questions = ready.Select((group, i) => new
+      var questions = groups.Select((group, i) =>
       {
-        index = i + 1,
-        id = group[0],
-        label = $"שאלה {i + 1}",
-        question = MediaUrl.ForStoragePath($"{NormalizedPrefix}/{group[0]}"),
-        answers = group.Skip(1).Take(4)
-          .Select(n => MediaUrl.ForStoragePath($"{NormalizedPrefix}/{n}"))
-          .ToArray(),
-        beforeQuestion = MediaUrl.ForStoragePath($"{MediaUrl.OriginalsPrefix}/{group[0]}"),
-        beforeAnswers = group.Skip(1).Take(4)
-          .Select(n => MediaUrl.ForStoragePath($"{MediaUrl.OriginalsPrefix}/{n}"))
-          .ToArray(),
+        var hasNormalized = group.All(normalized.Contains);
+        return new
+        {
+          index = i + 1,
+          id = group[0],
+          label = $"שאלה {i + 1}",
+          ready = hasNormalized,
+          question = MediaUrl.ForStoragePath($"{MediaUrl.OriginalsPrefix}/{group[0]}"),
+          answers = group.Skip(1).Take(4)
+            .Select(n => MediaUrl.ForStoragePath($"{MediaUrl.OriginalsPrefix}/{n}"))
+            .ToArray(),
+          afterQuestion = hasNormalized
+            ? MediaUrl.ForStoragePath($"{NormalizedPrefix}/{group[0]}")
+            : "",
+          afterAnswers = group.Skip(1).Take(4)
+            .Select(n => hasNormalized
+              ? MediaUrl.ForStoragePath($"{NormalizedPrefix}/{n}")
+              : "")
+            .ToArray(),
+        };
       }).ToList();
+
+      var normalizedReady = groups.Count(g => g.All(normalized.Contains));
 
       context.Response.Headers.CacheControl = "no-store";
       await ApiHelpers.WriteJson(context, new
       {
         count = questions.Count,
         total_groups = groups.Count,
-        ready = ready.Count,
+        ready = normalizedReady,
         built_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-        storage_prefix = NormalizedPrefix,
+        storage_prefix = MediaUrl.OriginalsPrefix,
         questions,
       });
     });

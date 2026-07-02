@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="utf-8" />
-    <title>תצוגה מקומית — שאלות מנורמלות</title>
+    <title>תצוגה — שאלות מקור (raw)</title>
     <link rel="stylesheet" href="/css/site.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -16,6 +16,9 @@
         }
         .demo-wrap .answer-btn img {
             filter: none !important;
+        }
+        .demo-wrap .quiz-container > img {
+            background: #fff;
         }
         .demo-title { color: #eee; text-align: center; margin: 8px 0 4px; font-size: 1rem; }
         .demo-nav {
@@ -49,7 +52,7 @@
 <img src="/assets/background.gif" alt="" class="background-gif" loading="lazy" aria-hidden="true" />
 
 <div class="demo-wrap">
-    <h1 class="demo-title" id="demo-title">תצוגה מקומית — שאלות מנורמלות</h1>
+    <h1 class="demo-title" id="demo-title">תצוגה — שאלות מקור (raw)</h1>
 
     <p class="demo-progress" id="demo-progress" hidden></p>
 
@@ -61,24 +64,25 @@
     </div>
 
     <div class="demo-tabs">
-        <button type="button" class="active" data-panel="after">אחרי (חדש)</button>
-        <button type="button" data-panel="before">לפני (מקור)</button>
+        <button type="button" class="active" data-panel="raw">מקור (raw)</button>
+        <button type="button" data-panel="after">מנורמל (אם קיים)</button>
     </div>
 
-    <div id="panel-after" class="demo-panel active">
-        <p class="demo-label" id="label-after">—</p>
+    <div id="panel-raw" class="demo-panel active">
+        <p class="demo-label" id="label-raw">—</p>
         <div class="quiz-container">
             <img src="" alt="שאלה" id="main-question-image" class="quiz-main-image" />
             <div class="answers" id="answers-grid"></div>
         </div>
-        <p class="demo-meta" id="meta-after"></p>
+        <p class="demo-meta" id="meta-raw"></p>
     </div>
 
-    <div id="panel-before" class="demo-panel">
-        <p class="demo-label" id="label-before">—</p>
+    <div id="panel-after" class="demo-panel">
+        <p class="demo-label" id="label-after">—</p>
+        <p class="demo-label" id="warn-after" hidden style="color:#f5a623">אין עדיין גרסה מנורמלת לקבוצה זו</p>
         <div class="quiz-container">
-            <img src="" alt="שאלה" id="before-question-image" class="quiz-main-image" />
-            <div class="answers" id="before-answers-grid"></div>
+            <img src="" alt="שאלה" id="after-question-image" class="quiz-main-image" />
+            <div class="answers" id="after-answers-grid"></div>
         </div>
     </div>
 </div>
@@ -89,7 +93,7 @@
 (function () {
     let questions = [];
     let idx = 0;
-    let panel = "after";
+    let panel = "raw";
     let cacheV = "";
 
     function withCache(url) {
@@ -103,12 +107,13 @@
         prev: document.getElementById("btn-prev"),
         next: document.getElementById("btn-next"),
         mainImg: document.getElementById("main-question-image"),
-        beforeImg: document.getElementById("before-question-image"),
+        afterImg: document.getElementById("after-question-image"),
         answers: document.getElementById("answers-grid"),
-        beforeAnswers: document.getElementById("before-answers-grid"),
+        afterAnswers: document.getElementById("after-answers-grid"),
+        labelRaw: document.getElementById("label-raw"),
         labelAfter: document.getElementById("label-after"),
-        labelBefore: document.getElementById("label-before"),
-        metaAfter: document.getElementById("meta-after"),
+        warnAfter: document.getElementById("warn-after"),
+        metaRaw: document.getElementById("meta-raw"),
         title: document.getElementById("demo-title"),
         progress: document.getElementById("demo-progress"),
     };
@@ -138,12 +143,16 @@
         els.next.disabled = idx >= questions.length - 1;
 
         els.mainImg.src = withCache(q.question);
-        els.beforeImg.src = withCache(q.beforeQuestion);
+        els.afterImg.src = q.afterQuestion ? withCache(q.afterQuestion) : "";
         buildAnswers(els.answers, q.answers.map(withCache));
-        buildAnswers(els.beforeAnswers, q.beforeAnswers.map(withCache));
+        buildAnswers(
+            els.afterAnswers,
+            (q.afterAnswers || []).filter(Boolean).map(withCache)
+        );
 
-        els.labelAfter.textContent = `חדש — ${q.id}`;
-        els.labelBefore.textContent = `מקור — ${q.id}`;
+        els.labelRaw.textContent = `מקור — ${q.id}`;
+        els.labelAfter.textContent = `מנורמל — ${q.id}`;
+        els.warnAfter.hidden = !!q.ready;
 
         const onLoad = () => {
             const qi = els.mainImg;
@@ -154,7 +163,7 @@
             const am = firstAns?.naturalWidth && firstAns?.naturalHeight
                 ? ` · תשובה: ${firstAns.naturalWidth}×${firstAns.naturalHeight}px`
                 : "";
-            els.metaAfter.textContent = meta + am;
+            els.metaRaw.textContent = meta + am;
             window.QuizViewport?.scheduleQuizViewportAdjust?.();
         };
         els.mainImg.onload = onLoad;
@@ -187,21 +196,21 @@
             questions = data.questions || [];
             cacheV = String(data.built_at || Date.now());
             if (!questions.length) throw new Error("empty manifest");
-            els.title.textContent = `תצוגה מקומית — ${data.ready ?? questions.length} שאלות מנורמלות`;
+            els.title.textContent = `תצוגה — ${data.total_groups ?? questions.length} שאלות (מקור)`;
             if (data.total_groups) {
                 els.progress.hidden = false;
                 els.progress.textContent =
-                    `מוכנות ${data.ready ?? questions.length} מתוך ${data.total_groups} · אחרי: /media/${data.storage_prefix || "normalized"}/`;
+                    `מנורמלות ${data.ready ?? 0} מתוך ${data.total_groups} · מקור: /media/${data.storage_prefix || "original"}/`;
             }
             els.nav.hidden = false;
             els.select.innerHTML = questions
-                .map((q, i) => `<option value="${i}">${q.label}</option>`)
+                .map((q, i) => `<option value="${i}">${q.label}${q.ready ? " ✓" : ""}</option>`)
                 .join("");
             showQuestion(0);
             window.QuizViewport?.bindQuizViewportHandlers?.();
         })
         .catch((err) => {
-            els.labelAfter.textContent = "שגיאה: Supabase לא זמין או אין שאלות ב-normalized/";
+            els.labelRaw.textContent = "שגיאה: Supabase לא זמין או אין שאלות ב-original/";
             console.error(err);
         });
 })();

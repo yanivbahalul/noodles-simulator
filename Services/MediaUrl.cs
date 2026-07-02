@@ -22,7 +22,8 @@ public static class MediaUrl
         if (p.Contains("..", StringComparison.Ordinal))
             throw new ArgumentException("Invalid path", nameof(fileOrPath));
 
-        return p.Contains('/') ? p : $"{NormalizedPrefix}/{p}";
+        // ponytail: serve originals until normalized batch is verified — flip back to NormalizedPrefix
+        return p.Contains('/') ? p : $"{OriginalsPrefix}/{p}";
     }
 
     public static string ForStoragePath(string? objectPath)
