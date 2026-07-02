@@ -457,19 +457,27 @@
         window.IndexQuiz?.setAnswerChecked(pageData?.dataset.answerChecked === "1");
 
         bindImageModal();
+        bindClick("open-difficulty-modal-btn", (e) => {
+            e.preventDefault();
+            window.IndexModals?.openDifficultyModal?.();
+        });
         bindClick("open-practice-options-btn", (e) => {
             e.preventDefault();
             window.IndexModals?.openPracticeOptionsModal?.();
         });
+        bindClick("close-difficulty-modal-btn", () => window.IndexModals?.closeDifficultyModal?.());
         bindClick("close-practice-options-btn", () => window.IndexModals?.closePracticeOptionsModal?.());
+        bindModalDismiss("difficulty-modal", () => window.IndexModals?.closeDifficultyModal?.());
         bindModalDismiss("practice-options-modal", () => window.IndexModals?.closePracticeOptionsModal?.());
         window.IndexQuiz?.bindQuizAnswerForm?.();
+        window.IndexQuiz?.bindOriginalQuestionButton?.();
         window.IndexQuiz?.bindNextQuestion?.();
         bindReportForm();
         window.IndexModals?.bindWelcomeModal?.();
         window.IndexModals?.bindAppNotice?.();
         window.IndexModals?.bindFeedbackModal?.();
         window.IndexModals?.bindGitHubStarModal?.();
+        window.IndexModals?.bindDifficultyChoices?.();
         bindSoundToggle();
         syncStreakBadgeFromPage();
         bindAchievementToast();
@@ -485,6 +493,7 @@
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
+                window.IndexModals?.closeDifficultyModal?.();
                 window.IndexModals?.closePracticeOptionsModal?.();
             }
         });

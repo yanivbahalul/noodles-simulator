@@ -135,15 +135,27 @@
     }
 
     function syncOriginalQuestionLink(data) {
-        const link = document.getElementById("show-original-question-btn");
-        if (!link) return;
+        const btn = document.getElementById("show-original-question-btn");
+        if (!btn) return;
         const id = data.questionImageOriginalName || data.questionImage || "";
         if (!id) {
-            link.hidden = true;
+            btn.hidden = true;
             return;
         }
-        link.hidden = false;
-        link.href = `/QuestionView?id=${encodeURIComponent(id)}&from=index&source=original`;
+        btn.hidden = false;
+        btn.dataset.questionId = id;
+    }
+
+    function bindOriginalQuestionButton() {
+        const btn = document.getElementById("show-original-question-btn");
+        if (!btn || btn.dataset.bound === "1") return;
+        btn.dataset.bound = "1";
+        btn.addEventListener("click", () => {
+            const id = btn.dataset.questionId;
+            if (!id) return;
+            const url = `/QuestionView?id=${encodeURIComponent(id)}&from=index&source=original`;
+            window.open(url, "_blank", "noopener");
+        });
     }
 
     function applyRenderedQuestionDom(data) {
@@ -355,6 +367,7 @@
     window.IndexQuiz = {
         bindQuizAnswerForm,
         bindNextQuestion,
+        bindOriginalQuestionButton,
         schedulePrefetchNextQuestion: () => prefetch?.schedulePrefetchNextQuestion?.(),
         setAnswerChecked: (value) => { answerChecked = value; },
         isAnswerChecked: () => answerChecked,

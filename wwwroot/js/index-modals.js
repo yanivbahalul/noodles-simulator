@@ -225,9 +225,24 @@
         );
     }
 
+    function openDifficultyModal() {
+        window.IndexPage?.closeImageModal?.();
+        window.IndexPage?.closeAppDialog?.();
+        closePracticeOptionsModal();
+        dismissAppNotice();
+        const modal = document.getElementById("difficulty-modal");
+        if (modal) modal.classList.add("difficulty-modal-open");
+    }
+
+    function closeDifficultyModal() {
+        const modal = document.getElementById("difficulty-modal");
+        if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+
     function openPracticeOptionsModal() {
         window.IndexPage?.closeImageModal?.();
         window.IndexPage?.closeAppDialog?.();
+        closeDifficultyModal();
         dismissAppNotice();
         const modal = document.getElementById("practice-options-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
@@ -447,15 +462,29 @@
         openGitHubStarModalIfPending();
     }
 
+    function bindDifficultyChoices() {
+        document.querySelectorAll(".difficulty-btn[data-difficulty]").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const level = btn.getAttribute("data-difficulty");
+                if (!level) return;
+                window.location.assign(`/Test?start=1&difficulty=${encodeURIComponent(level)}`);
+            });
+        });
+    }
+
     window.IndexModals = {
         openFeedbackModal,
         openGitHubStarModal,
         isGitHubStarHandled,
+        openDifficultyModal,
+        closeDifficultyModal,
         openPracticeOptionsModal,
         closePracticeOptionsModal,
         bindWelcomeModal,
         bindAppNotice,
         bindFeedbackModal,
-        bindGitHubStarModal
+        bindGitHubStarModal,
+        bindDifficultyChoices
     };
 })();

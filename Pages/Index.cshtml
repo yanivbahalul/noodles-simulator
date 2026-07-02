@@ -174,13 +174,15 @@
                 </svg>
             </button>
         </form>
+        <form class="inline-form-reset">
+            <button type="button" class="next-question-btn" id="open-difficulty-modal-btn">מצב מבחן</button>
+        </form>
         @if (ViewData["ShowAdminLink"] as bool? == true && !string.IsNullOrEmpty(Model.QuestionImageOriginalName ?? Model.QuestionImage))
         {
-            <a href="/QuestionView?id=@Uri.EscapeDataString(Model.QuestionImageOriginalName ?? Model.QuestionImage)&amp;from=index&amp;source=original"
-               target="_blank"
-               rel="noopener"
-               class="next-question-btn"
-               id="show-original-question-btn">הצג שאלה מקורית</a>
+            <button type="button"
+                    class="next-question-btn"
+                    id="show-original-question-btn"
+                    data-question-id="@(Model.QuestionImageOriginalName ?? Model.QuestionImage)">הצג שאלה מקורית</button>
         }
         <form method="get" id="next-question-form">
             <input type="hidden" name="next" value="1" />
@@ -345,6 +347,24 @@
             <a href="/Index?mode=normal&amp;difficulty=easy" class="practice-option-btn @(Model.PracticeDifficulty == "easy" ? "is-active" : "")">קל</a>
             <a href="/Index?mode=normal&amp;difficulty=medium" class="practice-option-btn @(Model.PracticeDifficulty == "medium" ? "is-active" : "")">בינוני</a>
             <a href="/Index?mode=normal&amp;difficulty=hard" class="practice-option-btn @(Model.PracticeDifficulty == "hard" ? "is-active" : "")">קשה</a>
+        </div>
+    </div>
+</div>
+
+<div id="difficulty-modal" class="difficulty-modal">
+    <div class="difficulty-modal-content">
+        <span class="close-difficulty-modal" id="close-difficulty-modal-btn">&times;</span>
+        <h2 class="difficulty-modal-title">בחר רמת קושי למבחן</h2>
+        <div class="difficulty-buttons">
+            <a href="/Test?start=1&amp;difficulty=easy" class="difficulty-btn difficulty-easy" data-difficulty="easy">
+                <span class="difficulty-text">קל</span>
+            </a>
+            <a href="/Test?start=1&amp;difficulty=medium" class="difficulty-btn difficulty-medium" data-difficulty="medium">
+                <span class="difficulty-text">בינוני</span>
+            </a>
+            <a href="/Test?start=1&amp;difficulty=hard" class="difficulty-btn difficulty-hard" data-difficulty="hard">
+                <span class="difficulty-text">קשה</span>
+            </a>
         </div>
     </div>
 </div>
