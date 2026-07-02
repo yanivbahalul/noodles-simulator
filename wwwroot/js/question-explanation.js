@@ -10,6 +10,7 @@
     const RATED_KEY = "explanation-rated:";
 
     let loadToken = 0;
+    let afterAnswerToken = 0;
     let clickHandler = null;
     let currentQuestionId = "";
     let selectedStars = 0;
@@ -178,6 +179,7 @@
 
     function reset() {
         loadToken += 1;
+        afterAnswerToken += 1;
         currentQuestionId = "";
         resetRatingUi();
         const p = panel();
@@ -252,8 +254,9 @@
         if (!p || !b || !wrap || !v || !questionId) return;
 
         const token = ++loadToken;
+        currentQuestionId = questionId;
         b.disabled = true;
-        setBtnText("טוען הסבר...");
+        b.hidden = true;
         wrap.hidden = false;
         setCloseVisible(true);
         p.classList.add("is-loading-video");
@@ -267,6 +270,7 @@
                 setCloseVisible(false);
                 p.classList.remove("is-loading-video");
                 setBtnText("אין הסבר לשאלה זו");
+                b.hidden = false;
                 b.disabled = false;
                 return;
             }
@@ -315,6 +319,12 @@
         const v = video();
         if (!p || !b) return;
 
+        // ponytail: late showAfterAnswer must not reset an active explanation load/play
+        if (currentQuestionId === questionId &&
+            (p.classList.contains("is-loading-video") || p.classList.contains("is-playing"))) {
+            return;
+        }
+
         p.hidden = false;
         currentQuestionId = questionId;
         p.classList.remove("is-playing", "is-loading-video");
@@ -343,18 +353,22 @@
             reset();
             return;
         }
+        const token = ++afterAnswerToken;
         try {
             const res = await fetch(
                 `/api/question-explanation?questionId=${encodeURIComponent(questionId)}`,
                 { credentials: "same-origin" }
             );
+            if (token !== afterAnswerToken) return;
             if (!res.ok) {
                 reset();
                 return;
             }
             const data = await res.json();
+            if (token !== afterAnswerToken) return;
             showIfAvailable(questionId, isCorrect, !!(data?.hasExplanation && data?.videoUrl));
         } catch {
+            if (token !== afterAnswerToken) return;
             reset();
         }
     }

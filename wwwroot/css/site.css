@@ -1528,6 +1528,11 @@ button.answer-btn,
     max-width: 100%;
 }
 
+.question-explanation-panel.is-loading-video .question-explanation-btn,
+.question-explanation-panel.is-playing .question-explanation-btn {
+    display: none !important;
+}
+
 .question-explanation-video-wrap {
     position: relative;
     width: 100%;
