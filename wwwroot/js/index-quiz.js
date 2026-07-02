@@ -134,6 +134,18 @@
         renderAnswerButtons(grid, data.answers);
     }
 
+    function syncOriginalQuestionLink(data) {
+        const link = document.getElementById("show-original-question-btn");
+        if (!link) return;
+        const id = data.questionImageOriginalName || data.questionImage || "";
+        if (!id) {
+            link.hidden = true;
+            return;
+        }
+        link.hidden = false;
+        link.href = `/QuestionView?id=${encodeURIComponent(id)}&from=index&source=original`;
+    }
+
     function applyRenderedQuestionDom(data) {
         updateQuestionImages(
             document.getElementById("main-question-image"),
@@ -144,6 +156,7 @@
         renderQuestionAnswersGrid(data);
         clearAnswerFeedback(document.getElementById("answer-feedback"));
         window.QuestionExplanation?.reset?.();
+        syncOriginalQuestionLink(data);
         syncReportFormForQuestion(data);
         if (data.practiceMode === "daily") updatePracticeModeBadge(data);
     }
