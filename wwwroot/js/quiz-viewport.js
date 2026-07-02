@@ -86,11 +86,17 @@
         return Boolean(panel && !panel.hidden);
     }
 
+    function displayWidth(mainImg) {
+        const w = mainImg.offsetWidth || mainImg.clientWidth;
+        if (w > 1) return w;
+        return mainImg.parentElement?.clientWidth || 0;
+    }
+
     function naturalDisplayHeight(mainImg, cssCap) {
         const nw = mainImg.naturalWidth;
         const nh = mainImg.naturalHeight;
         if (!nw || !nh) return cssCap;
-        const w = mainImg.offsetWidth || mainImg.clientWidth;
+        const w = displayWidth(mainImg);
         if (!w) return cssCap;
         return Math.min(cssCap, Math.ceil((nh * w) / nw));
     }
