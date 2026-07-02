@@ -79,6 +79,11 @@
     let questions = [];
     let idx = 0;
     let panel = "after";
+    let cacheV = "";
+
+    function withCache(url) {
+        return cacheV ? `${url}?v=${cacheV}` : url;
+    }
 
     const els = {
         nav: document.getElementById("demo-nav"),
@@ -121,10 +126,10 @@
         els.prev.disabled = idx <= 0;
         els.next.disabled = idx >= questions.length - 1;
 
-        els.mainImg.src = q.question;
-        els.beforeImg.src = q.beforeQuestion;
-        buildAnswers(els.answers, q.answers);
-        buildAnswers(els.beforeAnswers, q.beforeAnswers);
+        els.mainImg.src = withCache(q.question);
+        els.beforeImg.src = withCache(q.beforeQuestion);
+        buildAnswers(els.answers, q.answers.map(withCache));
+        buildAnswers(els.beforeAnswers, q.beforeAnswers.map(withCache));
 
         els.labelAfter.textContent = `חדש — ${q.id}`;
         els.labelBefore.textContent = `מקור — ${q.id}`;
@@ -165,16 +170,17 @@
         if (e.key === "ArrowLeft") showQuestion(idx + 1);
     });
 
-    fetch("manifest.json")
+    fetch(`/api/demo/normalize-preview?v=${Date.now()}`)
         .then((r) => r.json())
         .then((data) => {
             questions = data.questions || [];
+            cacheV = String(data.built_at || Date.now());
             if (!questions.length) throw new Error("empty manifest");
             els.title.textContent = `תצוגה מקומית — ${data.ready ?? questions.length} שאלות מנורמלות`;
             if (data.total_groups) {
                 els.progress.hidden = false;
                 els.progress.textContent =
-                    `מוכנות ${data.ready ?? questions.length} מתוך ${data.total_groups} (חי: /media/original/)`;
+                    `מוכנות ${data.ready ?? questions.length} מתוך ${data.total_groups} · אחרי: /media/${data.storage_prefix || "normalized"}/`;
             }
             els.nav.hidden = false;
             els.select.innerHTML = questions
@@ -184,7 +190,7 @@
             window.QuizViewport?.bindQuizViewportHandlers?.();
         })
         .catch((err) => {
-            els.labelAfter.textContent = "שגיאה: הרץ build-demo.py אחרי rewrite";
+            els.labelAfter.textContent = "שגיאה: Supabase לא זמין או אין שאלות ב-normalized/";
             console.error(err);
         });
 })();

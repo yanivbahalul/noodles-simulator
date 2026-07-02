@@ -128,6 +128,7 @@ internal static partial class ApiEndpoints
         MapDashboard(api);
         MapApp(api);
         MapQuestions(api);
+        MapDemo(api);
 
         MediaEndpoints.Map(app);
     }

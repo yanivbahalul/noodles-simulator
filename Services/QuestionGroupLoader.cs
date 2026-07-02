@@ -160,7 +160,7 @@ public class QuestionGroupLoader
         return allImages.FindIndex(img => img.Trim().Equals(trimmed, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static List<List<string>> GroupSequential(List<string> files)
+    public static List<List<string>> GroupSequential(List<string> files)
     {
         var grouped = new List<List<string>>();
         for (var i = 0; i + 4 < files.Count; i += 5)
