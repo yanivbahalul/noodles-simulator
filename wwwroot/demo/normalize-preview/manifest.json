@@ -1,7 +1,7 @@
 {
-  "count": 118,
+  "count": 297,
   "total_groups": 317,
-  "ready": 118,
+  "ready": 297,
   "questions": [
     {
       "index": 1,
@@ -2057,8 +2057,27 @@
     },
     {
       "index": 109,
-      "id": "Screenshot at Apr 15 22-01-03.png",
+      "id": "Screenshot at Apr 15 22-00-45.png",
       "label": "שאלה 109",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-00-45.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-00-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-00-51.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-00-54.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-00-56.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-00-45.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-00-48.png",
+        "before/Screenshot%20at%20Apr%2015%2022-00-51.png",
+        "before/Screenshot%20at%20Apr%2015%2022-00-54.png",
+        "before/Screenshot%20at%20Apr%2015%2022-00-56.png"
+      ]
+    },
+    {
+      "index": 110,
+      "id": "Screenshot at Apr 15 22-01-03.png",
+      "label": "שאלה 110",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-01-03.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-01-04.png",
@@ -2075,9 +2094,9 @@
       ]
     },
     {
-      "index": 110,
+      "index": 111,
       "id": "Screenshot at Apr 15 22-01-12.png",
-      "label": "שאלה 110",
+      "label": "שאלה 111",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-01-12.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-01-13.png",
@@ -2094,9 +2113,9 @@
       ]
     },
     {
-      "index": 111,
+      "index": 112,
       "id": "Screenshot at Apr 15 22-01-25.png",
-      "label": "שאלה 111",
+      "label": "שאלה 112",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-01-25.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-01-27.png",
@@ -2113,9 +2132,9 @@
       ]
     },
     {
-      "index": 112,
+      "index": 113,
       "id": "Screenshot at Apr 15 22-01-44.png",
-      "label": "שאלה 112",
+      "label": "שאלה 113",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-01-44.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-01-46.png",
@@ -2132,9 +2151,9 @@
       ]
     },
     {
-      "index": 113,
+      "index": 114,
       "id": "Screenshot at Apr 15 22-07-49.png",
-      "label": "שאלה 113",
+      "label": "שאלה 114",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-07-49.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-07-55.png",
@@ -2151,9 +2170,9 @@
       ]
     },
     {
-      "index": 114,
+      "index": 115,
       "id": "Screenshot at Apr 15 22-08-08.png",
-      "label": "שאלה 114",
+      "label": "שאלה 115",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2022-08-08.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2022-08-10.png",
@@ -2170,9 +2189,864 @@
       ]
     },
     {
-      "index": 115,
+      "index": 116,
+      "id": "Screenshot at Apr 15 22-08-31.png",
+      "label": "שאלה 116",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-08-31.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-08-36.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-08-42.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-08-44.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-08-47.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-08-31.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-08-36.png",
+        "before/Screenshot%20at%20Apr%2015%2022-08-42.png",
+        "before/Screenshot%20at%20Apr%2015%2022-08-44.png",
+        "before/Screenshot%20at%20Apr%2015%2022-08-47.png"
+      ]
+    },
+    {
+      "index": 117,
+      "id": "Screenshot at Apr 15 22-08-55.png",
+      "label": "שאלה 117",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-08-55.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-03.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-07.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-08-55.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-09-03.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-05.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-07.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-09.png"
+      ]
+    },
+    {
+      "index": 118,
+      "id": "Screenshot at Apr 15 22-09-18.png",
+      "label": "שאלה 118",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-09-18.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-24.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-26.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-27.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-09-18.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-09-21.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-24.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-26.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-27.png"
+      ]
+    },
+    {
+      "index": 119,
+      "id": "Screenshot at Apr 15 22-09-36.png",
+      "label": "שאלה 119",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-09-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-38.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-44.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-09-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-09-38.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-39.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-41.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-44.png"
+      ]
+    },
+    {
+      "index": 120,
+      "id": "Screenshot at Apr 15 22-09-52.png",
+      "label": "שאלה 120",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-09-52.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-54.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-56.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-09-59.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-01.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-09-52.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-09-54.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-56.png",
+        "before/Screenshot%20at%20Apr%2015%2022-09-59.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-01.png"
+      ]
+    },
+    {
+      "index": 121,
+      "id": "Screenshot at Apr 15 22-10-08.png",
+      "label": "שאלה 121",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-10-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-11.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-13.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-18.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-10-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-10-11.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-13.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-15.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-18.png"
+      ]
+    },
+    {
+      "index": 122,
+      "id": "Screenshot at Apr 15 22-10-27.png",
+      "label": "שאלה 122",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-10-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-31.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-33.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-10-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-10-31.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-33.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-35.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-36.png"
+      ]
+    },
+    {
+      "index": 123,
+      "id": "Screenshot at Apr 15 22-10-42.png",
+      "label": "שאלה 123",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-10-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-45.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-47.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-10-50.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-10-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-10-45.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-47.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-48.png",
+        "before/Screenshot%20at%20Apr%2015%2022-10-50.png"
+      ]
+    },
+    {
+      "index": 124,
+      "id": "Screenshot at Apr 15 22-11-05.png",
+      "label": "שאלה 124",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-11-05.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-18.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-20.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-11-05.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-11-12.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-15.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-18.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-20.png"
+      ]
+    },
+    {
+      "index": 125,
+      "id": "Screenshot at Apr 15 22-11-30.png",
+      "label": "שאלה 125",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-11-30.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-32.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-34.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-36.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-11-38.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-11-30.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-11-32.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-34.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-36.png",
+        "before/Screenshot%20at%20Apr%2015%2022-11-38.png"
+      ]
+    },
+    {
+      "index": 126,
+      "id": "Screenshot at Apr 15 22-11-57.png",
+      "label": "שאלה 126",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-11-57.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-02.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-07.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-11-57.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-12-02.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-05.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-07.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-10.png"
+      ]
+    },
+    {
+      "index": 127,
+      "id": "Screenshot at Apr 15 22-12-46.png",
+      "label": "שאלה 127",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-12-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-54.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-12-57.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-12-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-12-48.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-50.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-54.png",
+        "before/Screenshot%20at%20Apr%2015%2022-12-57.png"
+      ]
+    },
+    {
+      "index": 128,
+      "id": "Screenshot at Apr 15 22-13-06.png",
+      "label": "שאלה 128",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-13-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-16.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-19.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-13-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-13-12.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-14.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-16.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-19.png"
+      ]
+    },
+    {
+      "index": 129,
+      "id": "Screenshot at Apr 15 22-13-27.png",
+      "label": "שאלה 129",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-13-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-30.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-32.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-37.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-13-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-13-30.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-32.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-35.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-37.png"
+      ]
+    },
+    {
+      "index": 130,
+      "id": "Screenshot at Apr 15 22-13-47.png",
+      "label": "שאלה 130",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-13-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-52.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-55.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-57.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-13-59.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-13-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-13-52.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-55.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-57.png",
+        "before/Screenshot%20at%20Apr%2015%2022-13-59.png"
+      ]
+    },
+    {
+      "index": 131,
+      "id": "Screenshot at Apr 15 22-14-06.png",
+      "label": "שאלה 131",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-14-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-18.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-14-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-14-12.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-14.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-15.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-18.png"
+      ]
+    },
+    {
+      "index": 132,
+      "id": "Screenshot at Apr 15 22-14-29.png",
+      "label": "שאלה 132",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-14-29.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-33.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-38.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-14-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-14-29.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-14-33.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-38.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-39.png",
+        "before/Screenshot%20at%20Apr%2015%2022-14-42.png"
+      ]
+    },
+    {
+      "index": 133,
+      "id": "Screenshot at Apr 15 22-20-08.png",
+      "label": "שאלה 133",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-20-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-09.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-10.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-17.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-20-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-20-09.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-10.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-17.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-22.png"
+      ]
+    },
+    {
+      "index": 134,
+      "id": "Screenshot at Apr 15 22-20-38.png",
+      "label": "שאלה 134",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-20-38.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-47.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-54.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-20-59.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-20-38.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-20-39.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-47.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-54.png",
+        "before/Screenshot%20at%20Apr%2015%2022-20-59.png"
+      ]
+    },
+    {
+      "index": 135,
+      "id": "Screenshot at Apr 15 22-22-08.png",
+      "label": "שאלה 135",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-22-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-22-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-22-12.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-15.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-19.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-22.png"
+      ]
+    },
+    {
+      "index": 136,
+      "id": "Screenshot at Apr 15 22-22-46.png",
+      "label": "שאלה 136",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-22-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-53.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-56.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-22-58.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-22-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-22-50.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-53.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-56.png",
+        "before/Screenshot%20at%20Apr%2015%2022-22-58.png"
+      ]
+    },
+    {
+      "index": 137,
+      "id": "Screenshot at Apr 15 22-23-02.png",
+      "label": "שאלה 137",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-23-02.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-04.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-06.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-09.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-14.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-23-02.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-23-04.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-06.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-09.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-14.png"
+      ]
+    },
+    {
+      "index": 138,
+      "id": "Screenshot at Apr 15 22-23-33.png",
+      "label": "שאלה 138",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-23-33.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-36.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-38.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-40.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-23-33.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-23-36.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-38.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-40.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-42.png"
+      ]
+    },
+    {
+      "index": 139,
+      "id": "Screenshot at Apr 15 22-23-48.png",
+      "label": "שאלה 139",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-23-48.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-52.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-54.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-23-58.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-23-48.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-23-50.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-52.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-54.png",
+        "before/Screenshot%20at%20Apr%2015%2022-23-58.png"
+      ]
+    },
+    {
+      "index": 140,
+      "id": "Screenshot at Apr 15 22-24-11.png",
+      "label": "שאלה 140",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-24-11.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-23.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-24-11.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-24-15.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-19.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-21.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-23.png"
+      ]
+    },
+    {
+      "index": 141,
+      "id": "Screenshot at Apr 15 22-24-35.png",
+      "label": "שאלה 141",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-24-35.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-40.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-24-45.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-24-35.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-24-40.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-41.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-43.png",
+        "before/Screenshot%20at%20Apr%2015%2022-24-45.png"
+      ]
+    },
+    {
+      "index": 142,
+      "id": "Screenshot at Apr 15 22-24-55.png",
+      "label": "שאלה 142",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-24-55.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-03.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-07.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-24-55.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-25-03.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-05.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-07.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-09.png"
+      ]
+    },
+    {
+      "index": 143,
+      "id": "Screenshot at Apr 15 22-25-17.png",
+      "label": "שאלה 143",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-25-17.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-23.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-26.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-28.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-25-17.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-25-21.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-23.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-26.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-28.png"
+      ]
+    },
+    {
+      "index": 144,
+      "id": "Screenshot at Apr 15 22-25-33.png",
+      "label": "שאלה 144",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-25-33.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-25-45.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-25-33.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-25-35.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-41.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-43.png",
+        "before/Screenshot%20at%20Apr%2015%2022-25-45.png"
+      ]
+    },
+    {
+      "index": 145,
+      "id": "Screenshot at Apr 15 22-26-21.png",
+      "label": "שאלה 145",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-26-21.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-26-26.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-26-31.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-26-34.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-26-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-26-21.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-26-26.png",
+        "before/Screenshot%20at%20Apr%2015%2022-26-31.png",
+        "before/Screenshot%20at%20Apr%2015%2022-26-34.png",
+        "before/Screenshot%20at%20Apr%2015%2022-26-36.png"
+      ]
+    },
+    {
+      "index": 146,
+      "id": "Screenshot at Apr 15 22-40-42.png",
+      "label": "שאלה 146",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-40-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-40-55.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-40-57.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-40-59.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-01.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-40-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-40-55.png",
+        "before/Screenshot%20at%20Apr%2015%2022-40-57.png",
+        "before/Screenshot%20at%20Apr%2015%2022-40-59.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-01.png"
+      ]
+    },
+    {
+      "index": 147,
+      "id": "Screenshot at Apr 15 22-41-14.png",
+      "label": "שאלה 147",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-41-14.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-20.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-22.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-23.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-25.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-41-14.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-41-20.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-22.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-23.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-25.png"
+      ]
+    },
+    {
+      "index": 148,
+      "id": "Screenshot at Apr 15 22-41-36.png",
+      "label": "שאלה 148",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-41-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-42.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-41-44.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-41-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-41-39.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-41.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-42.png",
+        "before/Screenshot%20at%20Apr%2015%2022-41-44.png"
+      ]
+    },
+    {
+      "index": 149,
+      "id": "Screenshot at Apr 15 22-41-58.png",
+      "label": "שאלה 149",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-41-58.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-07.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-08.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-41-58.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-42-05.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-07.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-08.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-10.png"
+      ]
+    },
+    {
+      "index": 150,
+      "id": "Screenshot at Apr 15 22-42-18.png",
+      "label": "שאלה 150",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-42-18.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-23.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-25.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-33.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-42-18.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-42-23.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-25.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-33.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-36.png"
+      ]
+    },
+    {
+      "index": 151,
+      "id": "Screenshot at Apr 15 22-42-46.png",
+      "label": "שאלה 151",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-42-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-53.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-55.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-42-57.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-42-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-42-50.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-53.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-55.png",
+        "before/Screenshot%20at%20Apr%2015%2022-42-57.png"
+      ]
+    },
+    {
+      "index": 152,
+      "id": "Screenshot at Apr 15 22-43-34.png",
+      "label": "שאלה 152",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-43-34.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-43-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-43-44.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-43-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-43-56.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-43-34.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-43-41.png",
+        "before/Screenshot%20at%20Apr%2015%2022-43-44.png",
+        "before/Screenshot%20at%20Apr%2015%2022-43-48.png",
+        "before/Screenshot%20at%20Apr%2015%2022-43-56.png"
+      ]
+    },
+    {
+      "index": 153,
+      "id": "Screenshot at Apr 15 22-44-09.png",
+      "label": "שאלה 153",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-44-09.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-23.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-44-09.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-44-14.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-19.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-21.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-23.png"
+      ]
+    },
+    {
+      "index": 154,
+      "id": "Screenshot at Apr 15 22-44-29.png",
+      "label": "שאלה 154",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-44-29.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-31.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-33.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-37.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-44-29.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-44-31.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-33.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-35.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-37.png"
+      ]
+    },
+    {
+      "index": 155,
+      "id": "Screenshot at Apr 15 22-44-42.png",
+      "label": "שאלה 155",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-44-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-45.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-47.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-44-52.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-44-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-44-45.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-47.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-50.png",
+        "before/Screenshot%20at%20Apr%2015%2022-44-52.png"
+      ]
+    },
+    {
+      "index": 156,
+      "id": "Screenshot at Apr 15 22-44-59.png",
+      "label": "שאלה 156",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-44-59.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-45-01.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-45-04.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-45-06.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-45-08.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-44-59.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-45-01.png",
+        "before/Screenshot%20at%20Apr%2015%2022-45-04.png",
+        "before/Screenshot%20at%20Apr%2015%2022-45-06.png",
+        "before/Screenshot%20at%20Apr%2015%2022-45-08.png"
+      ]
+    },
+    {
+      "index": 157,
+      "id": "Screenshot at Apr 15 22-45-17.png",
+      "label": "שאלה 157",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-45-17.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-45-33.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-07.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-45-17.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-45-33.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-05.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-07.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-09.png"
+      ]
+    },
+    {
+      "index": 158,
+      "id": "Screenshot at Apr 15 22-46-15.png",
+      "label": "שאלה 158",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-46-15.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-23.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-25.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-46-15.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-46-19.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-21.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-23.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-25.png"
+      ]
+    },
+    {
+      "index": 159,
+      "id": "Screenshot at Apr 15 22-46-32.png",
+      "label": "שאלה 159",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2022-46-32.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-38.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-40.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-42.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2022-46-44.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2022-46-32.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2022-46-38.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-40.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-42.png",
+        "before/Screenshot%20at%20Apr%2015%2022-46-44.png"
+      ]
+    },
+    {
+      "index": 160,
+      "id": "Screenshot at Apr 15 23-26-06.png",
+      "label": "שאלה 160",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-26-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-26-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-26-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-26-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-26-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-26-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-26-15.png",
+        "before/Screenshot%20at%20Apr%2015%2023-26-19.png",
+        "before/Screenshot%20at%20Apr%2015%2023-26-21.png",
+        "before/Screenshot%20at%20Apr%2015%2023-26-22.png"
+      ]
+    },
+    {
+      "index": 161,
       "id": "Screenshot at Apr 15 23-26-28.png",
-      "label": "שאלה 115",
+      "label": "שאלה 161",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2023-26-28.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2023-26-32.png",
@@ -2189,9 +3063,9 @@
       ]
     },
     {
-      "index": 116,
+      "index": 162,
       "id": "Screenshot at Apr 15 23-26-46.png",
-      "label": "שאלה 116",
+      "label": "שאלה 162",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2023-26-46.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2023-26-51.png",
@@ -2208,9 +3082,9 @@
       ]
     },
     {
-      "index": 117,
+      "index": 163,
       "id": "Screenshot at Apr 15 23-27-06.png",
-      "label": "שאלה 117",
+      "label": "שאלה 163",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2023-27-06.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2023-27-10.png",
@@ -2227,9 +3101,9 @@
       ]
     },
     {
-      "index": 118,
+      "index": 164,
       "id": "Screenshot at Apr 15 23-27-22.png",
-      "label": "שאלה 118",
+      "label": "שאלה 164",
       "question": "/media/original/Screenshot%20at%20Apr%2015%2023-27-22.png",
       "answers": [
         "/media/original/Screenshot%20at%20Apr%2015%2023-27-26.png",
@@ -2243,6 +3117,2533 @@
         "before/Screenshot%20at%20Apr%2015%2023-27-29.png",
         "before/Screenshot%20at%20Apr%2015%2023-27-31.png",
         "before/Screenshot%20at%20Apr%2015%2023-27-33.png"
+      ]
+    },
+    {
+      "index": 165,
+      "id": "Screenshot at Apr 15 23-27-38.png",
+      "label": "שאלה 165",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-27-38.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-27-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-27-42.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-27-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-27-45.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-27-38.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-27-41.png",
+        "before/Screenshot%20at%20Apr%2015%2023-27-42.png",
+        "before/Screenshot%20at%20Apr%2015%2023-27-43.png",
+        "before/Screenshot%20at%20Apr%2015%2023-27-45.png"
+      ]
+    },
+    {
+      "index": 166,
+      "id": "Screenshot at Apr 15 23-28-24.png",
+      "label": "שאלה 166",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-28-24.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-31.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-32.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-34.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-28-24.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-28-31.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-32.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-34.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-36.png"
+      ]
+    },
+    {
+      "index": 167,
+      "id": "Screenshot at Apr 15 23-28-45.png",
+      "label": "שאלה 167",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-28-45.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-49.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-51.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-53.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-28-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-28-45.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-28-49.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-51.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-53.png",
+        "before/Screenshot%20at%20Apr%2015%2023-28-55.png"
+      ]
+    },
+    {
+      "index": 168,
+      "id": "Screenshot at Apr 15 23-29-04.png",
+      "label": "שאלה 168",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-29-04.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-10.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-15.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-29-04.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-29-10.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-12.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-14.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-15.png"
+      ]
+    },
+    {
+      "index": 169,
+      "id": "Screenshot at Apr 15 23-29-22.png",
+      "label": "שאלה 169",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-29-22.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-25.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-26.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-29.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-30.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-29-22.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-29-25.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-26.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-29.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-30.png"
+      ]
+    },
+    {
+      "index": 170,
+      "id": "Screenshot at Apr 15 23-29-36.png",
+      "label": "שאלה 170",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-29-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-40.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-45.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-29-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-29-40.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-41.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-43.png",
+        "before/Screenshot%20at%20Apr%2015%2023-29-45.png"
+      ]
+    },
+    {
+      "index": 171,
+      "id": "Screenshot at Apr 15 23-29-56.png",
+      "label": "שאלה 171",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-29-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-29-58.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-00.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-04.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-05.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-29-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-29-58.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-00.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-04.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-05.png"
+      ]
+    },
+    {
+      "index": 172,
+      "id": "Screenshot at Apr 15 23-30-16.png",
+      "label": "שאלה 172",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-30-16.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-22.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-24.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-26.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-30-16.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-30-19.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-22.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-24.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-26.png"
+      ]
+    },
+    {
+      "index": 173,
+      "id": "Screenshot at Apr 15 23-30-39.png",
+      "label": "שאלה 173",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-30-39.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-49.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-52.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-30-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-30-39.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-30-48.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-49.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-52.png",
+        "before/Screenshot%20at%20Apr%2015%2023-30-55.png"
+      ]
+    },
+    {
+      "index": 174,
+      "id": "Screenshot at Apr 15 23-31-00.png",
+      "label": "שאלה 174",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-31-00.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-02.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-04.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-07.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-31-00.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-31-02.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-04.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-05.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-07.png"
+      ]
+    },
+    {
+      "index": 175,
+      "id": "Screenshot at Apr 15 23-31-12.png",
+      "label": "שאלה 175",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-31-12.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-17.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-31-18.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-31-12.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-31-14.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-15.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-17.png",
+        "before/Screenshot%20at%20Apr%2015%2023-31-18.png"
+      ]
+    },
+    {
+      "index": 176,
+      "id": "Screenshot at Apr 15 23-36-13.png",
+      "label": "שאלה 176",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-36-13.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-36-16.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-36-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-36-21.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-36-24.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-36-13.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-36-16.png",
+        "before/Screenshot%20at%20Apr%2015%2023-36-19.png",
+        "before/Screenshot%20at%20Apr%2015%2023-36-21.png",
+        "before/Screenshot%20at%20Apr%2015%2023-36-24.png"
+      ]
+    },
+    {
+      "index": 177,
+      "id": "Screenshot at Apr 15 23-37-45.png",
+      "label": "שאלה 177",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-37-45.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-37-48.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-37-50.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-37-52.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-37-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-37-45.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-37-48.png",
+        "before/Screenshot%20at%20Apr%2015%2023-37-50.png",
+        "before/Screenshot%20at%20Apr%2015%2023-37-52.png",
+        "before/Screenshot%20at%20Apr%2015%2023-37-55.png"
+      ]
+    },
+    {
+      "index": 178,
+      "id": "Screenshot at Apr 15 23-38-33.png",
+      "label": "שאלה 178",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-38-33.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-38-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-38-36.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-38-38.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-38-39.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-38-33.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-38-35.png",
+        "before/Screenshot%20at%20Apr%2015%2023-38-36.png",
+        "before/Screenshot%20at%20Apr%2015%2023-38-38.png",
+        "before/Screenshot%20at%20Apr%2015%2023-38-39.png"
+      ]
+    },
+    {
+      "index": 179,
+      "id": "Screenshot at Apr 15 23-39-11.png",
+      "label": "שאלה 179",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-39-11.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-12.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-14.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-17.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-39-11.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-39-12.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-14.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-15.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-17.png"
+      ]
+    },
+    {
+      "index": 180,
+      "id": "Screenshot at Apr 15 23-39-27.png",
+      "label": "שאלה 180",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-39-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-32.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-34.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-37.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-39-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-39-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-39-32.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-34.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-37.png",
+        "before/Screenshot%20at%20Apr%2015%2023-39-42.png"
+      ]
+    },
+    {
+      "index": 181,
+      "id": "Screenshot at Apr 15 23-40-12.png",
+      "label": "שאלה 181",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-40-12.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-17.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-19.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-40-12.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-40-15.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-17.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-19.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-22.png"
+      ]
+    },
+    {
+      "index": 182,
+      "id": "Screenshot at Apr 15 23-40-32.png",
+      "label": "שאלה 182",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-40-32.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-37.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-40-43.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-40-32.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-40-37.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-39.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-41.png",
+        "before/Screenshot%20at%20Apr%2015%2023-40-43.png"
+      ]
+    },
+    {
+      "index": 183,
+      "id": "Screenshot at Apr 15 23-41-36.png",
+      "label": "שאלה 183",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-41-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-41-40.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-41-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-41-44.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-41-47.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-41-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-41-40.png",
+        "before/Screenshot%20at%20Apr%2015%2023-41-43.png",
+        "before/Screenshot%20at%20Apr%2015%2023-41-44.png",
+        "before/Screenshot%20at%20Apr%2015%2023-41-47.png"
+      ]
+    },
+    {
+      "index": 184,
+      "id": "Screenshot at Apr 15 23-42-33.png",
+      "label": "שאלה 184",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-42-33.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-42-35.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-42-36.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-42-39.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-42-41.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-42-33.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-42-35.png",
+        "before/Screenshot%20at%20Apr%2015%2023-42-36.png",
+        "before/Screenshot%20at%20Apr%2015%2023-42-39.png",
+        "before/Screenshot%20at%20Apr%2015%2023-42-41.png"
+      ]
+    },
+    {
+      "index": 185,
+      "id": "Screenshot at Apr 15 23-43-03.png",
+      "label": "שאלה 185",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-43-03.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-05.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-06.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-08.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-43-03.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-43-05.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-06.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-08.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-09.png"
+      ]
+    },
+    {
+      "index": 186,
+      "id": "Screenshot at Apr 15 23-43-40.png",
+      "label": "שאלה 186",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-43-40.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-41.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-43.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-45.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-43-46.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-43-40.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-43-41.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-43.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-45.png",
+        "before/Screenshot%20at%20Apr%2015%2023-43-46.png"
+      ]
+    },
+    {
+      "index": 187,
+      "id": "Screenshot at Apr 15 23-44-13.png",
+      "label": "שאלה 187",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-44-13.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-44-15.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-44-16.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-44-18.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-44-20.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-44-13.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-44-15.png",
+        "before/Screenshot%20at%20Apr%2015%2023-44-16.png",
+        "before/Screenshot%20at%20Apr%2015%2023-44-18.png",
+        "before/Screenshot%20at%20Apr%2015%2023-44-20.png"
+      ]
+    },
+    {
+      "index": 188,
+      "id": "Screenshot at Apr 15 23-46-47.png",
+      "label": "שאלה 188",
+      "question": "/media/original/Screenshot%20at%20Apr%2015%2023-46-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2015%2023-46-49.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-46-51.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-46-53.png",
+        "/media/original/Screenshot%20at%20Apr%2015%2023-46-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2015%2023-46-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2015%2023-46-49.png",
+        "before/Screenshot%20at%20Apr%2015%2023-46-51.png",
+        "before/Screenshot%20at%20Apr%2015%2023-46-53.png",
+        "before/Screenshot%20at%20Apr%2015%2023-46-55.png"
+      ]
+    },
+    {
+      "index": 189,
+      "id": "Screenshot at Apr 16 00-04-56.png",
+      "label": "שאלה 189",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-04-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-04-58.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-05-00.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-05-02.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-05-05.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-04-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-04-58.png",
+        "before/Screenshot%20at%20Apr%2016%2000-05-00.png",
+        "before/Screenshot%20at%20Apr%2016%2000-05-02.png",
+        "before/Screenshot%20at%20Apr%2016%2000-05-05.png"
+      ]
+    },
+    {
+      "index": 190,
+      "id": "Screenshot at Apr 16 00-06-45.png",
+      "label": "שאלה 190",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-06-45.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-06-47.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-06-49.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-06-51.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-06-53.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-06-45.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-06-47.png",
+        "before/Screenshot%20at%20Apr%2016%2000-06-49.png",
+        "before/Screenshot%20at%20Apr%2016%2000-06-51.png",
+        "before/Screenshot%20at%20Apr%2016%2000-06-53.png"
+      ]
+    },
+    {
+      "index": 191,
+      "id": "Screenshot at Apr 16 00-07-22.png",
+      "label": "שאלה 191",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-07-22.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-24.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-25.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-28.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-29.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-07-22.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-07-24.png",
+        "before/Screenshot%20at%20Apr%2016%2000-07-25.png",
+        "before/Screenshot%20at%20Apr%2016%2000-07-28.png",
+        "before/Screenshot%20at%20Apr%2016%2000-07-29.png"
+      ]
+    },
+    {
+      "index": 192,
+      "id": "Screenshot at Apr 16 00-07-42.png",
+      "label": "שאלה 192",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-07-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-53.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-54.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-07-58.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-08-01.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-07-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-07-53.png",
+        "before/Screenshot%20at%20Apr%2016%2000-07-54.png",
+        "before/Screenshot%20at%20Apr%2016%2000-07-58.png",
+        "before/Screenshot%20at%20Apr%2016%2000-08-01.png"
+      ]
+    },
+    {
+      "index": 193,
+      "id": "Screenshot at Apr 16 00-08-24.png",
+      "label": "שאלה 193",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-08-24.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-08-50.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-08-52.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-08-54.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-08-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-08-24.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-08-50.png",
+        "before/Screenshot%20at%20Apr%2016%2000-08-52.png",
+        "before/Screenshot%20at%20Apr%2016%2000-08-54.png",
+        "before/Screenshot%20at%20Apr%2016%2000-08-55.png"
+      ]
+    },
+    {
+      "index": 194,
+      "id": "Screenshot at Apr 16 00-09-23.png",
+      "label": "שאלה 194",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-09-23.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-09-33.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-09-36.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-09-38.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-09-39.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-09-23.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-09-33.png",
+        "before/Screenshot%20at%20Apr%2016%2000-09-36.png",
+        "before/Screenshot%20at%20Apr%2016%2000-09-38.png",
+        "before/Screenshot%20at%20Apr%2016%2000-09-39.png"
+      ]
+    },
+    {
+      "index": 195,
+      "id": "Screenshot at Apr 16 00-09-59.png",
+      "label": "שאלה 195",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-09-59.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-09-60.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-09.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-12.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-14.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-09-59.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-09-60.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-09.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-12.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-14.png"
+      ]
+    },
+    {
+      "index": 196,
+      "id": "Screenshot at Apr 16 00-10-26.png",
+      "label": "שאלה 196",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-10-26.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-36.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-38.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-40.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-10-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-10-26.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-10-36.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-38.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-40.png",
+        "before/Screenshot%20at%20Apr%2016%2000-10-42.png"
+      ]
+    },
+    {
+      "index": 197,
+      "id": "Screenshot at Apr 16 00-10-56.png",
+      "label": "שאלה 197",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-10-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-07.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-09.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-11.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-13.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-10-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-11-07.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-09.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-11.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-13.png"
+      ]
+    },
+    {
+      "index": 198,
+      "id": "Screenshot at Apr 16 00-11-24.png",
+      "label": "שאלה 198",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-11-24.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-38.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-39.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-41.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-11-43.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-11-24.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-11-38.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-39.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-41.png",
+        "before/Screenshot%20at%20Apr%2016%2000-11-43.png"
+      ]
+    },
+    {
+      "index": 199,
+      "id": "Screenshot at Apr 16 00-11-53.png",
+      "label": "שאלה 199",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-11-53.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-12-19.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-12-22.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-12-24.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-12-33.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-11-53.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-12-19.png",
+        "before/Screenshot%20at%20Apr%2016%2000-12-22.png",
+        "before/Screenshot%20at%20Apr%2016%2000-12-24.png",
+        "before/Screenshot%20at%20Apr%2016%2000-12-33.png"
+      ]
+    },
+    {
+      "index": 200,
+      "id": "Screenshot at Apr 16 00-12-53.png",
+      "label": "שאלה 200",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-12-53.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-13-02.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-13-03.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-13-05.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-13-07.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-12-53.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-13-02.png",
+        "before/Screenshot%20at%20Apr%2016%2000-13-03.png",
+        "before/Screenshot%20at%20Apr%2016%2000-13-05.png",
+        "before/Screenshot%20at%20Apr%2016%2000-13-07.png"
+      ]
+    },
+    {
+      "index": 201,
+      "id": "Screenshot at Apr 16 00-13-19.png",
+      "label": "שאלה 201",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-13-19.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-13-20.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-12.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-13.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-18.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-13-19.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-13-20.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-12.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-13.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-18.png"
+      ]
+    },
+    {
+      "index": 202,
+      "id": "Screenshot at Apr 16 00-15-46.png",
+      "label": "שאלה 202",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-15-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-51.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-53.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-56.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-15-57.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-15-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-15-51.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-53.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-56.png",
+        "before/Screenshot%20at%20Apr%2016%2000-15-57.png"
+      ]
+    },
+    {
+      "index": 203,
+      "id": "Screenshot at Apr 16 00-16-08.png",
+      "label": "שאלה 203",
+      "question": "/media/original/Screenshot%20at%20Apr%2016%2000-16-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2016%2000-16-36.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-16-38.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-16-39.png",
+        "/media/original/Screenshot%20at%20Apr%2016%2000-16-41.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2016%2000-16-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2016%2000-16-36.png",
+        "before/Screenshot%20at%20Apr%2016%2000-16-38.png",
+        "before/Screenshot%20at%20Apr%2016%2000-16-39.png",
+        "before/Screenshot%20at%20Apr%2016%2000-16-41.png"
+      ]
+    },
+    {
+      "index": 204,
+      "id": "Screenshot at Apr 20 16-20-56.png",
+      "label": "שאלה 204",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-20-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-21-04.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-21-07.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-21-09.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-21-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-20-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-21-04.png",
+        "before/Screenshot%20at%20Apr%2020%2016-21-07.png",
+        "before/Screenshot%20at%20Apr%2020%2016-21-09.png",
+        "before/Screenshot%20at%20Apr%2020%2016-21-10.png"
+      ]
+    },
+    {
+      "index": 205,
+      "id": "Screenshot at Apr 20 16-21-11.png",
+      "label": "שאלה 205",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-21-11.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-00.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-03.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-07.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-21-11.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-22-00.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-03.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-07.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-09.png"
+      ]
+    },
+    {
+      "index": 206,
+      "id": "Screenshot at Apr 20 16-22-22.png",
+      "label": "שאלה 206",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-22-22.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-48.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-51.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-54.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-22-58.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-22-22.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-22-48.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-51.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-54.png",
+        "before/Screenshot%20at%20Apr%2020%2016-22-58.png"
+      ]
+    },
+    {
+      "index": 207,
+      "id": "Screenshot at Apr 20 16-23-24.png",
+      "label": "שאלה 207",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-23-24.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-23-31.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-23-33.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-23-39.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-23-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-23-24.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-23-31.png",
+        "before/Screenshot%20at%20Apr%2020%2016-23-33.png",
+        "before/Screenshot%20at%20Apr%2020%2016-23-39.png",
+        "before/Screenshot%20at%20Apr%2020%2016-23-42.png"
+      ]
+    },
+    {
+      "index": 208,
+      "id": "Screenshot at Apr 20 16-24-08.png",
+      "label": "שאלה 208",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-24-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-09.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-20.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-28.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-31.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-24-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-24-09.png",
+        "before/Screenshot%20at%20Apr%2020%2016-24-20.png",
+        "before/Screenshot%20at%20Apr%2020%2016-24-28.png",
+        "before/Screenshot%20at%20Apr%2020%2016-24-31.png"
+      ]
+    },
+    {
+      "index": 209,
+      "id": "Screenshot at Apr 20 16-24-44.png",
+      "label": "שאלה 209",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-24-44.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-57.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-24-59.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-02.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-04.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-24-44.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-24-57.png",
+        "before/Screenshot%20at%20Apr%2020%2016-24-59.png",
+        "before/Screenshot%20at%20Apr%2020%2016-25-02.png",
+        "before/Screenshot%20at%20Apr%2020%2016-25-04.png"
+      ]
+    },
+    {
+      "index": 210,
+      "id": "Screenshot at Apr 20 16-25-19.png",
+      "label": "שאלה 210",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-25-19.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-29.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-31.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-34.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-25-37.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-25-19.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-25-29.png",
+        "before/Screenshot%20at%20Apr%2020%2016-25-31.png",
+        "before/Screenshot%20at%20Apr%2020%2016-25-34.png",
+        "before/Screenshot%20at%20Apr%2020%2016-25-37.png"
+      ]
+    },
+    {
+      "index": 211,
+      "id": "Screenshot at Apr 20 16-25-48.png",
+      "label": "שאלה 211",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-25-48.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-00.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-03.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-06.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-08.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-25-48.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-26-00.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-03.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-06.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-08.png"
+      ]
+    },
+    {
+      "index": 212,
+      "id": "Screenshot at Apr 20 16-26-23.png",
+      "label": "שאלה 212",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-26-23.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-38.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-41.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-44.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-26-47.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-26-23.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-26-38.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-41.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-44.png",
+        "before/Screenshot%20at%20Apr%2020%2016-26-47.png"
+      ]
+    },
+    {
+      "index": 213,
+      "id": "Screenshot at Apr 20 16-27-05.png",
+      "label": "שאלה 213",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-27-05.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-27-06.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-27-23.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-27-26.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-27-29.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-27-05.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-27-06.png",
+        "before/Screenshot%20at%20Apr%2020%2016-27-23.png",
+        "before/Screenshot%20at%20Apr%2020%2016-27-26.png",
+        "before/Screenshot%20at%20Apr%2020%2016-27-29.png"
+      ]
+    },
+    {
+      "index": 214,
+      "id": "Screenshot at Apr 20 16-27-51.png",
+      "label": "שאלה 214",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-27-51.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-03.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-06.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-08.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-27-51.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-28-03.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-06.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-08.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-10.png"
+      ]
+    },
+    {
+      "index": 215,
+      "id": "Screenshot at Apr 20 16-28-18.png",
+      "label": "שאלה 215",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-28-18.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-19.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-31.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-36.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-28-39.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-28-18.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-28-19.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-31.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-36.png",
+        "before/Screenshot%20at%20Apr%2020%2016-28-39.png"
+      ]
+    },
+    {
+      "index": 216,
+      "id": "Screenshot at Apr 20 16-28-49.png",
+      "label": "שאלה 216",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-28-49.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-02.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-04.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-06.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-28-49.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-29-02.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-04.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-06.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-09.png"
+      ]
+    },
+    {
+      "index": 217,
+      "id": "Screenshot at Apr 20 16-29-21.png",
+      "label": "שאלה 217",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-29-21.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-41.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-43.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-46.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-29-48.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-29-21.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-29-41.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-43.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-46.png",
+        "before/Screenshot%20at%20Apr%2020%2016-29-48.png"
+      ]
+    },
+    {
+      "index": 218,
+      "id": "Screenshot at Apr 20 16-30-09.png",
+      "label": "שאלה 218",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-30-09.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-30-12.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-30-18.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-30-20.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-30-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-30-09.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-30-12.png",
+        "before/Screenshot%20at%20Apr%2020%2016-30-18.png",
+        "before/Screenshot%20at%20Apr%2020%2016-30-20.png",
+        "before/Screenshot%20at%20Apr%2020%2016-30-22.png"
+      ]
+    },
+    {
+      "index": 219,
+      "id": "Screenshot at Apr 20 16-30-41.png",
+      "label": "שאלה 219",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-30-41.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-31-28.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-31-30.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-31-34.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-31-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-30-41.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-31-28.png",
+        "before/Screenshot%20at%20Apr%2020%2016-31-30.png",
+        "before/Screenshot%20at%20Apr%2020%2016-31-34.png",
+        "before/Screenshot%20at%20Apr%2020%2016-31-36.png"
+      ]
+    },
+    {
+      "index": 220,
+      "id": "Screenshot at Apr 20 16-32-00.png",
+      "label": "שאלה 220",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-32-00.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-32-02.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-32-05.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-32-08.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-32-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-32-00.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-32-02.png",
+        "before/Screenshot%20at%20Apr%2020%2016-32-05.png",
+        "before/Screenshot%20at%20Apr%2020%2016-32-08.png",
+        "before/Screenshot%20at%20Apr%2020%2016-32-10.png"
+      ]
+    },
+    {
+      "index": 221,
+      "id": "Screenshot at Apr 20 16-32-59.png",
+      "label": "שאלה 221",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2016-32-59.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2016-33-14.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-33-16.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-33-19.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2016-33-21.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2016-32-59.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2016-33-14.png",
+        "before/Screenshot%20at%20Apr%2020%2016-33-16.png",
+        "before/Screenshot%20at%20Apr%2020%2016-33-19.png",
+        "before/Screenshot%20at%20Apr%2020%2016-33-21.png"
+      ]
+    },
+    {
+      "index": 222,
+      "id": "Screenshot at Apr 20 17-41-25.png",
+      "label": "שאלה 222",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2017-41-25.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2017-41-40.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-41-43.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-41-46.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-41-48.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2017-41-25.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2017-41-40.png",
+        "before/Screenshot%20at%20Apr%2020%2017-41-43.png",
+        "before/Screenshot%20at%20Apr%2020%2017-41-46.png",
+        "before/Screenshot%20at%20Apr%2020%2017-41-48.png"
+      ]
+    },
+    {
+      "index": 223,
+      "id": "Screenshot at Apr 20 17-42-39.png",
+      "label": "שאלה 223",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2017-42-39.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2017-43-57.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-00.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-02.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-04.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2017-42-39.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2017-43-57.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-00.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-02.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-04.png"
+      ]
+    },
+    {
+      "index": 224,
+      "id": "Screenshot at Apr 20 17-44-22.png",
+      "label": "שאלה 224",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2017-44-22.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-34.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-35.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-39.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-44-43.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2017-44-22.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2017-44-34.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-35.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-39.png",
+        "before/Screenshot%20at%20Apr%2020%2017-44-43.png"
+      ]
+    },
+    {
+      "index": 225,
+      "id": "Screenshot at Apr 20 17-45-45.png",
+      "label": "שאלה 225",
+      "question": "/media/original/Screenshot%20at%20Apr%2020%2017-45-45.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Apr%2020%2017-45-46.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-45-57.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-46-03.png",
+        "/media/original/Screenshot%20at%20Apr%2020%2017-46-06.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Apr%2020%2017-45-45.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Apr%2020%2017-45-46.png",
+        "before/Screenshot%20at%20Apr%2020%2017-45-57.png",
+        "before/Screenshot%20at%20Apr%2020%2017-46-03.png",
+        "before/Screenshot%20at%20Apr%2020%2017-46-06.png"
+      ]
+    },
+    {
+      "index": 226,
+      "id": "Screenshot at Aug 18 19-44-48.png",
+      "label": "שאלה 226",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-44-48.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-44-57.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-45-02.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-45-05.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-45-08.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-44-48.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-44-57.png",
+        "before/Screenshot%20at%20Aug%2018%2019-45-02.png",
+        "before/Screenshot%20at%20Aug%2018%2019-45-05.png",
+        "before/Screenshot%20at%20Aug%2018%2019-45-08.png"
+      ]
+    },
+    {
+      "index": 227,
+      "id": "Screenshot at Aug 18 19-45-55.png",
+      "label": "שאלה 227",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-45-55.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-46-01.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-46-02.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-46-04.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-46-09.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-45-55.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-46-01.png",
+        "before/Screenshot%20at%20Aug%2018%2019-46-02.png",
+        "before/Screenshot%20at%20Aug%2018%2019-46-04.png",
+        "before/Screenshot%20at%20Aug%2018%2019-46-09.png"
+      ]
+    },
+    {
+      "index": 228,
+      "id": "Screenshot at Aug 18 19-48-53.png",
+      "label": "שאלה 228",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-48-53.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-49-08.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-49-12.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-49-14.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-49-17.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-48-53.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-49-08.png",
+        "before/Screenshot%20at%20Aug%2018%2019-49-12.png",
+        "before/Screenshot%20at%20Aug%2018%2019-49-14.png",
+        "before/Screenshot%20at%20Aug%2018%2019-49-17.png"
+      ]
+    },
+    {
+      "index": 229,
+      "id": "Screenshot at Aug 18 19-50-50.png",
+      "label": "שאלה 229",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-50-50.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-50-58.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-51-00.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-51-03.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-51-07.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-50-50.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-50-58.png",
+        "before/Screenshot%20at%20Aug%2018%2019-51-00.png",
+        "before/Screenshot%20at%20Aug%2018%2019-51-03.png",
+        "before/Screenshot%20at%20Aug%2018%2019-51-07.png"
+      ]
+    },
+    {
+      "index": 230,
+      "id": "Screenshot at Aug 18 19-51-58.png",
+      "label": "שאלה 230",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-51-58.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-52-14.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-52-17.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-52-20.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-52-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-51-58.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-52-14.png",
+        "before/Screenshot%20at%20Aug%2018%2019-52-17.png",
+        "before/Screenshot%20at%20Aug%2018%2019-52-20.png",
+        "before/Screenshot%20at%20Aug%2018%2019-52-22.png"
+      ]
+    },
+    {
+      "index": 231,
+      "id": "Screenshot at Aug 18 19-53-05.png",
+      "label": "שאלה 231",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-53-05.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-11.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-14.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-17.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-21.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-53-05.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-53-11.png",
+        "before/Screenshot%20at%20Aug%2018%2019-53-14.png",
+        "before/Screenshot%20at%20Aug%2018%2019-53-17.png",
+        "before/Screenshot%20at%20Aug%2018%2019-53-21.png"
+      ]
+    },
+    {
+      "index": 232,
+      "id": "Screenshot at Aug 18 19-53-47.png",
+      "label": "שאלה 232",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-53-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-53.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-56.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-53-58.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-54-00.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-53-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-53-53.png",
+        "before/Screenshot%20at%20Aug%2018%2019-53-56.png",
+        "before/Screenshot%20at%20Aug%2018%2019-53-58.png",
+        "before/Screenshot%20at%20Aug%2018%2019-54-00.png"
+      ]
+    },
+    {
+      "index": 233,
+      "id": "Screenshot at Aug 18 19-55-51.png",
+      "label": "שאלה 233",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-55-51.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-55-56.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-55-59.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-02.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-05.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-55-51.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-55-56.png",
+        "before/Screenshot%20at%20Aug%2018%2019-55-59.png",
+        "before/Screenshot%20at%20Aug%2018%2019-56-02.png",
+        "before/Screenshot%20at%20Aug%2018%2019-56-05.png"
+      ]
+    },
+    {
+      "index": 234,
+      "id": "Screenshot at Aug 18 19-56-19.png",
+      "label": "שאלה 234",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-56-19.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-22.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-27.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-29.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-56-31.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-56-19.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-56-22.png",
+        "before/Screenshot%20at%20Aug%2018%2019-56-27.png",
+        "before/Screenshot%20at%20Aug%2018%2019-56-29.png",
+        "before/Screenshot%20at%20Aug%2018%2019-56-31.png"
+      ]
+    },
+    {
+      "index": 235,
+      "id": "Screenshot at Aug 18 19-56-57.png",
+      "label": "שאלה 235",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-56-57.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-00.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-02.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-04.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-07.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-56-57.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-57-00.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-02.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-04.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-07.png"
+      ]
+    },
+    {
+      "index": 236,
+      "id": "Screenshot at Aug 18 19-57-40.png",
+      "label": "שאלה 236",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-57-40.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-44.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-46.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-49.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-57-52.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-57-40.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-57-44.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-46.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-49.png",
+        "before/Screenshot%20at%20Aug%2018%2019-57-52.png"
+      ]
+    },
+    {
+      "index": 237,
+      "id": "Screenshot at Aug 18 19-58-19.png",
+      "label": "שאלה 237",
+      "question": "/media/original/Screenshot%20at%20Aug%2018%2019-58-19.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2018%2019-58-23.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-58-25.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-58-28.png",
+        "/media/original/Screenshot%20at%20Aug%2018%2019-58-30.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2018%2019-58-19.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2018%2019-58-23.png",
+        "before/Screenshot%20at%20Aug%2018%2019-58-25.png",
+        "before/Screenshot%20at%20Aug%2018%2019-58-28.png",
+        "before/Screenshot%20at%20Aug%2018%2019-58-30.png"
+      ]
+    },
+    {
+      "index": 238,
+      "id": "Screenshot at Aug 26 13-42-07.png",
+      "label": "שאלה 238",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-42-07.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-42-25.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-42-31.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-42-35.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-42-39.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-42-07.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-42-25.png",
+        "before/Screenshot%20at%20Aug%2026%2013-42-31.png",
+        "before/Screenshot%20at%20Aug%2026%2013-42-35.png",
+        "before/Screenshot%20at%20Aug%2026%2013-42-39.png"
+      ]
+    },
+    {
+      "index": 239,
+      "id": "Screenshot at Aug 26 13-43-08.png",
+      "label": "שאלה 239",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-43-08.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-43-29.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-43-31.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-43-33.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-43-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-43-08.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-43-29.png",
+        "before/Screenshot%20at%20Aug%2026%2013-43-31.png",
+        "before/Screenshot%20at%20Aug%2026%2013-43-33.png",
+        "before/Screenshot%20at%20Aug%2026%2013-43-36.png"
+      ]
+    },
+    {
+      "index": 240,
+      "id": "Screenshot at Aug 26 13-43-59.png",
+      "label": "שאלה 240",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-43-59.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-44-05.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-44-21.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-44-24.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-44-26.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-43-59.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-44-05.png",
+        "before/Screenshot%20at%20Aug%2026%2013-44-21.png",
+        "before/Screenshot%20at%20Aug%2026%2013-44-24.png",
+        "before/Screenshot%20at%20Aug%2026%2013-44-26.png"
+      ]
+    },
+    {
+      "index": 241,
+      "id": "Screenshot at Aug 26 13-45-06.png",
+      "label": "שאלה 241",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-45-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-45-12.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-45-14.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-45-16.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-45-19.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-45-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-45-12.png",
+        "before/Screenshot%20at%20Aug%2026%2013-45-14.png",
+        "before/Screenshot%20at%20Aug%2026%2013-45-16.png",
+        "before/Screenshot%20at%20Aug%2026%2013-45-19.png"
+      ]
+    },
+    {
+      "index": 242,
+      "id": "Screenshot at Aug 26 13-46-17.png",
+      "label": "שאלה 242",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-46-17.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-46-22.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-46-24.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-46-26.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-46-28.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-46-17.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-46-22.png",
+        "before/Screenshot%20at%20Aug%2026%2013-46-24.png",
+        "before/Screenshot%20at%20Aug%2026%2013-46-26.png",
+        "before/Screenshot%20at%20Aug%2026%2013-46-28.png"
+      ]
+    },
+    {
+      "index": 243,
+      "id": "Screenshot at Aug 26 13-47-02.png",
+      "label": "שאלה 243",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-47-02.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-47-05.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-47-08.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-47-10.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-47-12.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-47-02.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-47-05.png",
+        "before/Screenshot%20at%20Aug%2026%2013-47-08.png",
+        "before/Screenshot%20at%20Aug%2026%2013-47-10.png",
+        "before/Screenshot%20at%20Aug%2026%2013-47-12.png"
+      ]
+    },
+    {
+      "index": 244,
+      "id": "Screenshot at Aug 26 13-48-53.png",
+      "label": "שאלה 244",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-48-53.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-48-58.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-00.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-03.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-05.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-48-53.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-48-58.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-00.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-03.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-05.png"
+      ]
+    },
+    {
+      "index": 245,
+      "id": "Screenshot at Aug 26 13-49-39.png",
+      "label": "שאלה 245",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-49-39.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-42.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-47.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-50.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-49-53.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-49-39.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-49-42.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-47.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-50.png",
+        "before/Screenshot%20at%20Aug%2026%2013-49-53.png"
+      ]
+    },
+    {
+      "index": 246,
+      "id": "Screenshot at Aug 26 13-50-34.png",
+      "label": "שאלה 246",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-50-34.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-50-43.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-50-45.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-50-51.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-50-53.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-50-34.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-50-43.png",
+        "before/Screenshot%20at%20Aug%2026%2013-50-45.png",
+        "before/Screenshot%20at%20Aug%2026%2013-50-51.png",
+        "before/Screenshot%20at%20Aug%2026%2013-50-53.png"
+      ]
+    },
+    {
+      "index": 247,
+      "id": "Screenshot at Aug 26 13-51-01.png",
+      "label": "שאלה 247",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-51-01.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-03.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-05.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-09.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-12.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-51-01.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-51-03.png",
+        "before/Screenshot%20at%20Aug%2026%2013-51-05.png",
+        "before/Screenshot%20at%20Aug%2026%2013-51-09.png",
+        "before/Screenshot%20at%20Aug%2026%2013-51-12.png"
+      ]
+    },
+    {
+      "index": 248,
+      "id": "Screenshot at Aug 26 13-51-46.png",
+      "label": "שאלה 248",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-51-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-53.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-55.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-51-58.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-52-00.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-51-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-51-53.png",
+        "before/Screenshot%20at%20Aug%2026%2013-51-55.png",
+        "before/Screenshot%20at%20Aug%2026%2013-51-58.png",
+        "before/Screenshot%20at%20Aug%2026%2013-52-00.png"
+      ]
+    },
+    {
+      "index": 249,
+      "id": "Screenshot at Aug 26 13-52-27.png",
+      "label": "שאלה 249",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-52-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-52-30.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-52-33.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-52-35.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-52-37.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-52-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-52-30.png",
+        "before/Screenshot%20at%20Aug%2026%2013-52-33.png",
+        "before/Screenshot%20at%20Aug%2026%2013-52-35.png",
+        "before/Screenshot%20at%20Aug%2026%2013-52-37.png"
+      ]
+    },
+    {
+      "index": 250,
+      "id": "Screenshot at Aug 26 13-53-12.png",
+      "label": "שאלה 250",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-53-12.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-15.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-17.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-20.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-53-12.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-53-15.png",
+        "before/Screenshot%20at%20Aug%2026%2013-53-17.png",
+        "before/Screenshot%20at%20Aug%2026%2013-53-20.png",
+        "before/Screenshot%20at%20Aug%2026%2013-53-22.png"
+      ]
+    },
+    {
+      "index": 251,
+      "id": "Screenshot at Aug 26 13-53-50.png",
+      "label": "שאלה 251",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-53-50.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-55.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-53-58.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-54-01.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-54-03.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-53-50.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-53-55.png",
+        "before/Screenshot%20at%20Aug%2026%2013-53-58.png",
+        "before/Screenshot%20at%20Aug%2026%2013-54-01.png",
+        "before/Screenshot%20at%20Aug%2026%2013-54-03.png"
+      ]
+    },
+    {
+      "index": 252,
+      "id": "Screenshot at Aug 26 13-54-50.png",
+      "label": "שאלה 252",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-54-50.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-54-57.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-54-59.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-02.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-04.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-54-50.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-54-57.png",
+        "before/Screenshot%20at%20Aug%2026%2013-54-59.png",
+        "before/Screenshot%20at%20Aug%2026%2013-55-02.png",
+        "before/Screenshot%20at%20Aug%2026%2013-55-04.png"
+      ]
+    },
+    {
+      "index": 253,
+      "id": "Screenshot at Aug 26 13-55-39.png",
+      "label": "שאלה 253",
+      "question": "/media/original/Screenshot%20at%20Aug%2026%2013-55-39.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-45.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-48.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-52.png",
+        "/media/original/Screenshot%20at%20Aug%2026%2013-55-54.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Aug%2026%2013-55-39.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Aug%2026%2013-55-45.png",
+        "before/Screenshot%20at%20Aug%2026%2013-55-48.png",
+        "before/Screenshot%20at%20Aug%2026%2013-55-52.png",
+        "before/Screenshot%20at%20Aug%2026%2013-55-54.png"
+      ]
+    },
+    {
+      "index": 254,
+      "id": "Screenshot at Jul 20 11-33-42.png",
+      "label": "שאלה 254",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-33-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-01.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-05.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-09.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-12.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-33-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-34-01.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-05.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-09.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-12.png"
+      ]
+    },
+    {
+      "index": 255,
+      "id": "Screenshot at Jul 20 11-34-20.png",
+      "label": "שאלה 255",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-34-20.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-23.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-26.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-28.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-34-30.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-34-20.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-34-23.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-26.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-28.png",
+        "before/Screenshot%20at%20Jul%2020%2011-34-30.png"
+      ]
+    },
+    {
+      "index": 256,
+      "id": "Screenshot at Jul 20 11-36-09.png",
+      "label": "שאלה 256",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-36-09.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-36-27.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-36-29.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-36-32.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-36-34.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-36-09.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-36-27.png",
+        "before/Screenshot%20at%20Jul%2020%2011-36-29.png",
+        "before/Screenshot%20at%20Jul%2020%2011-36-32.png",
+        "before/Screenshot%20at%20Jul%2020%2011-36-34.png"
+      ]
+    },
+    {
+      "index": 257,
+      "id": "Screenshot at Jul 20 11-36-47.png",
+      "label": "שאלה 257",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-36-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-36-57.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-37-00.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-37-02.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-37-03.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-36-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-36-57.png",
+        "before/Screenshot%20at%20Jul%2020%2011-37-00.png",
+        "before/Screenshot%20at%20Jul%2020%2011-37-02.png",
+        "before/Screenshot%20at%20Jul%2020%2011-37-03.png"
+      ]
+    },
+    {
+      "index": 258,
+      "id": "Screenshot at Jul 20 11-38-17.png",
+      "label": "שאלה 258",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-38-17.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-19.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-21.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-26.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-28.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-38-17.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-38-19.png",
+        "before/Screenshot%20at%20Jul%2020%2011-38-21.png",
+        "before/Screenshot%20at%20Jul%2020%2011-38-26.png",
+        "before/Screenshot%20at%20Jul%2020%2011-38-28.png"
+      ]
+    },
+    {
+      "index": 259,
+      "id": "Screenshot at Jul 20 11-38-56.png",
+      "label": "שאלה 259",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-38-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-58.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-38-59.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-01.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-04.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-38-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-38-58.png",
+        "before/Screenshot%20at%20Jul%2020%2011-38-59.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-01.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-04.png"
+      ]
+    },
+    {
+      "index": 260,
+      "id": "Screenshot at Jul 20 11-39-11.png",
+      "label": "שאלה 260",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-39-11.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-14.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-16.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-19.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-21.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-39-11.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-39-14.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-16.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-19.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-21.png"
+      ]
+    },
+    {
+      "index": 261,
+      "id": "Screenshot at Jul 20 11-39-26.png",
+      "label": "שאלה 261",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-39-26.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-28.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-30.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-33.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-39-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-39-26.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-39-28.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-30.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-33.png",
+        "before/Screenshot%20at%20Jul%2020%2011-39-36.png"
+      ]
+    },
+    {
+      "index": 262,
+      "id": "Screenshot at Jul 20 11-40-27.png",
+      "label": "שאלה 262",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-40-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-40-45.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-40-48.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-40-50.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-40-52.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-40-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-40-45.png",
+        "before/Screenshot%20at%20Jul%2020%2011-40-48.png",
+        "before/Screenshot%20at%20Jul%2020%2011-40-50.png",
+        "before/Screenshot%20at%20Jul%2020%2011-40-52.png"
+      ]
+    },
+    {
+      "index": 263,
+      "id": "Screenshot at Jul 20 11-41-16.png",
+      "label": "שאלה 263",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-41-16.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-19.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-22.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-24.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-26.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-41-16.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-41-19.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-22.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-24.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-26.png"
+      ]
+    },
+    {
+      "index": 264,
+      "id": "Screenshot at Jul 20 11-41-30.png",
+      "label": "שאלה 264",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-41-30.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-35.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-37.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-39.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-41-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-41-30.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-41-35.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-37.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-39.png",
+        "before/Screenshot%20at%20Jul%2020%2011-41-42.png"
+      ]
+    },
+    {
+      "index": 265,
+      "id": "Screenshot at Jul 20 11-42-47.png",
+      "label": "שאלה 265",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-42-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-42-51.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-42-52.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-42-58.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-43-00.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-42-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-42-51.png",
+        "before/Screenshot%20at%20Jul%2020%2011-42-52.png",
+        "before/Screenshot%20at%20Jul%2020%2011-42-58.png",
+        "before/Screenshot%20at%20Jul%2020%2011-43-00.png"
+      ]
+    },
+    {
+      "index": 266,
+      "id": "Screenshot at Jul 20 11-45-12.png",
+      "label": "שאלה 266",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-45-12.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-15.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-18.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-20.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-22.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-45-12.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-45-15.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-18.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-20.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-22.png"
+      ]
+    },
+    {
+      "index": 267,
+      "id": "Screenshot at Jul 20 11-45-32.png",
+      "label": "שאלה 267",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-45-32.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-36.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-38.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-42.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-45-44.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-45-32.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-45-36.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-38.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-42.png",
+        "before/Screenshot%20at%20Jul%2020%2011-45-44.png"
+      ]
+    },
+    {
+      "index": 268,
+      "id": "Screenshot at Jul 20 11-48-06.png",
+      "label": "שאלה 268",
+      "question": "/media/original/Screenshot%20at%20Jul%2020%2011-48-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Jul%2020%2011-48-10.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-48-12.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-48-14.png",
+        "/media/original/Screenshot%20at%20Jul%2020%2011-48-16.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Jul%2020%2011-48-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Jul%2020%2011-48-10.png",
+        "before/Screenshot%20at%20Jul%2020%2011-48-12.png",
+        "before/Screenshot%20at%20Jul%2020%2011-48-14.png",
+        "before/Screenshot%20at%20Jul%2020%2011-48-16.png"
+      ]
+    },
+    {
+      "index": 269,
+      "id": "Screenshot at Nov 02 13-41-42.png",
+      "label": "שאלה 269",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-41-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-42-58.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-43-04.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-43-08.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-43-12.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-41-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-42-58.png",
+        "before/Screenshot%20at%20Nov%2002%2013-43-04.png",
+        "before/Screenshot%20at%20Nov%2002%2013-43-08.png",
+        "before/Screenshot%20at%20Nov%2002%2013-43-12.png"
+      ]
+    },
+    {
+      "index": 270,
+      "id": "Screenshot at Nov 02 13-43-38.png",
+      "label": "שאלה 270",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-43-38.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-44-49.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-44-56.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-45-01.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-45-08.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-43-38.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-44-49.png",
+        "before/Screenshot%20at%20Nov%2002%2013-44-56.png",
+        "before/Screenshot%20at%20Nov%2002%2013-45-01.png",
+        "before/Screenshot%20at%20Nov%2002%2013-45-08.png"
+      ]
+    },
+    {
+      "index": 271,
+      "id": "Screenshot at Nov 02 13-46-15.png",
+      "label": "שאלה 271",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-46-15.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-46-21.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-47-35.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-47-39.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-47-42.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-46-15.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-46-21.png",
+        "before/Screenshot%20at%20Nov%2002%2013-47-35.png",
+        "before/Screenshot%20at%20Nov%2002%2013-47-39.png",
+        "before/Screenshot%20at%20Nov%2002%2013-47-42.png"
+      ]
+    },
+    {
+      "index": 272,
+      "id": "Screenshot at Nov 02 13-51-22.png",
+      "label": "שאלה 272",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-51-22.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-51-27.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-51-39.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-51-42.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-51-46.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-51-22.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-51-27.png",
+        "before/Screenshot%20at%20Nov%2002%2013-51-39.png",
+        "before/Screenshot%20at%20Nov%2002%2013-51-42.png",
+        "before/Screenshot%20at%20Nov%2002%2013-51-46.png"
+      ]
+    },
+    {
+      "index": 273,
+      "id": "Screenshot at Nov 02 13-54-38.png",
+      "label": "שאלה 273",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-54-38.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-54-48.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-54-52.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-54-59.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-55-03.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-54-38.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-54-48.png",
+        "before/Screenshot%20at%20Nov%2002%2013-54-52.png",
+        "before/Screenshot%20at%20Nov%2002%2013-54-59.png",
+        "before/Screenshot%20at%20Nov%2002%2013-55-03.png"
+      ]
+    },
+    {
+      "index": 274,
+      "id": "Screenshot at Nov 02 13-55-37.png",
+      "label": "שאלה 274",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-55-37.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-55-40.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-55-52.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-55-55.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-56-04.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-55-37.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-55-40.png",
+        "before/Screenshot%20at%20Nov%2002%2013-55-52.png",
+        "before/Screenshot%20at%20Nov%2002%2013-55-55.png",
+        "before/Screenshot%20at%20Nov%2002%2013-56-04.png"
+      ]
+    },
+    {
+      "index": 275,
+      "id": "Screenshot at Nov 02 13-56-46.png",
+      "label": "שאלה 275",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-56-46.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2013-58-49.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-58-54.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-58-58.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2013-59-03.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-56-46.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2013-58-49.png",
+        "before/Screenshot%20at%20Nov%2002%2013-58-54.png",
+        "before/Screenshot%20at%20Nov%2002%2013-58-58.png",
+        "before/Screenshot%20at%20Nov%2002%2013-59-03.png"
+      ]
+    },
+    {
+      "index": 276,
+      "id": "Screenshot at Nov 02 13-59-47.png",
+      "label": "שאלה 276",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2013-59-47.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2014-00-23.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-00-28.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-00-33.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-00-36.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2013-59-47.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2014-00-23.png",
+        "before/Screenshot%20at%20Nov%2002%2014-00-28.png",
+        "before/Screenshot%20at%20Nov%2002%2014-00-33.png",
+        "before/Screenshot%20at%20Nov%2002%2014-00-36.png"
+      ]
+    },
+    {
+      "index": 277,
+      "id": "Screenshot at Nov 02 14-01-33.png",
+      "label": "שאלה 277",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2014-01-33.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2014-01-41.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-01-45.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-01-52.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-01-57.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2014-01-33.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2014-01-41.png",
+        "before/Screenshot%20at%20Nov%2002%2014-01-45.png",
+        "before/Screenshot%20at%20Nov%2002%2014-01-52.png",
+        "before/Screenshot%20at%20Nov%2002%2014-01-57.png"
+      ]
+    },
+    {
+      "index": 278,
+      "id": "Screenshot at Nov 02 14-04-36.png",
+      "label": "שאלה 278",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2014-04-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2014-07-18.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-07-23.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-07-27.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-07-30.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2014-04-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2014-07-18.png",
+        "before/Screenshot%20at%20Nov%2002%2014-07-23.png",
+        "before/Screenshot%20at%20Nov%2002%2014-07-27.png",
+        "before/Screenshot%20at%20Nov%2002%2014-07-30.png"
+      ]
+    },
+    {
+      "index": 279,
+      "id": "Screenshot at Nov 02 14-08-18.png",
+      "label": "שאלה 279",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2014-08-18.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2014-08-34.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-08-42.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-08-46.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-08-51.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2014-08-18.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2014-08-34.png",
+        "before/Screenshot%20at%20Nov%2002%2014-08-42.png",
+        "before/Screenshot%20at%20Nov%2002%2014-08-46.png",
+        "before/Screenshot%20at%20Nov%2002%2014-08-51.png"
+      ]
+    },
+    {
+      "index": 280,
+      "id": "Screenshot at Nov 02 14-10-04.png",
+      "label": "שאלה 280",
+      "question": "/media/original/Screenshot%20at%20Nov%2002%2014-10-04.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Nov%2002%2014-10-09.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-10-12.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-10-17.png",
+        "/media/original/Screenshot%20at%20Nov%2002%2014-10-20.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Nov%2002%2014-10-04.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Nov%2002%2014-10-09.png",
+        "before/Screenshot%20at%20Nov%2002%2014-10-12.png",
+        "before/Screenshot%20at%20Nov%2002%2014-10-17.png",
+        "before/Screenshot%20at%20Nov%2002%2014-10-20.png"
+      ]
+    },
+    {
+      "index": 281,
+      "id": "Screenshot at Sep 30 16-40-50.png",
+      "label": "שאלה 281",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-40-50.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-41-01.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-41-06.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-41-08.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-41-18.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-40-50.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-41-01.png",
+        "before/Screenshot%20at%20Sep%2030%2016-41-06.png",
+        "before/Screenshot%20at%20Sep%2030%2016-41-08.png",
+        "before/Screenshot%20at%20Sep%2030%2016-41-18.png"
+      ]
+    },
+    {
+      "index": 282,
+      "id": "Screenshot at Sep 30 16-41-29.png",
+      "label": "שאלה 282",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-41-29.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-42-51.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-42-52.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-42-54.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-42-59.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-41-29.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-42-51.png",
+        "before/Screenshot%20at%20Sep%2030%2016-42-52.png",
+        "before/Screenshot%20at%20Sep%2030%2016-42-54.png",
+        "before/Screenshot%20at%20Sep%2030%2016-42-59.png"
+      ]
+    },
+    {
+      "index": 283,
+      "id": "Screenshot at Sep 30 16-43-09.png",
+      "label": "שאלה 283",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-43-09.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-15.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-19.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-27.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-29.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-43-09.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-43-15.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-19.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-27.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-29.png"
+      ]
+    },
+    {
+      "index": 284,
+      "id": "Screenshot at Sep 30 16-43-43.png",
+      "label": "שאלה 284",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-43-43.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-48.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-51.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-52.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-43-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-43-43.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-43-48.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-51.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-52.png",
+        "before/Screenshot%20at%20Sep%2030%2016-43-55.png"
+      ]
+    },
+    {
+      "index": 285,
+      "id": "Screenshot at Sep 30 16-44-03.png",
+      "label": "שאלה 285",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-44-03.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-08.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-12.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-14.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-17.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-44-03.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-44-08.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-12.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-14.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-17.png"
+      ]
+    },
+    {
+      "index": 286,
+      "id": "Screenshot at Sep 30 16-44-28.png",
+      "label": "שאלה 286",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-44-28.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-40.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-44.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-46.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-44-49.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-44-28.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-44-40.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-44.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-46.png",
+        "before/Screenshot%20at%20Sep%2030%2016-44-49.png"
+      ]
+    },
+    {
+      "index": 287,
+      "id": "Screenshot at Sep 30 16-44-56.png",
+      "label": "שאלה 287",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-44-56.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-45-03.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-45-05.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-45-08.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-45-10.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-44-56.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-45-03.png",
+        "before/Screenshot%20at%20Sep%2030%2016-45-05.png",
+        "before/Screenshot%20at%20Sep%2030%2016-45-08.png",
+        "before/Screenshot%20at%20Sep%2030%2016-45-10.png"
+      ]
+    },
+    {
+      "index": 288,
+      "id": "Screenshot at Sep 30 16-45-23.png",
+      "label": "שאלה 288",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-45-23.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-51-41.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-51-46.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-51-53.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-51-55.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-45-23.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-51-41.png",
+        "before/Screenshot%20at%20Sep%2030%2016-51-46.png",
+        "before/Screenshot%20at%20Sep%2030%2016-51-53.png",
+        "before/Screenshot%20at%20Sep%2030%2016-51-55.png"
+      ]
+    },
+    {
+      "index": 289,
+      "id": "Screenshot at Sep 30 16-52-57.png",
+      "label": "שאלה 289",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-52-57.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-07.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-09.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-12.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-16.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-52-57.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-53-07.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-09.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-12.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-16.png"
+      ]
+    },
+    {
+      "index": 290,
+      "id": "Screenshot at Sep 30 16-53-26.png",
+      "label": "שאלה 290",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-53-26.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-31.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-33.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-35.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-38.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-53-26.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-53-31.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-33.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-35.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-38.png"
+      ]
+    },
+    {
+      "index": 291,
+      "id": "Screenshot at Sep 30 16-53-42.png",
+      "label": "שאלה 291",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-53-42.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-53.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-55.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-53-59.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-02.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-53-42.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-53-53.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-55.png",
+        "before/Screenshot%20at%20Sep%2030%2016-53-59.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-02.png"
+      ]
+    },
+    {
+      "index": 292,
+      "id": "Screenshot at Sep 30 16-54-11.png",
+      "label": "שאלה 292",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-54-11.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-17.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-20.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-22.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-26.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-54-11.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-54-17.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-20.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-22.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-26.png"
+      ]
+    },
+    {
+      "index": 293,
+      "id": "Screenshot at Sep 30 16-54-36.png",
+      "label": "שאלה 293",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-54-36.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-48.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-52.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-54-57.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-00.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-54-36.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-54-48.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-52.png",
+        "before/Screenshot%20at%20Sep%2030%2016-54-57.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-00.png"
+      ]
+    },
+    {
+      "index": 294,
+      "id": "Screenshot at Sep 30 16-55-06.png",
+      "label": "שאלה 294",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-55-06.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-10.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-13.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-16.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-19.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-55-06.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-55-10.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-13.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-16.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-19.png"
+      ]
+    },
+    {
+      "index": 295,
+      "id": "Screenshot at Sep 30 16-55-27.png",
+      "label": "שאלה 295",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-55-27.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-33.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-35.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-37.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-40.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-55-27.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-55-33.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-35.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-37.png",
+        "before/Screenshot%20at%20Sep%2030%2016-55-40.png"
+      ]
+    },
+    {
+      "index": 296,
+      "id": "Screenshot at Sep 30 16-55-52.png",
+      "label": "שאלה 296",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-55-52.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-55-56.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-08.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-18.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-21.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-55-52.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-55-56.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-08.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-18.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-21.png"
+      ]
+    },
+    {
+      "index": 297,
+      "id": "Screenshot at Sep 30 16-56-35.png",
+      "label": "שאלה 297",
+      "question": "/media/original/Screenshot%20at%20Sep%2030%2016-56-35.png",
+      "answers": [
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-50.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-51.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-56.png",
+        "/media/original/Screenshot%20at%20Sep%2030%2016-56-59.png"
+      ],
+      "beforeQuestion": "before/Screenshot%20at%20Sep%2030%2016-56-35.png",
+      "beforeAnswers": [
+        "before/Screenshot%20at%20Sep%2030%2016-56-50.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-51.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-56.png",
+        "before/Screenshot%20at%20Sep%2030%2016-56-59.png"
       ]
     }
   ]
