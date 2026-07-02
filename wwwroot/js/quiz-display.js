@@ -1,12 +1,14 @@
 (function () {
-    /** Same pattern as demo/normalize-preview: set src, remeasure on load — never clear maxHeight inline. */
+    /** Demo pattern: onload → adjust, then set src, then complete check. */
     function setQuestionImage(mainImg, url, modalImg) {
         if (!mainImg || !url) return;
 
         const adjust = () => window.QuizViewport?.scheduleQuizViewportAdjust?.();
-        window.QuizViewport?.bindQuestionImageLoad?.(mainImg, adjust);
+        mainImg.onload = adjust;
+        mainImg.onerror = adjust;
         mainImg.src = url;
         if (modalImg) modalImg.src = url;
+        if (mainImg.complete) adjust();
     }
 
     window.QuizDisplay = { setQuestionImage };

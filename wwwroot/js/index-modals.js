@@ -25,6 +25,7 @@
     }
 
     function continueAfterWelcome() {
+        window.IndexModals?.bindAppNotice?.();
         openFeedbackModalIfPending();
         openGitHubStarModalIfPending();
     }
@@ -99,6 +100,24 @@
         });
     }
 
+    async function dismissAppNotice() {
+        const modal = document.getElementById("app-notice-modal");
+        const prompt = document.getElementById("app-notice-prompt");
+        if (!modal) return;
+        modal.classList.remove("difficulty-modal-open");
+        const noticeId = prompt?.dataset.noticeId;
+        if (!noticeId) return;
+        if (isPromptHandled(`notice:${noticeId}`)) {
+            prompt?.remove();
+            return;
+        }
+        const ok = await dismissNoticeImmediate(noticeId);
+        if (ok) {
+            markPromptHandled(`notice:${noticeId}`);
+            prompt?.remove();
+        }
+    }
+
     function logPromptShown(prompt, details = {}) {
         window.RequestChannels.backgroundFetch("/api/activity/prompt-shown", {
             method: "POST",
@@ -156,7 +175,7 @@
             openGitHubStarModalIfPending();
             return;
         }
-        if (prompt.dataset.hasWelcome === "1") return;
+        if (prompt.dataset.hasNotice === "1" || prompt.dataset.hasWelcome === "1") return;
         modal.classList.add("difficulty-modal-open");
     }
 
@@ -198,7 +217,7 @@
         if (hasWelcomePending()) return;
         const prompt = document.getElementById("github-star-prompt");
         if (!prompt) return;
-        if (prompt.dataset.hasWelcome === "1") return;
+        if (prompt.dataset.hasNotice === "1" || prompt.dataset.hasWelcome === "1") return;
         if (!skipFeedbackCheck && prompt.dataset.hasFeedback === "1") return;
         openGitHubStarModal(
             parseInt(prompt.dataset.milestone, 10),
@@ -210,6 +229,7 @@
         window.IndexPage?.closeImageModal?.();
         window.IndexPage?.closeAppDialog?.();
         closePracticeOptionsModal();
+        dismissAppNotice();
         const modal = document.getElementById("difficulty-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
     }
@@ -223,6 +243,7 @@
         window.IndexPage?.closeImageModal?.();
         window.IndexPage?.closeAppDialog?.();
         closeDifficultyModal();
+        dismissAppNotice();
         const modal = document.getElementById("practice-options-modal");
         if (modal) modal.classList.add("difficulty-modal-open");
     }
@@ -230,6 +251,40 @@
     function closePracticeOptionsModal() {
         const modal = document.getElementById("practice-options-modal");
         if (modal) modal.classList.remove("difficulty-modal-open");
+    }
+    function bindDismissHandler(element, dismiss) {
+        if (element) element.addEventListener("click", dismiss);
+    }
+
+    function bindAppNotice() {
+        const prompt = document.getElementById("app-notice-prompt");
+        if (!prompt) return;
+
+        const noticeId = prompt.dataset.noticeId;
+        const modal = document.getElementById("app-notice-modal");
+        if (!modal || !noticeId) return;
+
+        if (isPromptHandled(`notice:${noticeId}`)) {
+            prompt.remove();
+            openFeedbackModalIfPending();
+            openGitHubStarModalIfPending();
+            return;
+        }
+
+        modal.classList.add("difficulty-modal-open");
+        logPromptShown("app_notice", { noticeId });
+
+        const dismiss = async () => {
+            await dismissAppNotice();
+            openFeedbackModalIfPending();
+            openGitHubStarModalIfPending();
+        };
+
+        bindDismissHandler(document.getElementById("app-notice-dismiss-btn"), dismiss);
+        bindDismissHandler(document.getElementById("close-app-notice-btn"), dismiss);
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) dismiss();
+        });
     }
 
     async function showAppAlertIfAvailable(message) {
@@ -319,7 +374,7 @@
 
     function openFeedbackOnLoad() {
         const prompt = document.getElementById("feedback-prompt");
-        if (prompt?.dataset.campaignId && prompt.dataset.hasWelcome !== "1") {
+        if (prompt?.dataset.campaignId && prompt.dataset.hasNotice !== "1" && prompt.dataset.hasWelcome !== "1") {
             openFeedbackModalIfPending();
         } else {
             openGitHubStarModalIfPending();
@@ -427,6 +482,7 @@
         openPracticeOptionsModal,
         closePracticeOptionsModal,
         bindWelcomeModal,
+        bindAppNotice,
         bindFeedbackModal,
         bindGitHubStarModal,
         bindDifficultyChoices

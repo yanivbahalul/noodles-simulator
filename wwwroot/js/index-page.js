@@ -473,6 +473,7 @@
         window.IndexQuiz?.bindNextQuestion?.();
         bindReportForm();
         window.IndexModals?.bindWelcomeModal?.();
+        window.IndexModals?.bindAppNotice?.();
         window.IndexModals?.bindFeedbackModal?.();
         window.IndexModals?.bindGitHubStarModal?.();
         window.IndexModals?.bindDifficultyChoices?.();

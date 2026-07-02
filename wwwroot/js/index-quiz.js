@@ -82,6 +82,8 @@
         window.IndexPage?.applyAnswerSideEffects?.(data);
 
         syncReportFormFromAnswerResult(data);
+        const pageData = document.getElementById("quiz-page-data");
+        if (pageData) pageData.dataset.hasExplanation = data.hasExplanation ? "1" : "0";
         const questionId = document.getElementById("quiz-question-image")?.value ?? "";
         if (questionId && data.hasExplanation) {
             window.QuestionExplanation?.showIfAvailable?.(questionId, !!data.isCorrect, true);
@@ -193,11 +195,7 @@
         answerChecked = true;
     }
 
-    async function recoverQuizAnswerSubmitError(responseReceived, form, submitter) {
-        if (!responseReceived) {
-            form.requestSubmit(submitter);
-            return;
-        }
+    async function recoverQuizAnswerSubmitError() {
         if (window.showAppToast) {
             window.showAppToast("שגיאה בשליחת התשובה. נסה שוב.");
         } else if (window.showAppAlert) {
@@ -211,25 +209,23 @@
         }
     }
 
-    async function runQuizAnswerRequest(payload, form) {
-        let responseReceived = false;
+    async function runQuizAnswerRequest(payload) {
         try {
             const { res, data } = await submitQuizAnswer(
                 payload.questionImage,
                 payload.answer,
                 getAntiForgeryToken()
             );
-            responseReceived = true;
             processQuizAnswerResponse(res, data);
         } catch {
-            await recoverQuizAnswerSubmitError(responseReceived, form, payload.submitter);
+            await recoverQuizAnswerSubmitError();
         }
     }
 
     async function submitQuizAnswerWithBusyState(payload, form) {
         setQuizBusy(true, { silent: true });
         try {
-            await runQuizAnswerRequest(payload, form);
+            await runQuizAnswerRequest(payload);
         } finally {
             setQuizBusy(false);
             if (answerChecked) lockAnswerButtonsAfterCheck();

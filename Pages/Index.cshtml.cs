@@ -251,7 +251,7 @@ public class IndexModel : PageModel
                 await TryRestoreAnswerFlashAsync();
                 await ApplyUserStatsFromProgressAsync(auth.User);
                 NewlyUnlockedAchievements = new List<string>();
-                HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
+                HasExplanation = await ResolveHasExplanationAsync(QuestionImage);
                 return new JsonResult(BuildSubmitAnswerResponse());
             }
 
@@ -271,7 +271,7 @@ public class IndexModel : PageModel
             SaveAnswerFlash();
             _practiceQuiz?.ClearPrefetch(HttpContext.Session);
             await ApplyUserStatsFromProgressAsync(auth.User);
-            HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
+            HasExplanation = await ResolveHasExplanationAsync(QuestionImage);
             return new JsonResult(BuildSubmitAnswerResponse());
         }
         catch (Exception ex)
@@ -461,8 +461,15 @@ public class IndexModel : PageModel
         var display = await _practiceQuiz.BuildDisplayAsync(QuestionImage, ShuffledAnswers, CorrectAnswerKey);
         ApplyQuestionDisplay(display);
         SavePracticeQuestionState();
-        HasExplanation = _explanations?.TryHasReadyExplanation(QuestionImage) == true;
+        HasExplanation = await ResolveHasExplanationAsync(QuestionImage);
         return true;
+    }
+
+    private async Task<bool> ResolveHasExplanationAsync(string? questionImage)
+    {
+        if (_explanations == null || string.IsNullOrWhiteSpace(questionImage))
+            return false;
+        return await _explanations.HasReadyExplanationAsync(questionImage);
     }
 
     private async Task<IActionResult> HandleResetPostAsync(User user)
